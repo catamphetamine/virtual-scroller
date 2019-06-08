@@ -1,0 +1,64 @@
+{
+  "name": "virtual-scroller",
+  "version": "1.0.0",
+  "description": "An open-source implementation of Twitter's VirtualScroller component.",
+  "main": "index.commonjs.js",
+  "module": "index.js",
+  "sideEffects": [
+    "*.css"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.0.0",
+    "@babel/node": "^7.2.2",
+    "@babel/plugin-proposal-class-properties": "^7.0.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.2.0",
+    "@babel/plugin-transform-destructuring": "^7.1.2",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-react": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "autoprefixer": "^9.5.0",
+    "babel-eslint": "^9.0.0",
+    "babel-loader": "^8.0.1",
+    "babel-plugin-istanbul": "^5.1.1",
+    "cross-env": "^5.1.4",
+    "npm-run-all": "^1.4.0",
+    "postcss": "^7.0.14",
+    "postcss-custom-properties": "^8.0.10",
+    "rimraf": "^2.5.0",
+    "rollup": "^1.9.0",
+    "rollup-plugin-commonjs": "^9.3.4",
+    "rollup-plugin-node-resolve": "^4.2.3",
+    "rollup-plugin-terser": "^4.0.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\"",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls",
+    "build:browser": "rollup --config rollup.config.js",
+    "build:clean": "rimraf ./commonjs/**/* ./modules/**/*",
+    "build:commonjs": "cross-env babel ./source --out-dir ./commonjs --source-maps --ignore *.test.js",
+    "build:es6": "cross-env BABEL_ENV=es6 babel ./source --out-dir ./modules --source-maps --ignore *.test.js",
+    "build": "npm-run-all build:clean build:commonjs build:es6 build:browser",
+    "prepublish": "npm-run-all build test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catamphetamine/virtual-scroller.git"
+  },
+  "keywords": [
+    "virtual-scroller",
+    "virtualscroller",
+    "virtual",
+    "scroller",
+    "infinite",
+    "scroll"
+  ],
+  "author": "catamphetamine <purecatamphetamine@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/catamphetamine/virtual-scroller/issues"
+  },
+  "homepage": "https://github.com/catamphetamine/virtual-scroller#readme"
+}

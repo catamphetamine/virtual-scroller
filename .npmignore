@@ -1,0 +1,43 @@
+# git
+.gitignore
+.gitattributes
+
+# Babel
+.babelrc
+
+# testing package
+/virtual-scroller-*.tgz
+
+# Travis CI
+.travis.yml
+
+# test coverage folder
+/coverage/
+/.nyc_output/
+.nycrc
+
+# npm errors
+npm-debug.log
+
+# for OS X users
+.DS_Store
+
+# cache files for sublime text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+
+# workspace files are user-specific
+*.sublime-workspace
+*.sublime-project
+
+# Rollup is used for bundling
+/rollup.config.js
+
+# tests aren't needed for npm
+/test/
+
+# Demo.
+/bundle/index.html
+/bundle/index-react.html
+/bundle/style.css
