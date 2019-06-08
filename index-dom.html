@@ -111,11 +111,7 @@
 			const onShowNext = () => {
 				const { fromIndex } = state
 				let { toIndex } = state
-				console.log('@@@@@@@@@@@@@ fromIndex', fromIndex)
-				console.log('@@@@@@@@@@@@@ toIndex', toIndex)
 				toIndex = Math.min(toIndex + BATCH_SIZE, messages.length - 1)
-				console.log('@@@@@@@@@@@@@2 fromIndex', fromIndex)
-				console.log('@@@@@@@@@@@@@2 toIndex', toIndex)
 				setState({
 					toIndex,
 					messages: messages.slice(fromIndex, toIndex + 1)
