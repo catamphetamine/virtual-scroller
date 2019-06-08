@@ -687,7 +687,7 @@ export default class VirtualScroller {
 	}
 
 	/**
-	 * Updates `items`. Can either prepend or append new items to the list.
+	 * Updates `items`. For example, can prepend or append new items to the list.
 	 * @param  {any[]} newItems
 	 */
 	updateItems(newItems) { // , newCustomState) {
@@ -913,8 +913,7 @@ export function getItemsDiff(previousItems, newItems) {
 	if (previousItems.length > 0) {
 		firstPreviousItemIndex = newItems.indexOf(previousItems[0])
 		if (firstPreviousItemIndex >= 0) {
-			if (newItems.length >= firstPreviousItemIndex + previousItems.length &&
-				newItems[firstPreviousItemIndex + previousItems.length - 1] === previousItems[previousItems.length - 1]) {
+			if (arePreviousItemsPreserved(previousItems, newItems, firstPreviousItemIndex)) {
 				lastPreviousItemIndex = firstPreviousItemIndex + previousItems.length - 1
 			}
 		}
@@ -930,4 +929,19 @@ export function getItemsDiff(previousItems, newItems) {
 		prependedItemsCount: -1,
 		appendedItemsCount: -1
 	}
+}
+
+function arePreviousItemsPreserved(previousItems, newItems, offset) {
+	// Check each item of the `previousItems` to determine
+	// whether it's an "incremental" items update.
+	// (an update when items are prepended or appended)
+	let i = 0
+	while (i < previousItems.length) {
+		if (newItems.length <= offset + i ||
+			newItems[offset + i] !== previousItems[i]) {
+			return false
+		}
+		i++
+	}
+	return true
 }

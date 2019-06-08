@@ -86,7 +86,7 @@ Available `options`:
 * `getState()` — Returns `VirtualScroller` state. Is used for React `VirtualScroller` component implementation.
 * `onItemStateChange(i, itemState)` — Can be used to update a list item's state. Is used in React `VirtualScroller` component  for preserving the state of components which are to be hidden for later restoring their state when they're visible again. For example, consider an "Expand YouTube Video" button: the video must stay expanded as the item is "unmounted" when it's no longer visible and then re-"mounted" when it's visible again.
 * `onItemHeightChange(i)` — Can be called whenever a list item's height changes. For example, when a user clicks "Expand"/"Collapse" button. This allows `VirtualScroller` to re-measure the item's height and re-render correctly (until all browsers implement [Resize Observer](https://caniuse.com/#search=Resize%20Observer)). This is only required when an item shrinks in height. For example, consider a post with an "Expand"/"Collapse" button: when such post is expanded the next posts in the feed might not be visible yet but if a user clicks the "Collapse" button the post is collapsed and the next posts become visible but they're not yet rendered because `VirtualScroller` didn't render them previously due to them being invisible. Calling `onItemHeightChange(i)` in such case would make `VirtualScroller` re-measure the collapsed post height and re-calculate the layout.
-* `updateItems(newItems, options)` — Can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details.
+* `updateItems(newItems, options)` — Updates `VirtualScroller` `items`. For example, can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details.
 
 `VirtualScroller` state provides properties:
 
@@ -257,7 +257,7 @@ class Example extends React.Component {
 
 ## Dynamically Loaded Lists
 
-The previous examples showcase a static `items` list. For cases when new items are loaded when the user clicks "Show previous" / "Show next" buttons `virtualScroller.updateItems(newItems)` method can be used where `newItems` are `items.concat(nextItems)` or `previousItems.concat(items)`. `virtual-scroller/react` will automatically call `.updateItems(newItems)` when new `items` property is passed, and `virtual-scroller/dom` provides a manual `.updateItems(newItems)` method same as `VirtualScroller`.
+The previous examples showcase a static `items` list. For cases when new items are loaded when the user clicks "Show previous" / "Show next" buttons `virtualScroller.updateItems(newItems)` method can be used where `newItems` will be `previousItems.concat(items)` for "Show previous" button and `items.concat(nextItems)` for "Show next" button. `virtual-scroller/react` will automatically call `.updateItems(newItems)` when new `items` property is passed, and `virtual-scroller/dom` provides a manual `.updateItems(newItems)` method same as `VirtualScroller`.
 
 <!--
 `virtualScroller.updateItems(newItems)` also receives an optional second `options` argument having shape `{ state }` where `state` can be used for updating "custom state" previously set in `getInitialState(customState)` and can be an `object` or a function `(previousState, { prependedCount, appendedCount }) => object`. If the items update is not incremental (i.e. if `newItems` doesn't contain previous `items`) then both `prependedCount` and `appendedCount` will be `undefined`.
