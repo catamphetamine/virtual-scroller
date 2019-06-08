@@ -689,9 +689,9 @@ export default class VirtualScroller {
 	/**
 	 * Updates `items`. Can either prepend or append new items to the list.
 	 * @param  {any[]} newItems
-	 * @param  {object} [newCustomState] — If `customState` was passed to `getInitialState()`, this `newCustomState` updates it.
 	 */
-	updateItems(newItems, newCustomState) {
+	updateItems(newItems) { // , newCustomState) {
+		// * @param  {object} [newCustomState] — If `customState` was passed to `getInitialState()`, this `newCustomState` updates it.
 		const {
 			items: previousItems
 		} = this.getState()
@@ -754,16 +754,17 @@ export default class VirtualScroller {
 			afterItemsHeight = 0
 		}
 		let customState
-		if (newCustomState) {
-			if (typeof newCustomState === 'function') {
-				customState = newCustomState(this.getState(), {
-					prependedCount: isIncrementalUpdate ? undefined : prependedItemsCount,
-					appendedCount: isIncrementalUpdate ? undefined : appendedItemsCount
-				})
-			} else {
-				customState = newCustomState
-			}
-		}
+		// `newCustomState` argument is not currently being used.
+		// if (newCustomState) {
+		// 	if (typeof newCustomState === 'function') {
+		// 		customState = newCustomState(this.getState(), {
+		// 			prependedCount: isIncrementalUpdate ? undefined : prependedItemsCount,
+		// 			appendedCount: isIncrementalUpdate ? undefined : appendedItemsCount
+		// 		})
+		// 	} else {
+		// 		customState = newCustomState
+		// 	}
+		// }
 		this.setState({
 			...customState,
 			items: newItems,
