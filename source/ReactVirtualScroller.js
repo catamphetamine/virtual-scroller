@@ -64,9 +64,9 @@ export default class ReactVirtualScroller extends React.Component {
 			onLastSeenItemIndexChange,
 			onStateChange
 		} = this.props
-		// `this.previousItems` are only used for comparing
+		// `this.previousItemsProperty` is only used for comparing
 		// `previousItems` with `newItems` in `render()`.
-		this.previousItems = items
+		this.previousItemsProperty = items
 		// Create `virtual-scroller` instance.
 		this.virtualScroller = new VirtualScroller(
 			() => this.container.current,
@@ -129,15 +129,22 @@ export default class ReactVirtualScroller extends React.Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		const { items, onStateChange } = this.props
-		this.virtualScroller.onUpdate(prevState)
-		if (items !== prevProps.items) {
-			this.virtualScroller.updateItems(items)
-		}
+		const { onStateChange } = this.props
+		// An application may choose to track `virtual-scroller` state
+		// for later restoring it on "Back" navigation.
 		if (onStateChange) {
 			if (!shallowEqual(this.state, prevState)) {
 				onStateChange(this.state, prevState)
 			}
+		}
+		// Re-measure rendered items' heights.
+		this.virtualScroller.onUpdate(prevState)
+		// If `items` property did change then update `virtual-scroller` items.
+		// This could have been done in `.render()` but `.updateItems()` calls
+		// `.setState()` internally which would result in React throwing an error.
+		const { items } = this.props
+		if (items !== prevProps.items) {
+			this.virtualScroller.updateItems(items)
 		}
 	}
 
@@ -203,13 +210,17 @@ export default class ReactVirtualScroller extends React.Component {
 		// rather than later in `componentDidUpdate()`.
 		//
 		const newItems = this.props.items
-		// `this.state` is already reserved for `virtual-scroller`.
-		// const previousItems = this.state.prevProps.items
-		const previousItems = this.previousItems
-		this.previousItems = newItems
-		// Comparing `this.props.items` to `this.virtualScroller.getState().items`
-		// won't work for cases when `initialState.items` are passed.
-		if (newItems !== previousItems) {
+		const previousItems = items // this.virtualScroller.getState().items
+		// There's one case when `newItems !== previousItems` is `true`
+		// from the start: when `initialState.items` are passed.
+		// To handle that single case `this.previousItemsProperty`
+		// is tracked and `this.itemsPropertyHasChanged` flag is set.
+		if (!this.itemsPropertyWasChanged) {
+			this.itemsPropertyWasChanged = this.props.items !== this.previousItemsProperty
+		}
+		this.previousItemsProperty = this.props.items
+		if (this.itemsPropertyWasChanged && newItems !== previousItems) {
+			console.log('@@@@@@@@@@@@@@@@@@@@@')
 			const {
 				prependedItemsCount,
 				appendedItemsCount
@@ -219,11 +230,12 @@ export default class ReactVirtualScroller extends React.Component {
 				// then no need to re-generate the prefix
 				// and to fix scroll position and to clear caches.
 			} else {
-				this.generateUniquePrefix()
 				this.virtualScroller.captureScroll(
 					previousItems,
 					newItems
 				)
+				// Reset the unique `key` prefix for item component keys.
+				this.generateUniquePrefix()
 				// Reset handler function caches.
 				this.onItemStateChange = new Array(newItems.length)
 				this.onItemHeightChange = new Array(newItems.length)
