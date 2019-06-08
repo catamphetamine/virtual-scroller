@@ -1,0 +1,125 @@
+body {
+	margin: 0;
+	font-family: sans-serif;
+	font-size: 20px;
+	color: rgb(20, 23, 26);
+	background-color: rgb(230, 236, 240);
+}
+
+h1 {
+	display: flex;
+	align-items: center;
+	margin-left: 40px;
+	margin-right: 40px;
+	font-weight: normal;
+}
+
+p {
+	line-height: 1.35;
+}
+
+.container {
+	width: 100%;
+	max-width: 720px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* This `border-top` for `:first-child` didn't actually work
+   for restoring scroll position after prepending items via `.updateItems()`. */
+/*
+.feed-message:first-child {
+	border-top: 2px solid rgb(230, 236, 240);
+}
+*/
+/* Using `border-top` on `#messages` instead. */
+#messages {
+	border-top: 2px solid rgb(230, 236, 240);
+}
+
+.feed-message {
+	padding: 40px;
+	border-bottom: 2px solid rgb(230, 236, 240);
+	background-color: white;
+}
+
+.feed-message a {
+	font-weight: bold;
+	text-decoration: none;
+	color: rgba(29,161,242,1.00);
+}
+
+.feed-message time {
+	color: #a0a0a0;
+	font-size: 85%;
+}
+
+.feed-message time:before {
+	display: inline-block;
+	content: '·';
+	margin-left: 0.4em;
+	margin-right: 0.4em;
+}
+
+.feed-message p {
+	margin-top: 20px;
+	margin-bottom: 0;
+}
+
+footer {
+	margin-top: 40px;
+	margin-bottom: 30px;
+	text-align: center;
+	color: #a0a0a0;
+}
+
+.twitter-logo {
+	width: 28px;
+	height: 28px;
+	margin-right: 0.5em;
+}
+
+/* For testing inter-item spacing. */
+/*
+.feed-message {
+	margin-top: 40px;
+	background: #f9f9f9;
+}
+.feed-message:first-child {
+	margin-top: 0px;
+}
+*/
+
+.load-items-button {
+	/* Button style reset. */
+	margin: 0;
+	padding: 0;
+	white-space: nowrap;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-size: inherit;
+	font-family: inherit;
+	font-weight: inherit;
+	font-style: inherit;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	outline: none;
+	/* Styles. */
+	display: block;
+	width: 100%;
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+	color: rgb(29, 161, 242);
+}
+
+.load-items-button:hover,
+.load-items-button:focus {
+	/*background-color: rgb(245, 248, 250);*/
+	background-color: rgb(235, 241, 245);
+}
