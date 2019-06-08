@@ -220,7 +220,6 @@ export default class ReactVirtualScroller extends React.Component {
 		}
 		this.previousItemsProperty = this.props.items
 		if (this.itemsPropertyWasChanged && newItems !== previousItems) {
-			console.log('@@@@@@@@@@@@@@@@@@@@@')
 			const {
 				prependedItemsCount,
 				appendedItemsCount
