@@ -76,7 +76,7 @@ Available `options`:
 * `getState()` — Returns `VirtualScroller` `state`. Is used for React `VirtualScroller` component implementation.
 * `setState()` — Stores `VirtualScroller` `state` (including setting the initial `state`). The `state` must reflect what's currently rendered on screen. Is used for React `VirtualScroller` component implementation.
 * `onStateChange(newState, prevState)` — Is called whenever `VirtualScroller` `state` is updated (including setting the initial `state`) if `getState()` and `setState()` properties aren't defined.
-* `onLastSeenItemIndexChange(i)` — Can be used to track the last "seen" item index. For example, consider a list of items that must be somehow preprocessed before being rendered and such preprocessing takes some time. In this case instead of preprocessing the whole list of items upfront a developer could only preprocess the items as they're being rendered.
+* `onLastSeenItemIndexChange(newLastSeenItemIndex, previousLastSeenItemIndex)` — Can be used to track the last "seen" item index. For example, consider a list of items that must be somehow preprocessed before being rendered and such preprocessing takes some time. In this case instead of preprocessing the whole list of items upfront a developer could only preprocess the items as they're being rendered. `onLastSeenItemIndexChange()` is called initially when a `VirtualScroller` instance is created with `previousLastSeenItemIndex` being `-1` (including the cases when `initialState` is passed).
 
 `VirtualScroller` class instance provides methods:
 
@@ -158,6 +158,7 @@ const virtualScroller = new VirtualScroller(
 * `updateItems(items, options)` — A proxy for the corresponding `VirtualScroller` method.
 * `onItemHeightChange(i)` — A proxy for the corresponding `VirtualScroller` method.
 * `onItemStateChange(i, itemState)` — A proxy for the corresponding `VirtualScroller` method.
+* `onLastSeenItemIndexChange(newLastSeenItemIndex, previousLastSeenItemIndex)` — A proxy for the corresponding `VirtualScroller` method.
 
 Additional `options`:
 
@@ -223,7 +224,7 @@ Message.propTypes = {
 * `itemComponentProps` — (optional) The props passed to `itemComponent`.
 * `estimatedItemHeight` — (optional) The `estimatedItemHeight` option of `VirtualScroller` class.
 * `onMount` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
-* `onLastSeenItemIndexChange(i)` — (optional) The `onLastSeenItemIndexChange` option of `VirtualScroller` class.
+* `onLastSeenItemIndexChange(newLastSeenItemIndex, previousLastSeenItemIndex)` — (optional) The `onLastSeenItemIndexChange` option of `VirtualScroller` class.
 * `initialState` — (optional) The initial state for `VirtualScroller`. For example, can be used to quicky restore the list on "Back" navigation.
 * `onStateChange(newState, prevState)` — (optional) Can be called when `VirtualScroller` `state` is updated (including setting the initial `state`). For example, can be used to keep `VirtualScroller` `state` copy in an instance variable and later in `componentWillUnmount()` persist it somewhere in global application state for quickly restoring it later on "Back" navigation:
 

@@ -187,8 +187,9 @@ export default class VirtualScroller {
 	onShowItems(firstShownItemIndex, lastShownItemIndex) {
 		if (this.onLastSeenItemIndexChange) {
 			if (lastShownItemIndex > this.lastSeenItemIndex) {
+				const previousLastSeenItemIndex = this.lastSeenItemIndex
 				this.lastSeenItemIndex = lastShownItemIndex
-				this.onLastSeenItemIndexChange(this.lastSeenItemIndex)
+				this.onLastSeenItemIndexChange(this.lastSeenItemIndex, previousLastSeenItemIndex)
 			}
 		}
 	}
@@ -501,7 +502,7 @@ export default class VirtualScroller {
 		log('Last shown item index', lastShownItemIndex)
 		log('Before items height', beforeItemsHeight)
 		log('After items height', afterItemsHeight)
-		log('Average item height (for previous layout)', this.itemHeights.getAverage())
+		log('Average item height (calculated on previous render)', this.itemHeights.getAverage())
 		if (redoLayoutAfterRender) {
 			log('Redo layout after render')
 		}

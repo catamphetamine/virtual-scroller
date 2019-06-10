@@ -94,6 +94,10 @@ export default class DOMVirtualScroller {
     this.virtualScroller.onItemHeightChange(i)
   }
 
+  onLastSeenItemIndexChange(newLastSeenItemIndex, previousLastSeenItemIndex) {
+    this.virtualScroller.onLastSeenItemIndexChange(newLastSeenItemIndex, previousLastSeenItemIndex)
+  }
+
   updateItems(newItems, options) {
     this.virtualScroller.updateItems(newItems, options)
   }
