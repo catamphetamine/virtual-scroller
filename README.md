@@ -303,6 +303,10 @@ An example of a `:first-child`/`:last-child` style that will not work correctly 
 }
 ```
 
+### Search, focus management.
+
+Due to offscreen list items not being rendered native browser features like "Find on page", moving focus through items via `Tab` key, screen reader announcement and such won't work. A workaround for "search on page" is adding a custom "🔍 Search" input field that would filter items by their content and then call `VirtualScroller.updateItems()`.
+
 ## Debug
 
 Set `window.VirtualScrollerDebug` to `true` to output debug messages to `console`.
