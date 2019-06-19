@@ -256,6 +256,10 @@ class Example extends React.Component {
 * `onStateChange(itemState)` — A proxy for `VirtualScroller.onItemStateChange(i, itemState)`. Call this function to update item's `state`.
 * `onHeightChange()` — A proxy for `VirtualScroller.onItemHeightChange(i)`. Call this function to re-measure the item if it shrinks in height.
 
+`<VirtualScroller/>` component instance provides methods:
+
+* `updateItem(i)` — Calls `.forceUpdate()` on the `itemComponent` instance for item with index `i`.
+
 ## Dynamically Loaded Lists
 
 The previous examples showcase a static `items` list. For cases when new items are loaded when the user clicks "Show previous" / "Show next" buttons `virtualScroller.updateItems(newItems)` method can be used where `newItems` will be `previousItems.concat(items)` for "Show previous" button and `items.concat(nextItems)` for "Show next" button. `virtual-scroller/react` will automatically call `.updateItems(newItems)` when new `items` property is passed, and `virtual-scroller/dom` provides a manual `.updateItems(newItems)` method same as `VirtualScroller`.

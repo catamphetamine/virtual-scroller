@@ -50,6 +50,9 @@ export default class ReactVirtualScroller extends React.Component {
 	onItemStateChange = new Array(this.props.items.length)
 	onItemHeightChange = new Array(this.props.items.length)
 
+	// Item refs for `.updateItem(i)`.
+	itemRefs = new Array(this.props.items.length)
+
 	// List items are rendered with `key`s
 	// so that React doesn't reuse `itemComponent`s
 	// in cases when `items` are changed.
@@ -92,6 +95,19 @@ export default class ReactVirtualScroller extends React.Component {
 		)
 		// Generate unique `key` prefix for list item components.
 		this.generateUniquePrefix()
+	}
+
+	updateItem(i) {
+		if (this.itemRefs[i] && this.itemRefs[i].current) {
+			this.itemRefs[i].current.forceUpdate()
+		}
+	}
+
+	getItemRef(i) {
+		if (!this.itemRefs[i]) {
+			this.itemRefs[i] = React.createRef()
+		}
+		return this.itemRefs[i]
 	}
 
 	getOnItemStateChange(i) {
@@ -238,6 +254,8 @@ export default class ReactVirtualScroller extends React.Component {
 				// Reset handler function caches.
 				this.onItemStateChange = new Array(newItems.length)
 				this.onItemHeightChange = new Array(newItems.length)
+				// Reset item refs.
+				this.itemRefs = new Array(newItems.length)
 			}
 		}
 		return (
@@ -253,6 +271,7 @@ export default class ReactVirtualScroller extends React.Component {
 						return (
 							<Component
 								{...itemComponentProps}
+								ref={this.getItemRef(i)}
 								key={`${this.uniquePrefix}:${i}`}
 								state={itemStates && itemStates[i]}
 								onStateChange={this.getOnItemStateChange(i)}
