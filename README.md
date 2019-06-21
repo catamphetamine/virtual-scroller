@@ -258,7 +258,7 @@ class Example extends React.Component {
 
 `<VirtualScroller/>` component instance provides methods:
 
-* `updateItem(i)` — Calls `.forceUpdate()` on the `itemComponent` instance for item with index `i`.
+* `updateItem(i)` — Calls `.forceUpdate()` on the `itemComponent` instance for item with index `i`. Does nothing if the item isn't rendered.
 
 ## Dynamically Loaded Lists
 
