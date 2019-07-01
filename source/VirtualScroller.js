@@ -20,8 +20,11 @@ export default class VirtualScroller {
 		const {
 			getState,
 			setState,
-			onStateChange
+			onStateChange,
+			bypass,
+			bypassBatchSize
 		} = options
+
 		let {
 			// margin,
 			estimatedItemHeight,
@@ -44,6 +47,12 @@ export default class VirtualScroller {
 		// 	// for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
 		// 	margin = typeof window === 'undefined' ? 0 : window.innerHeight
 		// }
+
+		// `bypass` mode could work but turns out that
+		// unmounting large React component trees is a
+		// very long process, so it's still not a viable UX.
+		this.bypass = bypass
+		this.bypassBatchSize = bypassBatchSize || 10
 
 		this.initialItems = items
 		// this.margin = margin
@@ -209,8 +218,10 @@ export default class VirtualScroller {
 		}
 		this.isMounted = true
 		this.onUpdateShownItemIndexes({ reason: 'on mount' })
-		window.addEventListener('scroll', this.onScroll)
-		window.addEventListener('resize', this.onResize)
+		if (!this.bypass) {
+			window.addEventListener('scroll', this.onScroll)
+			window.addEventListener('resize', this.onResize)
+		}
 	}
 
 	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
@@ -218,9 +229,11 @@ export default class VirtualScroller {
 
 	onUnmount() {
 		this.isMounted = false
-		window.removeEventListener('scroll', this.onScroll)
-		window.removeEventListener('resize', this.onResize)
-		clearTimeout(this.onUserStopsScrollingTimeout)
+		if (!this.bypass) {
+			window.removeEventListener('scroll', this.onScroll)
+			window.removeEventListener('resize', this.onResize)
+			clearTimeout(this.onUserStopsScrollingTimeout)
+		}
 	}
 
 	onUpdate(prevState) {
@@ -296,9 +309,8 @@ export default class VirtualScroller {
 					showItemsFromIndex = i
 				}
 				const heightLeft = screenBottom - (listTop + itemsHeight)
-				const batchSize = this.getEstimatedItemsCount(heightLeft)
 				showItemsToIndex = Math.min(
-					i + (batchSize - 1),
+					i + (this.getEstimatedItemsCount(heightLeft) - 1),
 					// Guard against index overflow.
 					this.getItemsCount() - 1
 				)
@@ -452,15 +464,48 @@ export default class VirtualScroller {
 
 	/**
 	 * Updates the "from" and "to" shown item indexes.
-	 * `callback(status)` is called after it re-renders.
-	 * If the list isn't visible then `status` is `-1`.
-	 * If the list is visible and some of the items being shown
-	 * are new and required to be measured first then `status` is `1`.
-	 * If the list is visible and all items being shown
-	 * have been encountered (and measured) before then `status` is `0`.
+	 * `callback(redoLayoutAfterRender)` is called after it re-renders.
+	 * If the list is visible and some of the items being shown are new
+	 * and required to be measured first then `redoLayoutAfterRender` is `true`.
+	 * If the list is visible and all items being shown have been encountered
+	 * (and measured) before then `redoLayoutAfterRender` is `false`.
 	 * @param {Function} callback
 	 */
 	updateShownItemIndexes = (callback) => {
+		if (this.bypass) {
+			const {
+				beforeItemsHeight,
+				firstShownItemIndex
+			} = this.getState()
+			let {
+				lastShownItemIndex
+			} = this.getState()
+			lastShownItemIndex = Math.min(
+				lastShownItemIndex + this.bypassBatchSize,
+				this.getItemsCount() - 1
+			)
+			// Measure "after" items height.
+			const afterItemsHeight = this.getAfterItemsHeight(firstShownItemIndex, lastShownItemIndex)
+			// Debugging.
+			log('~ Layout results (bypass) ~')
+			log('First shown item index', firstShownItemIndex)
+			log('Last shown item index', lastShownItemIndex)
+			log('Before items height', beforeItemsHeight)
+			log('After items height', afterItemsHeight)
+			log('Average item height (calculated on previous render)', this.itemHeights.getAverage())
+			// Optionally preload items to be rendered.
+			this.onShowItems(firstShownItemIndex, lastShownItemIndex)
+			// Render.
+			return this.setState({
+				firstShownItemIndex,
+				lastShownItemIndex,
+				beforeItemsHeight,
+				afterItemsHeight,
+				// // Average item height is stored in state to differentiate between
+				// // the initial state and "anything has been measured already" state.
+				// averageItemHeight: this.itemHeights.getAverage()
+			}, () => callback(lastShownItemIndex < this.getItemsCount() - 1))
+		}
 		// // A minor optimization. Just because I can.
 		// let listCoordinates
 		// if (this.listCoordinatesCached) {
@@ -517,12 +562,12 @@ export default class VirtualScroller {
 			// // Average item height is stored in state to differentiate between
 			// // the initial state and "anything has been measured already" state.
 			// averageItemHeight: this.itemHeights.getAverage()
-		}, () => callback(redoLayoutAfterRender ? 1 : 0))
+		}, () => callback(redoLayoutAfterRender))
 	}
 
 	updateShownItemIndexesRecursive = () => {
-		this.updateShownItemIndexes((status) => {
-			if (status === 1) {
+		this.updateShownItemIndexes((redoLayoutAfterRender) => {
+			if (redoLayoutAfterRender) {
 				// Recurse in a timeout to prevent React error:
 				// "Maximum update depth exceeded.
 				//  This can happen when a component repeatedly calls
@@ -534,7 +579,7 @@ export default class VirtualScroller {
 					} else {
 						this.onDoneUpdatingItemIndexes()
 					}
-				})
+				}, 0)
 			} else {
 				this.onDoneUpdatingItemIndexes()
 			}

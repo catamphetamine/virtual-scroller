@@ -17,6 +17,8 @@ export default class ReactVirtualScroller extends React.Component {
 		itemComponent: elementType.isRequired,
 		itemComponentProps: PropTypes.object,
 		estimatedItemHeight: PropTypes.number,
+		bypass: PropTypes.bool,
+		bypassBatchSize: PropTypes.number,
 		onMount: PropTypes.func,
 		onLastSeenItemIndexChange: PropTypes.func,
 		onStateChange: PropTypes.func,
@@ -65,7 +67,9 @@ export default class ReactVirtualScroller extends React.Component {
 			initialState,
 			estimatedItemHeight,
 			onLastSeenItemIndexChange,
-			onStateChange
+			onStateChange,
+			bypass,
+			bypassBatchSize
 		} = this.props
 		// `this.previousItemsProperty` is only used for comparing
 		// `previousItems` with `newItems` in `render()`.
@@ -76,6 +80,8 @@ export default class ReactVirtualScroller extends React.Component {
 			items,
 			{
 				estimatedItemHeight,
+				bypass,
+				bypassBatchSize,
 				onLastSeenItemIndexChange,
 				state: initialState,
 				getState: () => this.state,
@@ -175,6 +181,8 @@ export default class ReactVirtualScroller extends React.Component {
 			// Rest
 			items: _items,
 			estimatedItemHeight,
+			bypass,
+			bypassBatchSize,
 			initialState,
 			onStateChange,
 			onLastSeenItemIndexChange,
