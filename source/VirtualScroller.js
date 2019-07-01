@@ -462,49 +462,25 @@ export default class VirtualScroller {
 		}
 	}
 
+	getShownItemIndexes() {
+
 	/**
-	 * Updates the "from" and "to" shown item indexes.
-	 * `callback(redoLayoutAfterRender)` is called after it re-renders.
-	 * If the list is visible and some of the items being shown are new
-	 * and required to be measured first then `redoLayoutAfterRender` is `true`.
-	 * If the list is visible and all items being shown have been encountered
-	 * (and measured) before then `redoLayoutAfterRender` is `false`.
-	 * @param {Function} callback
+	 * Finds the items that are displayed in the viewport.
+	 * @return {object} `{ firstShownItemIndex: number, lastShownItemIndex: number, redoLayoutAfterRender: boolean }`
 	 */
 	updateShownItemIndexes = (callback) => {
 		if (this.bypass) {
-			const {
-				beforeItemsHeight,
-				firstShownItemIndex
-			} = this.getState()
-			let {
-				lastShownItemIndex
-			} = this.getState()
+			const { firstShownItemIndex } = this.getState()
+			let { lastShownItemIndex } = this.getState()
 			lastShownItemIndex = Math.min(
 				lastShownItemIndex + this.bypassBatchSize,
 				this.getItemsCount() - 1
 			)
-			// Measure "after" items height.
-			const afterItemsHeight = this.getAfterItemsHeight(firstShownItemIndex, lastShownItemIndex)
-			// Debugging.
-			log('~ Layout results (bypass) ~')
-			log('First shown item index', firstShownItemIndex)
-			log('Last shown item index', lastShownItemIndex)
-			log('Before items height', beforeItemsHeight)
-			log('After items height', afterItemsHeight)
-			log('Average item height (calculated on previous render)', this.itemHeights.getAverage())
-			// Optionally preload items to be rendered.
-			this.onShowItems(firstShownItemIndex, lastShownItemIndex)
-			// Render.
-			return this.setState({
+			return {
 				firstShownItemIndex,
 				lastShownItemIndex,
-				beforeItemsHeight,
-				afterItemsHeight,
-				// // Average item height is stored in state to differentiate between
-				// // the initial state and "anything has been measured already" state.
-				// averageItemHeight: this.itemHeights.getAverage()
-			}, () => callback(lastShownItemIndex < this.getItemsCount() - 1))
+				redoLayoutAfterRender: lastShownItemIndex < this.getItemsCount() - 1
+			}
 		}
 		// // A minor optimization. Just because I can.
 		// let listCoordinates
@@ -520,17 +496,31 @@ export default class VirtualScroller {
 		// Set screen top and bottom for current layout.
 		this.latestLayoutScreenTopAfterMargin = screenTop - this.getMargin()
 		this.latestLayoutScreenBottomAfterMargin = screenBottom + this.getMargin()
-		// Find the items which are displayed in the viewport.
-		const  {
-			firstShownItemIndex,
-			lastShownItemIndex,
-			redoLayoutAfterRender
-		} = this.getItemIndexes(
+		// Find the items that are displayed in the viewport.
+		return this.getItemIndexes(
 			screenTop - this.getMargin(),
 			screenBottom + this.getMargin(),
 			top,
 			top + height
 		)
+	}
+
+	/**
+	 * Updates the "from" and "to" shown item indexes.
+	 * `callback(redoLayoutAfterRender)` is called after it re-renders.
+	 * If the list is visible and some of the items being shown are new
+	 * and required to be measured first then `redoLayoutAfterRender` is `true`.
+	 * If the list is visible and all items being shown have been encountered
+	 * (and measured) before then `redoLayoutAfterRender` is `false`.
+	 * @param {Function} callback
+	 */
+	updateShownItemIndexes = (callback) => {
+		// Find the items which are displayed in the viewport.
+		const {
+			firstShownItemIndex,
+			lastShownItemIndex,
+			redoLayoutAfterRender
+		} = this.getShownItemIndexes()
 		// Measure "before" items height.
 		const beforeItemsHeight = this.getBeforeItemsHeight(firstShownItemIndex, lastShownItemIndex)
 		// Measure "after" items height.
@@ -542,7 +532,7 @@ export default class VirtualScroller {
 		// being stale, so it's updated here when hiding the item.
 		this.updateWillBeHiddenItemHeightsAndState(firstShownItemIndex, lastShownItemIndex)
 		// Debugging.
-		log('~ Layout results ~')
+		log('~ Layout results ' + (this.bypass ? '(bypass) ' : '') + '~')
 		log('First shown item index', firstShownItemIndex)
 		log('Last shown item index', lastShownItemIndex)
 		log('Before items height', beforeItemsHeight)
