@@ -462,13 +462,11 @@ export default class VirtualScroller {
 		}
 	}
 
-	getShownItemIndexes() {
-
 	/**
 	 * Finds the items that are displayed in the viewport.
 	 * @return {object} `{ firstShownItemIndex: number, lastShownItemIndex: number, redoLayoutAfterRender: boolean }`
 	 */
-	updateShownItemIndexes = (callback) => {
+	getShownItemIndexes() {
 		if (this.bypass) {
 			const { firstShownItemIndex } = this.getState()
 			let { lastShownItemIndex } = this.getState()
