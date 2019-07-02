@@ -109,6 +109,10 @@ export default class ReactVirtualScroller extends React.Component {
 		}
 	}
 
+	// Functional components can't have a `ref` assigned to them.
+	// Item `ref`s are only used for calling `.updateItem(i)` instance method.
+	// If a developer is not using the `.updateItem(i)` instance method
+	// then `ref`s aren't required and will be omitted.
 	getItemRef(i) {
 		if (!this.itemRefs[i]) {
 			this.itemRefs[i] = React.createRef()
@@ -279,7 +283,7 @@ export default class ReactVirtualScroller extends React.Component {
 						return (
 							<Component
 								{...itemComponentProps}
-								ref={this.getItemRef(i)}
+								ref={isComponentClass(Component) ? this.getItemRef(i) : undefined}
 								key={`${this.uniquePrefix}:${i}`}
 								state={itemStates && itemStates[i]}
 								onStateChange={this.getOnItemStateChange(i)}
@@ -293,4 +297,15 @@ export default class ReactVirtualScroller extends React.Component {
 			</div>
 		)
 	}
+}
+
+/**
+ * Checks if the argument is a React.Component class.
+ * https://overreacted.io/how-does-react-tell-a-class-from-a-function/
+ * @param  {any}  Component
+ * @return {object} [object]
+ */
+function isComponentClass(Component) {
+	// return Component.prototype instanceof React.Component
+	return Component.prototype.isReactComponent
 }
