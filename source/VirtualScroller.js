@@ -4,6 +4,7 @@ import ItemHeights from './ItemHeights'
 import log, { isDebug } from './log'
 
 const START_FROM_INDEX = 0
+const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 1000
 
 export default class VirtualScroller {
 	/**
@@ -233,6 +234,7 @@ export default class VirtualScroller {
 			window.removeEventListener('scroll', this.onScroll)
 			window.removeEventListener('resize', this.onResize)
 			clearTimeout(this.onUserStopsScrollingTimeout)
+			clearTimeout(this.watchContainerElementTopCoordinateTimer)
 		}
 	}
 
@@ -462,6 +464,48 @@ export default class VirtualScroller {
 		}
 	}
 
+	// `VirtualScroller` calls `getShownItemIndexes()` on mount
+	// but if the page styles are applied after `VirtualScroller` mounts
+	// (for example, if styles are applied via javascript, like Webpack does)
+	// then the list might not render correctly and will only show the first item.
+	// The reason for that would be that calling `.getBoundingClientRect()`
+	// on the list container element on mount returned "incorrect" `top` position
+	// because the styles haven't been applied yet.
+	// For example, consider a page:
+	// <div class="page">
+	//   <nav class="sidebar">...</nav>
+	//   <main>...</main>
+	// </div>
+	// The sidebar is styled as `position: fixed`, but until
+	// the page styles have been applied it's gonna be a regular `<div/>`
+	// meaning that `<main/>` will be rendered below the sidebar
+	// and will appear offscreen and so it will only render the first item.
+	// Then, the page styles are loaded and applied and the sidebar
+	// is now `position: fixed` so `<main/>` is now rendered at the top of the page
+	// but `VirtualScroller`'s `onMount()` has already been called
+	// and it won't re-render until the user scrolls or the window is resized.
+	// This type of a bug doesn't occur in production, but it can appear
+	// in development mode when using Webpack. The workaround `VirtualScroller`
+	// implements for such cases is calling `.getBoundingClientRect()` on the
+	// list container DOM element periodically (every second) to check if the
+	// `top` coordinate has changed as a result of CSS being applied:
+	// if it has then it recalculates the shown item indexes.
+	watchContainerElementTopCoordinate() {
+		const check = () => {
+			// Skip the first time.
+			if (this.top !== undefined) {
+				// Calling `.getBoundingClientRect()` on an element is
+				// about 0.002 milliseconds on a modern desktop CPU.
+				const { top } = getOffset(this.getContainerNode())
+				if (top !== this.top) {
+					this.onUpdateShownItemIndexes({ reason: 'top offset change' })
+				}
+			}
+			this.watchContainerElementTopCoordinateTimer = setTimeout(check, WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL)
+		}
+		check()
+	}
+
 	/**
 	 * Finds the items that are displayed in the viewport.
 	 * @return {object} `{ firstShownItemIndex: number, lastShownItemIndex: number, redoLayoutAfterRender: boolean }`
@@ -490,6 +534,11 @@ export default class VirtualScroller {
 		// }
 		// const { top, height } = listCoordinates
 		const { top, height } = getOffset(this.getContainerNode())
+		if (this.top === undefined) {
+			// See the comments for `watchContainerElementTopCoordinate()` method.
+			this.watchContainerElementTopCoordinate()
+		}
+		this.top = top
 		const { top: screenTop, bottom: screenBottom } = getScreenBounds()
 		// Set screen top and bottom for current layout.
 		this.latestLayoutScreenTopAfterMargin = screenTop - this.getMargin()

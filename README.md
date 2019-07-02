@@ -314,6 +314,23 @@ An example of a `:first-child`/`:last-child` style that will not work correctly 
 
 Due to offscreen list items not being rendered native browser features like "Find on page", moving focus through items via `Tab` key, screen reader announcement and such won't work. A workaround for "search on page" is adding a custom "🔍 Search" input field that would filter items by their content and then call `VirtualScroller.updateItems()`.
 
+### Only the first item is rendered on page load.
+
+`VirtualScroller` calculates the shown item indexes when its `.onMount()` method is called, but if the page styles are applied after `VirtualScroller` is mounted (for example, if styles are applied via javascript, like Webpack does it in dev mode with its `style-loader`) then the list might not render correctly and will only show the first item. The reason for that is because calling `.getBoundingClientRect()` on the list container DOM element on mount returns "incorrect" `top` position because the styles haven't been applied yet, and so `VirtualScroller` thinks it's offscreen.
+
+For example, consider a page:
+
+```html
+<div class="page">
+  <nav class="sidebar">...</nav>
+  <main>...</main>
+</div>
+```
+
+The sidebar is styled as `position: fixed`, but until the page styles have been applied it's gonna be a regular `<div/>` meaning that `<main/>` will be rendered below the sidebar causing it to be offscreen and so the list will only render the first item. Then, the page styles are loaded and applied and the sidebar is now `position: fixed` so `<main/>` is now rendered at the top of the page but `VirtualScroller`'s `.onMount()` has already been called and it won't re-render until the user scrolls or the window is resized.
+
+This type of a bug doesn't occur in production, but it can appear in development mode when using Webpack. The workaround `VirtualScroller` implements for such cases is calling `.getBoundingClientRect()` on the list container DOM element periodically (every second) to check if the `top` coordinate has changed as a result of CSS being applied: if it has then it recalculates the shown item indexes and re-renders.
+
 ## Debug
 
 Set `window.VirtualScrollerDebug` to `true` to output debug messages to `console`.
