@@ -261,11 +261,15 @@ export default class VirtualScroller {
 			firstShownItemIndex
 		} = this.getState()
 		if (fromIndex !== undefined) {
+			log('~ Measure item heights after layout ~')
 			this.itemHeights.update(
 				fromIndex,
 				toIndex,
 				firstShownItemIndex
 			)
+			if (isDebug()) {
+				log('Item heights', this.getState().itemHeights.slice())
+			}
 		}
 	}
 
@@ -276,7 +280,8 @@ export default class VirtualScroller {
 
 	onItemStateChange(i, itemState) {
 		if (isDebug()) {
-			log('Item', i, 'state changed')
+			log('~ Item state changed ~')
+			log('Item', i)
 			log('Previous state' + '\n' + JSON.stringify(this.getState().itemStates[i], null, 2))
 			log('New state' + '\n' + JSON.stringify(itemState, null, 2))
 		}
@@ -289,7 +294,10 @@ export default class VirtualScroller {
 		this.updateItemHeight(i)
 		const newHeight = itemHeights[i]
 		if (previousHeight !== newHeight) {
-			log('Item', i, 'height changed from', previousHeight, 'to', newHeight)
+			log('~ Item height changed ~')
+			log('Item', i)
+			log('Previous height', previousHeight)
+			log('New height', newHeight)
 			this.onUpdateShownItemIndexes({ reason: 'item height change' })
 		}
 	}
@@ -585,6 +593,10 @@ export default class VirtualScroller {
 		log('Before items height', beforeItemsHeight)
 		log('After items height', afterItemsHeight)
 		log('Average item height (calculated on previous render)', this.itemHeights.getAverage())
+		if (isDebug()) {
+			log('Item heights', this.getState().itemHeights.slice())
+			log('Item states', this.getState().itemStates.slice())
+		}
 		if (redoLayoutAfterRender) {
 			log('Redo layout after render')
 		}
