@@ -275,6 +275,10 @@ Also, one can use [`on-scroll-to`](https://github.com/catamphetamine/on-scroll-t
 
 ## Gotchas
 
+### Images
+
+`VirtualScroller` measures item heights as soon as they've rendered and later uses those measurements to determine which items should be rendered when the user scrolls. This means that things like `<img/>`s require special handling to prevent them from changing their size. For example, when rendering a simple `<img src="..."/>` first it renders an element with zero width and height and only after the image file header has been parsed does it resize itself to the actual image's width and height. When used inside `VirtualScroller` items such images would result in scroll position "jumping" as the user scrolls. To avoid that, any `<img/>`s rendered inside `VirtualScroller` items must either have their `width` and `height` set explicitly or have their [aspect ratio](https://www.w3schools.com/howto/howto_css_aspect_ratio.asp) set explicitly by making them `position: absolute` and wrapping them in a parent `<div/>` having `position: relative` and `padding-bottom: ${100/aspectRatio}%`.
+
 ### Margin collapse
 
 If any vertical `margin` is set on the list items then this may lead to the list items jumping by the value of that margin when scrolling. The reason is that when the first list item is rendered then there's no `padding-top` on the containing `<div/>` so the first item's margin ["collapses"](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Box_Model/Mastering_margin_collapsing) with outer margins, but when the first item is no longer rendered the containing `<div/>` has `padding-top` to compensate for that which prevents list item margin from "collapsing" with outer margins. To fix that, don't set any `margin-top` on the first item of the list and don't set any `margin-bottom` on the last item of the list. An example of fixing margin for the first and the last items of the list:
