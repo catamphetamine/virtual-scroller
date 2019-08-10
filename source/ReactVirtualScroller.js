@@ -20,7 +20,7 @@ export default class ReactVirtualScroller extends React.Component {
 		bypass: PropTypes.bool,
 		bypassBatchSize: PropTypes.number,
 		onMount: PropTypes.func,
-		onLastSeenItemIndexChange: PropTypes.func,
+		onItemFirstRender: PropTypes.func,
 		onStateChange: PropTypes.func,
 		initialState: PropTypes.shape({
 			items: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -66,8 +66,6 @@ export default class ReactVirtualScroller extends React.Component {
 			items,
 			initialState,
 			estimatedItemHeight,
-			onLastSeenItemIndexChange,
-			onStateChange,
 			bypass,
 			bypassBatchSize
 		} = this.props
@@ -82,7 +80,7 @@ export default class ReactVirtualScroller extends React.Component {
 				estimatedItemHeight,
 				bypass,
 				bypassBatchSize,
-				onLastSeenItemIndexChange,
+				onItemFirstRender: this.onItemFirstRender,
 				state: initialState,
 				getState: () => this.state,
 				setState: (newState, callback) => {
@@ -92,15 +90,35 @@ export default class ReactVirtualScroller extends React.Component {
 					} else {
 						// Set initial state.
 						this.state = newState
-						if (onStateChange) {
-							onStateChange(newState)
-						}
+						this.onStateChange(newState)
 					}
 				}
 			}
 		)
 		// Generate unique `key` prefix for list item components.
 		this.generateUniquePrefix()
+	}
+
+	// This proxy is required for cases when
+	// `onItemFirstRender` property changes.
+	// For example, if it's passed as:
+	// `<VirtualScroller onItemFirstRender={() => ...}/>`.
+	onItemFirstRender = (...args) => {
+		const { onItemFirstRender } = this.props
+		if (onItemFirstRender) {
+			onItemFirstRender(...args)
+		}
+	}
+
+	// This proxy is required for cases when
+	// `onStateChange` property changes.
+	// For example, if it's passed as:
+	// `<VirtualScroller onStateChange={() => ...}/>`.
+	onStateChange = (...args) => {
+		const { onStateChange } = this.props
+		if (onStateChange) {
+			onStateChange(...args)
+		}
 	}
 
 	shouldUseRefs() {
@@ -208,7 +226,7 @@ export default class ReactVirtualScroller extends React.Component {
 			bypassBatchSize,
 			initialState,
 			onStateChange,
-			onLastSeenItemIndexChange,
+			onItemFirstRender,
 			onMount,
 			...rest
 		} = this.props

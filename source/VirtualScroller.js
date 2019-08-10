@@ -30,7 +30,7 @@ export default class VirtualScroller {
 			// margin,
 			estimatedItemHeight,
 			// getItemState,
-			onLastSeenItemIndexChange,
+			onItemFirstRender,
 			state
 		} = options
 
@@ -61,9 +61,8 @@ export default class VirtualScroller {
 		this.estimatedItemHeight = estimatedItemHeight
 		// this.getItemState = getItemState
 
-		if (onLastSeenItemIndexChange) {
-			this.onLastSeenItemIndexChange = onLastSeenItemIndexChange
-			this.lastSeenItemIndex = -1
+		if (onItemFirstRender) {
+			this.onItemFirstRender = onItemFirstRender
 		}
 
 		// Remove accidental text nodes from container.
@@ -195,12 +194,31 @@ export default class VirtualScroller {
 	}
 
 	onShowItems(firstShownItemIndex, lastShownItemIndex) {
-		if (this.onLastSeenItemIndexChange) {
-			if (lastShownItemIndex > this.lastSeenItemIndex) {
-				const previousLastSeenItemIndex = this.lastSeenItemIndex
-				this.lastSeenItemIndex = lastShownItemIndex
-				this.onLastSeenItemIndexChange(this.lastSeenItemIndex, previousLastSeenItemIndex)
+		if (this.onItemFirstRender) {
+			if (this.firstSeenItemIndex === undefined) {
+				let i = firstShownItemIndex
+				while (i <= lastShownItemIndex) {
+					this.onItemFirstRender(i)
+					i++
+				}
+			} else {
+				if (firstShownItemIndex < this.firstSeenItemIndex) {
+					let i = firstShownItemIndex
+					while (i < this.firstSeenItemIndex) {
+						this.onItemFirstRender(i)
+						i++
+					}
+				}
+				if (lastShownItemIndex > this.lastSeenItemIndex) {
+					let i = this.lastSeenItemIndex + 1
+					while (i <= lastShownItemIndex) {
+						this.onItemFirstRender(i)
+						i++
+					}
+				}
 			}
+			this.firstSeenItemIndex = firstShownItemIndex
+			this.lastSeenItemIndex = lastShownItemIndex
 		}
 	}
 
@@ -807,6 +825,9 @@ export default class VirtualScroller {
 		if (prependedItemsCount > 0 || appendedItemsCount > 0) {
 			if (prependedItemsCount > 0) {
 				log('Prepended items count', prependedItemsCount)
+				if (this.firstSeenItemIndex !== undefined) {
+					this.firstSeenItemIndex += prependedItemsCount
+				}
 				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
 				this.itemHeights.onPrepend(prependedItemsCount)
 				if (itemStates) {
@@ -835,6 +856,8 @@ export default class VirtualScroller {
 			log('Non-incremental items update')
 			log('Previous items', previousItems)
 			log('New items', newItems)
+			this.firstSeenItemIndex = undefined
+			this.lastSeenItemIndex = undefined
 			this.itemHeights = new ItemHeights(this.getContainerNode, newItems.length, this.getState)
 			itemHeights = new Array(newItems.length)
 			itemStates = new Array(newItems.length)
