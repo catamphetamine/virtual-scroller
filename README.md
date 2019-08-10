@@ -1,8 +1,6 @@
 # VirtualScroller
 
-An open-source implementation of Twitter's [`VirtualScroller`](https://medium.com/@paularmstrong/twitter-lite-and-high-performance-react-progressive-web-apps-at-scale-d28a00e780a3) component.
-
-Also includes a [React](#react) component for those who're using React.
+An open-source implementation of Twitter's [`VirtualScroller`](https://medium.com/@paularmstrong/twitter-lite-and-high-performance-react-progressive-web-apps-at-scale-d28a00e780a3) component: a component for efficiently rendering large lists of *variable height* items. Automatically measures items as they're rendered and supports items of variable height. Also includes a [React](#react) component for those who're using React.
 
 ## Demo
 
