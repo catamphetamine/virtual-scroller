@@ -142,7 +142,21 @@ export default class ReactVirtualScroller extends React.Component {
 		// so `.updateItem(i)` is simply called on all of the "parent post"'s replies
 		// regardless of some of those replies being rendered or not.
 		if (this.itemRefs[i] && this.itemRefs[i].current) {
-			this.itemRefs[i].current.forceUpdate()
+			// Stores `item` here because the `i` index
+			// might have changed when the callback is called,
+			// or the item even may have been removed.
+			const item = items[i]
+			this.itemRefs[i].current.forceUpdate(() => {
+				if (this._isMounted) {
+					// Recalculates the `i` index here because it
+					// might have changed when the callback is called,
+					// or the item even may have been removed.
+					const i = items.indexOf(item)
+					if (i >= 0) {
+						this.virtualScroller.onItemHeightChange(i)
+					}
+				}
+			})
 		}
 	}
 
@@ -189,6 +203,7 @@ export default class ReactVirtualScroller extends React.Component {
 			onMount()
 		}
 		this.virtualScroller.onMount()
+		this._isMounted = true
 	}
 
 	componentDidUpdate(prevProps, prevState) {
@@ -213,6 +228,7 @@ export default class ReactVirtualScroller extends React.Component {
 
 	componentWillUnmount() {
 		this.virtualScroller.onUnmount()
+		this._isMounted = false
 	}
 
 	render() {
