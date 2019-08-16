@@ -360,6 +360,10 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 </script>
 ```
 
+## Possible enhancements
+
+* Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.updateItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.updateItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
+
 ## License
 
 [MIT](LICENSE)
