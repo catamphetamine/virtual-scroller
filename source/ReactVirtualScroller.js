@@ -142,6 +142,7 @@ export default class ReactVirtualScroller extends React.Component {
 		// so `.updateItem(i)` is simply called on all of the "parent post"'s replies
 		// regardless of some of those replies being rendered or not.
 		if (this.itemRefs[i] && this.itemRefs[i].current) {
+			const { items } = this.props
 			// Stores `item` here because the `i` index
 			// might have changed when the callback is called,
 			// or the item even may have been removed.
