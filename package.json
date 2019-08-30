@@ -1,7 +1,7 @@
 {
   "name": "virtual-scroller",
   "version": "1.0.10",
-  "description": "An open-source implementation of Twitter's VirtualScroller component.",
+  "description": "A component for efficiently rendering large lists of variable height items",
   "main": "index.commonjs.js",
   "module": "index.js",
   "sideEffects": [
