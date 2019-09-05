@@ -883,6 +883,13 @@ export default class VirtualScroller {
 		// 		customState = newCustomState
 		// 	}
 		// }
+		log('First shown item index', firstShownItemIndex)
+		log('Last shown item index', lastShownItemIndex)
+		log('Before items height', beforeItemsHeight)
+		log('After items height', afterItemsHeight)
+		// Optionally preload items to be rendered.
+		this.onShowItems(firstShownItemIndex, lastShownItemIndex)
+		// Render.
 		this.setState({
 			...customState,
 			items: newItems,
