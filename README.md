@@ -85,7 +85,7 @@ Available `options`:
 * `getState()` — Returns `VirtualScroller` state. Is used for React `VirtualScroller` component implementation.
 * `onItemStateChange(i, itemState)` — Can be used to update a list item's state. Is used in React `VirtualScroller` component  for preserving the state of components which are to be hidden for later restoring their state when they're visible again. For example, consider an "Expand YouTube Video" button: the video must stay expanded as the item is "unmounted" when it's no longer visible and then re-"mounted" when it's visible again.
 * `onItemHeightChange(i)` — Can be called whenever a list item's height changes. For example, when a user clicks "Expand"/"Collapse" button. This allows `VirtualScroller` to re-measure the item's height and re-render correctly (until all browsers implement [Resize Observer](https://caniuse.com/#search=Resize%20Observer)). This is only required when an item shrinks in height. For example, consider a post with an "Expand"/"Collapse" button: when such post is expanded the next posts in the feed might not be visible yet but if a user clicks the "Collapse" button the post is collapsed and the next posts become visible but they're not yet rendered because `VirtualScroller` didn't render them previously due to them being invisible. Calling `onItemHeightChange(i)` in such case would make `VirtualScroller` re-measure the collapsed post height and re-calculate the layout.
-* `updateItems(newItems, options)` — Updates `VirtualScroller` `items`. For example, can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details.
+* `updateItems(newItems, [options])` — Updates `VirtualScroller` `items`. For example, can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details. Available options: `preserveScrollPosition: boolean` — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
 
 `VirtualScroller` state provides properties:
 
@@ -219,13 +219,14 @@ Message.propTypes = {
 
 * `items` — The items list.
 * `itemComponent` — List item component. Receives the list item as the `children` property. Can optionally receive `state` and `onSaveState()` properties for saving list item state before unmounting it and then restoring that state after the item is re-mounted (for example, this supports "Show more" buttons, "Expand YouTube video" buttons, etc). For best performance, make sure it's a `React.PureComponent` or a `React.memo()`, otherwise it'll be re-rendering as the user scrolls.
-* `itemComponentProps` — (optional) The props passed to `itemComponent`.
-* `estimatedItemHeight` — (optional) The `estimatedItemHeight` option of `VirtualScroller` class.
-* `onMount` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
+* `itemComponentProps: object` — (optional) The props passed to `itemComponent`.
+* `estimatedItemHeight: number` — (optional) The `estimatedItemHeight` option of `VirtualScroller` class.
+* `preserveScrollPosition: boolean` — (optional) The `preserveScrollPosition` option of `VirtualScroller.updateItems()` method.
+* `onMount()` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
 * `onItemFirstRender(i)` — (optional) The `onItemFirstRender` option of `VirtualScroller` class.
 <!-- * `bypass` — (optional) The `bypass` option of `VirtualScroller` class. -->
-* `initialState` — (optional) The initial state for `VirtualScroller`. For example, can be used to quicky restore the list on "Back" navigation.
-* `onStateChange(newState, prevState)` — (optional) Can be called when `VirtualScroller` `state` is updated (including setting the initial `state`). For example, can be used to keep `VirtualScroller` `state` copy in an instance variable and later in `componentWillUnmount()` persist it somewhere in global application state for quickly restoring it later on "Back" navigation:
+* `initialState: object` — (optional) The initial state for `VirtualScroller`. For example, can be used to quicky restore the list on "Back" navigation.
+* `onStateChange(newState: object, prevState: object)` — (optional) Can be called when `VirtualScroller` `state` is updated (including setting the initial `state`). For example, can be used to keep `VirtualScroller` `state` copy in an instance variable and later in `componentWillUnmount()` persist it somewhere in global application state for quickly restoring it later on "Back" navigation:
 
 ```js
 import {
@@ -360,9 +361,11 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 </script>
 ```
 
+<!--
 ## Possible enhancements
 
 * Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.updateItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.updateItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
+-->
 
 ## License
 

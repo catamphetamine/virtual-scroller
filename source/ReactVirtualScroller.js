@@ -19,6 +19,7 @@ export default class ReactVirtualScroller extends React.Component {
 		estimatedItemHeight: PropTypes.number,
 		bypass: PropTypes.bool,
 		bypassBatchSize: PropTypes.number,
+		preserveScrollPosition: PropTypes.bool,
 		onMount: PropTypes.func,
 		onItemFirstRender: PropTypes.func,
 		onStateChange: PropTypes.func,
@@ -221,9 +222,11 @@ export default class ReactVirtualScroller extends React.Component {
 		// If `items` property did change then update `virtual-scroller` items.
 		// This could have been done in `.render()` but `.updateItems()` calls
 		// `.setState()` internally which would result in React throwing an error.
-		const { items } = this.props
+		const { items, preserveScrollPosition } = this.props
 		if (items !== prevProps.items) {
-			this.virtualScroller.updateItems(items)
+			this.virtualScroller.updateItems(items, {
+				preserveScrollPosition
+			})
 		}
 	}
 
@@ -241,6 +244,7 @@ export default class ReactVirtualScroller extends React.Component {
 			estimatedItemHeight,
 			bypass,
 			bypassBatchSize,
+			preserveScrollPosition,
 			initialState,
 			onStateChange,
 			onItemFirstRender,
@@ -311,10 +315,12 @@ export default class ReactVirtualScroller extends React.Component {
 				// then no need to re-generate the prefix
 				// and to fix scroll position and to clear caches.
 			} else {
-				this.virtualScroller.captureScroll(
-					previousItems,
-					newItems
-				)
+				if (preserveScrollPosition) {
+					this.virtualScroller.captureScroll(
+						previousItems,
+						newItems
+					)
+				}
 				// Reset the unique `key` prefix for item component keys.
 				this.generateUniquePrefix()
 				// Reset handler function caches.
