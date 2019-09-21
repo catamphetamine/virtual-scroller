@@ -98,7 +98,8 @@
 							<VirtualScroller
 								id="messages"
 								items={messages}
-								itemComponent={Message}/>
+								itemComponent={Message}
+								preserveScrollPosition/>
 							{window.dynamic && toIndex < this.props.messages.length - 1 &&
 								<button
 									type="button"
