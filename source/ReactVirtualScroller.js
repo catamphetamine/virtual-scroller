@@ -214,7 +214,7 @@ export default class ReactVirtualScroller extends React.Component {
 	componentDidUpdate(prevProps, prevState) {
 		const { onStateChange } = this.props
 		// An application may choose to track `virtual-scroller` state
-		// for later restoring it on "Back" navigation.
+		// for restoring it later on "Back" navigation.
 		if (onStateChange) {
 			if (!shallowEqual(this.state, prevState)) {
 				onStateChange(this.state, prevState)
