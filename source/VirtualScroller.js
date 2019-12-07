@@ -455,7 +455,7 @@ export default class VirtualScroller {
 	getAfterItemsHeight(firstShownItemIndex, lastShownItemIndex) {
 		let afterItemsHeight = 0
 		let i = lastShownItemIndex + 1
-			// Add all "after" items height.
+		// Add all "after" items height.
 		while (i < this.getItemsCount()) {
 			afterItemsHeight += this.getItemSpacing()
 			afterItemsHeight += (this.itemHeights.get(i) || this.itemHeights.getAverage())
