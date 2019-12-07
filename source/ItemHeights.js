@@ -4,13 +4,17 @@ export default class ItemHeights {
 	constructor(getContainerNode, getState) {
 		this.getContainerNode = getContainerNode
 		this.getState = getState
-		this.resetMeasuredState()
+		this.reset()
 	}
 
-	resetMeasuredState() {
+	reset() {
 		this.measuredItemsHeight = 0
 		this.firstMeasuredItemIndex = undefined
 		this.lastMeasuredItemIndex = undefined
+		// this.averageItemHeight = undefined
+		// this.averageItemHeightSamplesCount = undefined
+		// this.previousAverageItemHeight = undefined
+		// this.previousAverageItemHeightSamplesCount = undefined
 	}
 
 	/**
@@ -25,7 +29,7 @@ export default class ItemHeights {
 	 * Maybe it can't, but just in case.
 	 */
 	onInitItemHeights() {
-		this.resetMeasuredState()
+		this.reset()
 		let i = 0
 		while (i < this.getState().itemHeights.length) {
 			if (this.getState().itemHeights[i] == undefined) {
@@ -99,12 +103,14 @@ export default class ItemHeights {
 		// Reset `this.measuredItemsHeight` if it's not a continuous scroll.
 		if (this.firstMeasuredItemIndex !== undefined) {
 			if (fromIndex > this.lastMeasuredItemIndex + 1 || toIndex < this.firstMeasuredItemIndex - 1) {
-				// The previously measured average item height might still be
-				// more precise if it contains more measured items ("samples").
-				this.previousAverageItemHeight = this.averageItemHeight
-				this.previousAverageItemHeightSamplesCount = this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1
+				// // The previously measured average item height might still be
+				// // more precise if it contains more measured items ("samples").
+				// const previousAverageItemHeight = this.averageItemHeight
+				// const previousAverageItemHeightSamplesCount = this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1
 				// Reset.
-				this.resetMeasuredState()
+				this.reset()
+				// this.previousAverageItemHeight = previousAverageItemHeight
+				// this.previousAverageItemHeightSamplesCount = previousAverageItemHeightSamplesCount
 			}
 		}
 		const previousFirstMeasuredItemIndex = this.firstMeasuredItemIndex
@@ -145,8 +151,8 @@ export default class ItemHeights {
 			// }
 			i++
 		}
-		// Update average item height.
-		this.updateAverageItemHeight()
+		// // Update average item height.
+		// this.updateAverageItemHeight()
 	}
 
 	updateItemHeight(i, firstShownItemIndex) {
@@ -165,21 +171,51 @@ export default class ItemHeights {
 		this.measuredItemsHeight += height - previousHeight
 	}
 
-	updateAverageItemHeight() {
-		this.averageItemHeightSamplesCount = this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1
-		this.averageItemHeight = this.measuredItemsHeight / this.averageItemHeightSamplesCount
-	}
+	// /**
+	//  * "Average" item height is stored as an instance variable.
+	//  * For example, for caching, so that it isn't calculated every time it's requested.
+	//  * But that would be negligible performance gain, not really worth the extra code.
+	//  * Another thing it's stored for as an instance variable is
+	//  * keeping "previous" "average" item height, because it can be more precise
+	//  * than the newly calculated "average" item height, provided it had
+	//  * more "samples" (measured items). The newly calculated average item height
+	//  * could get less samples in a scenario when the scroll somehow jumps
+	//  * from one position to some other distant position: in that case previous
+	//  * "total measured items height" is discarded and the new one is initialized.
+	//  * Could such situation happen in real life? I guess, it's unlikely.
+	//  * So I'm commenting out this code, but still keeping it just in case.
+	//  */
+	// updateAverageItemHeight() {
+	// 	this.averageItemHeightSamplesCount = this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1
+	// 	this.averageItemHeight = this.measuredItemsHeight / this.averageItemHeightSamplesCount
+	// }
+	//
+	// /**
+	//  * Public API: is called by `VirtualScroller`.
+	//  * @return {number}
+	//  */
+	// getAverage() {
+	// 	// Previously measured average item height might still be
+	// 	// more precise if it contains more measured items ("samples").
+	// 	if (this.previousAverageItemHeight) {
+	// 		if (this.previousAverageItemHeightSamplesCount > this.averageItemHeightSamplesCount) {
+	// 			return this.previousAverageItemHeight
+	// 		}
+	// 	}
+	// 	return this.averageItemHeight || 0
+	// }
 
-	/* Public API. */
+	/**
+	 * Public API: is called by `VirtualScroller`.
+	 * @return {number}
+	 */
 	getAverage() {
-		// Previously measured average item height might still be
-		// more precise if it contains more measured items ("samples").
-		if (this.previousAverageItemHeight) {
-			if (this.previousAverageItemHeightSamplesCount > this.averageItemHeightSamplesCount) {
-				return this.previousAverageItemHeight
-			}
+		// When `this.measuredItemsHeight` is `0`
+		// then `this.lastMeasuredItemIndex` and `this.firstMeasuredItemIndex` are `undefined`.
+		if (this.measuredItemsHeight) {
+			return this.measuredItemsHeight / (this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1)
 		}
-		return this.averageItemHeight || 0
+		return 0
 	}
 
 	get(i) {
