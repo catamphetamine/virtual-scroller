@@ -4,7 +4,8 @@ import ItemHeights from './ItemHeights'
 import log, { isDebug } from './log'
 
 const START_FROM_INDEX = 0
-const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 1000
+const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 500
+const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION = 3000
 
 export default class VirtualScroller {
 	/**
@@ -245,6 +246,7 @@ export default class VirtualScroller {
 
 	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
 	onResize = () => this.onUpdateShownItemIndexes({ reason: 'resize' })
+	layout   = () => this.onUpdateShownItemIndexes({ reason: 'manual' })
 
 	onUnmount() {
 		this.isMounted = false
@@ -517,18 +519,31 @@ export default class VirtualScroller {
 	// `top` coordinate has changed as a result of CSS being applied:
 	// if it has then it recalculates the shown item indexes.
 	watchContainerElementTopCoordinate() {
+		const startedAt = Date.now()
 		const check = () => {
-			// Skip the first time.
+			// Skip comparing `top` coordinate of the list
+			// when this function is called the first time.
 			if (this.top !== undefined) {
-				// Calling `.getBoundingClientRect()` on an element is
-				// about 0.002 milliseconds on a modern desktop CPU.
+				// Calling `getOffset()` on an element is about
+				// 0.003 milliseconds on a modern desktop CPU,
+				// so I guess it's fine calling it twice a second.
 				const { top } = getOffset(this.getContainerNode())
 				if (top !== this.top) {
 					this.onUpdateShownItemIndexes({ reason: 'top offset change' })
 				}
 			}
-			this.watchContainerElementTopCoordinateTimer = setTimeout(check, WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL)
+			// Compare `top` coordinate of the list twice a second
+			// to find out if it has changed as a result of loading CSS styles.
+			// The total duration of 3 seconds would be enough for any styles to load, I guess.
+			// There could be other cases changing the `top` coordinate
+			// of the list (like collapsing an "accordeon" panel above the list
+			// without scrolling the page), but those cases should be handled
+			// by manually calling `.layout()` instance method on `VirtualScroller` instance.
+			if (Date.now() - startedAt < WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION) {
+				this.watchContainerElementTopCoordinateTimer = setTimeout(check, WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL)
+			}
 		}
+		// Run the cycle.
 		check()
 	}
 
@@ -560,8 +575,11 @@ export default class VirtualScroller {
 		// }
 		// const { top, height } = listCoordinates
 		const { top, height } = getOffset(this.getContainerNode())
+		// `this.top` is not used for any "caching",
+		// it's only used in `this.watchContainerElementTopCoordinate()` method.
 		if (this.top === undefined) {
-			// See the comments for `watchContainerElementTopCoordinate()` method.
+			// See the comments for `watchContainerElementTopCoordinate()` method
+			// for the rationale on why it's here.
 			this.watchContainerElementTopCoordinate()
 		}
 		this.top = top

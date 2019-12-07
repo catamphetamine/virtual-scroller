@@ -100,6 +100,9 @@ export default class ReactVirtualScroller extends React.Component {
 		this.generateUniquePrefix()
 	}
 
+	// This is a proxy for `VirtualScroller`'s `.layout` instance method.
+	layout = () => this.virtualScroller.layout()
+
 	// This proxy is required for cases when
 	// `onItemFirstRender` property changes.
 	// For example, if it's passed as:

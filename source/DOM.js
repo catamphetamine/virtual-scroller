@@ -1,6 +1,7 @@
 /**
  * Returns the DOM element's `top` and `left` offset relative to the document.
  * `document` can potentially have margins so this function takes care of that.
+ * Calling `getOffset()` on an element is about 0.003 milliseconds on a modern desktop CPU.
  * @param  {object} element
  * @return {object} `{ top: number, left: number, width: number, height: number }`
  */
@@ -8,6 +9,8 @@ export function getOffset(element) {
 	// Copied from:
 	// http://stackoverflow.com/questions/5598743/finding-elements-position-relative-to-the-document
 
+	// Calling `.getBoundingClientRect()` on an element is
+	// about 0.002 milliseconds on a modern desktop CPU.
 	const onScreenCoordinates = element.getBoundingClientRect()
 
 	const documentLeftBorderWidth = document.clientLeft || document.body.clientLeft || 0
