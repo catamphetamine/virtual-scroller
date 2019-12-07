@@ -1,15 +1,34 @@
 import log from './log'
 
 export default class ItemHeights {
-	constructor(getContainerNode, itemsCount, getState) {
+	constructor(getContainerNode, getState) {
 		this.getContainerNode = getContainerNode
 		this.getState = getState
-		// Initialize `measuredItemsHeight`, `firstMeasuredItemIndex` and `lastMeasuredItemIndex`.
-		// For example, if `state` was supplied to `VirtualScroller`.
+		this.resetMeasuredState()
+	}
+
+	resetMeasuredState() {
 		this.measuredItemsHeight = 0
+		this.firstMeasuredItemIndex = undefined
+		this.lastMeasuredItemIndex = undefined
+	}
+
+	/**
+	 * Initializes `this.measuredItemsHeight`, `this.firstMeasuredItemIndex` and
+	 * `this.lastMeasuredItemIndex` instance variables.
+	 * These instance variables are used when calculating "average" item height:
+	 * the "average" item height is simply `this.measuredItemsHeight` divided by
+	 * `this.lastMeasuredItemIndex` minus `this.firstMeasuredItemIndex` plus 1.
+	 * Also, `this.firstMeasuredItemIndex` and `this.lastMeasuredItemIndex`
+	 * are used to detect "non-continuous" scroll: the cases when scroll position
+	 * jumps from one position to a distant another position. How could that happen?
+	 * Maybe it can't, but just in case.
+	 */
+	onInitItemHeights() {
+		this.resetMeasuredState()
 		let i = 0
-		while (i < getState().itemHeights.length) {
-			if (getState().itemHeights[i] == undefined) {
+		while (i < this.getState().itemHeights.length) {
+			if (this.getState().itemHeights[i] == undefined) {
 				if (this.firstMeasuredItemIndex !== undefined) {
 					this.lastMeasuredItemIndex = i - 1
 					break
@@ -18,7 +37,7 @@ export default class ItemHeights {
 				if (this.firstMeasuredItemIndex === undefined) {
 					this.firstMeasuredItemIndex = i
 				}
-				this.measuredItemsHeight += getState().itemHeights[i]
+				this.measuredItemsHeight += this.getState().itemHeights[i]
 			}
 			i++
 		}
@@ -85,9 +104,7 @@ export default class ItemHeights {
 				this.previousAverageItemHeight = this.averageItemHeight
 				this.previousAverageItemHeightSamplesCount = this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1
 				// Reset.
-				this.measuredItemsHeight = 0
-				this.firstMeasuredItemIndex = undefined
-				this.lastMeasuredItemIndex = undefined
+				this.resetMeasuredState()
 			}
 		}
 		const previousFirstMeasuredItemIndex = this.firstMeasuredItemIndex

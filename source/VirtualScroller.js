@@ -102,10 +102,12 @@ export default class VirtualScroller {
 			log('Initial state (passed)', state)
 		}
 
-		this.setState(state || this.getInitialState())
-
 		this.getContainerNode = getContainerNode
-		this.itemHeights = new ItemHeights(getContainerNode, items.length, this.getState)
+		this.itemHeights = new ItemHeights(getContainerNode, this.getState)
+
+		this.setState(state || this.getInitialState(), () => {
+			this.itemHeights.onInitItemHeights()
+		})
 
 		log('Items count', items.length)
 		// log('Start from index', START_FROM_INDEX)
@@ -841,7 +843,8 @@ export default class VirtualScroller {
 			prependedItemsCount,
 			appendedItemsCount
 		} = getItemsDiff(previousItems, newItems)
-		if (prependedItemsCount > 0 || appendedItemsCount > 0) {
+		const isIncrementalUpdate = prependedItemsCount > 0 || appendedItemsCount > 0
+		if (isIncrementalUpdate) {
 			if (prependedItemsCount > 0) {
 				log('Prepended items count', prependedItemsCount)
 				if (this.firstSeenItemIndex !== undefined) {
@@ -877,9 +880,6 @@ export default class VirtualScroller {
 			log('Non-incremental items update')
 			log('Previous items', previousItems)
 			log('New items', newItems)
-			this.firstSeenItemIndex = undefined
-			this.lastSeenItemIndex = undefined
-			this.itemHeights = new ItemHeights(this.getContainerNode, newItems.length, this.getState)
 			itemHeights = new Array(newItems.length)
 			itemStates = new Array(newItems.length)
 			if (newItems.length === 0) {
@@ -921,6 +921,11 @@ export default class VirtualScroller {
 			beforeItemsHeight,
 			afterItemsHeight
 		}, () => {
+			if (!isIncrementalUpdate) {
+				this.firstSeenItemIndex = undefined
+				this.lastSeenItemIndex = undefined
+				this.itemHeights.onInitItemHeights()
+			}
 			this.onUpdateShownItemIndexes({
 				reason: 'update items',
 				force: true
