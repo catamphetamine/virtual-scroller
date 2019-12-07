@@ -2,10 +2,12 @@ import shallowEqual from './shallowEqual'
 import { getOffset, getScrollY, getScreenHeight, getScreenBounds, clearElement } from './DOM'
 import ItemHeights from './ItemHeights'
 import log, { isDebug } from './log'
+import { throttle } from './utility'
 
 const START_FROM_INDEX = 0
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 500
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION = 3000
+const WINDOW_RESIZE_THROTTLE_DURATION = 200
 
 export default class VirtualScroller {
 	/**
@@ -122,6 +124,20 @@ export default class VirtualScroller {
 	 * @return {object}
 	 */
 	getInitialState(customState) {
+		const itemsCount = this.initialItems.length
+		const state = {
+			...customState,
+			...this.getInitialLayoutState(),
+			items: this.initialItems,
+			itemStates: new Array(itemsCount)
+		}
+		log('Initial state (created)', state)
+		log('First shown item index', state.firstShownItemIndex)
+		log('Last shown item index', state.lastShownItemIndex)
+		return state
+	}
+
+	getInitialLayoutState() {
 		let firstShownItemIndex
 		let lastShownItemIndex
 		const itemsCount = this.initialItems.length
@@ -132,10 +148,7 @@ export default class VirtualScroller {
 		}
 		// Optionally preload items to be rendered.
 		this.onShowItems(firstShownItemIndex, lastShownItemIndex)
-		const state = {
-			...customState,
-			items: this.initialItems,
-			itemStates: new Array(itemsCount),
+		return {
 			itemHeights: new Array(itemsCount),
 			itemSpacing: undefined,
 			beforeItemsHeight: 0,
@@ -143,10 +156,6 @@ export default class VirtualScroller {
 			firstShownItemIndex,
 			lastShownItemIndex
 		}
-		log('Initial state (created)', state)
-		log('First shown item index', firstShownItemIndex)
-		log('Last shown item index', lastShownItemIndex)
-		return state
 	}
 
 	/**
@@ -226,6 +235,15 @@ export default class VirtualScroller {
 	}
 
 	onMount() {
+		this.onInitialRender('mount')
+		this.isMounted = true
+		if (!this.bypass) {
+			window.addEventListener('scroll', this.onScroll)
+			window.addEventListener('resize', this.onResize)
+		}
+	}
+
+	onInitialRender(reason) {
 		const {
 			firstShownItemIndex,
 			lastShownItemIndex
@@ -238,17 +256,23 @@ export default class VirtualScroller {
 				lastShownItemIndex
 			)
 		}
-		this.isMounted = true
-		this.onUpdateShownItemIndexes({ reason: 'on mount' })
-		if (!this.bypass) {
-			window.addEventListener('scroll', this.onScroll)
-			window.addEventListener('resize', this.onResize)
-		}
+		this.onUpdateShownItemIndexes({ reason })
 	}
 
-	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
-	onResize = () => this.onUpdateShownItemIndexes({ reason: 'resize' })
 	layout   = () => this.onUpdateShownItemIndexes({ reason: 'manual' })
+	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
+
+	// Maybe add throttling here. Or maybe leave it as-is.
+	// I guess I'll leave it as-is for now.
+	onResize = throttle(() => {
+		// Reset item heights because now that window width changed
+		// the list width most likely also has changed, and also
+		// some CSS `@media()` rules might have been added or removed.
+		// Re-render the list entirely.
+		this.setState(this.getInitialLayoutState(), () => {
+			this.onInitialRender('resize')
+		})
+	}, WINDOW_RESIZE_THROTTLE_DURATION)
 
 	onUnmount() {
 		this.isMounted = false
@@ -333,7 +357,7 @@ export default class VirtualScroller {
 		let i = START_FROM_INDEX
 		while (i < this.getItemsCount()) {
 			const height = this.itemHeights.get(i)
-			// If an item that hasn't been shown (measured) yet is encountered
+			// If an item that hasn't been shown (and measured) yet is encountered
 			// then show such item and then retry after it has been measured.
 			if (height === undefined) {
 				log(`Item ${i} height hasn't been measured yet: render and redo layout`)
