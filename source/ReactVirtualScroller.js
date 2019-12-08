@@ -19,6 +19,9 @@ export default class ReactVirtualScroller extends React.Component {
 		estimatedItemHeight: PropTypes.number,
 		bypass: PropTypes.bool,
 		bypassBatchSize: PropTypes.number,
+		preserveScrollPositionOnPrependItems: PropTypes.bool,
+		// `preserveScrollPosition` property name is deprecated,
+		// use `preserveScrollPositionOnPrependItems` instead.
 		preserveScrollPosition: PropTypes.bool,
 		onMount: PropTypes.func,
 		onItemFirstRender: PropTypes.func,
@@ -225,10 +228,12 @@ export default class ReactVirtualScroller extends React.Component {
 		// If `items` property did change then update `virtual-scroller` items.
 		// This could have been done in `.render()` but `.updateItems()` calls
 		// `.setState()` internally which would result in React throwing an error.
-		const { items, preserveScrollPosition } = this.props
+		const { items, preserveScrollPosition, preserveScrollPositionOnPrependItems } = this.props
 		if (items !== prevProps.items) {
 			this.virtualScroller.updateItems(items, {
-				preserveScrollPosition
+				// `preserveScrollPosition` property name is deprecated,
+				// use `preserveScrollPositionOnPrependItems` instead.
+				preserveScrollPositionOnPrependItems: preserveScrollPositionOnPrependItems || preserveScrollPosition
 			})
 		}
 	}
@@ -247,6 +252,9 @@ export default class ReactVirtualScroller extends React.Component {
 			estimatedItemHeight,
 			bypass,
 			bypassBatchSize,
+			preserveScrollPositionOnPrependItems,
+			// `preserveScrollPosition` property name is deprecated,
+			// use `preserveScrollPositionOnPrependItems` instead.
 			preserveScrollPosition,
 			initialState,
 			onStateChange,
@@ -318,7 +326,9 @@ export default class ReactVirtualScroller extends React.Component {
 				// then no need to re-generate the prefix
 				// and to fix scroll position and to clear caches.
 			} else {
-				if (preserveScrollPosition) {
+				// `preserveScrollPosition` property name is deprecated,
+				// use `preserveScrollPositionOnPrependItems` instead.
+				if (preserveScrollPositionOnPrependItems || preserveScrollPosition) {
 					this.virtualScroller.captureScroll(
 						previousItems,
 						newItems

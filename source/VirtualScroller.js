@@ -846,7 +846,7 @@ export default class VirtualScroller {
 	/**
 	 * Updates `items`. For example, can prepend or append new items to the list.
 	 * @param  {any[]} newItems
-	 * @param {boolean} [options.preserveScrollPosition] — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
+	 * @param {boolean} [options.preserveScrollPositionOnPrependItems] — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
 	 */
 	updateItems(newItems, options = {}) {
 		// * @param  {object} [newCustomState] — If `customState` was passed to `getInitialState()`, this `newCustomState` updates it.
@@ -881,7 +881,9 @@ export default class VirtualScroller {
 				}
 				// Since some items were prepended restore scroll Y
 				// position after rendering those new items.
-				if (options.preserveScrollPosition) {
+				// `preserveScrollPosition` property name is deprecated,
+				// use `preserveScrollPositionOnPrependItems` instead.
+				if (options.preserveScrollPositionOnPrependItems || options.preserveScrollPosition) {
 					this.captureScroll(
 						previousItems,
 						newItems,
