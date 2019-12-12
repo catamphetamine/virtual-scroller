@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 
 import VirtualScroller, { getItemsDiff } from './VirtualScroller'
 import shallowEqual from './shallowEqual'
+import { px } from './utility'
 
 // `PropTypes.elementType` is available in some version of `prop-types`.
 // https://github.com/facebook/prop-types/issues/200
@@ -348,8 +349,8 @@ export default class ReactVirtualScroller extends React.Component {
 				{...rest}
 				ref={this.container}
 				style={{
-					paddingTop: beforeItemsHeight + 'px',
-					paddingBottom: afterItemsHeight + 'px'
+					paddingTop: px(beforeItemsHeight),
+					paddingBottom: px(afterItemsHeight)
 				}}>
 				{items.map((item, i) => {
 					if (i >= firstShownItemIndex && i <= lastShownItemIndex) {

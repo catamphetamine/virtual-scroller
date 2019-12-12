@@ -1,5 +1,6 @@
 import VirtualScroller from './VirtualScroller'
 import log from './log'
+import { px } from './utility'
 
 export default class DOMVirtualScroller {
   constructor(element, items, renderItem, options = {}) {
@@ -32,8 +33,8 @@ export default class DOMVirtualScroller {
     log('Previous state', prevState)
     log('New state', state)
     // Set container padding top and bottom.
-    this.container.style.paddingTop = beforeItemsHeight + 'px'
-    this.container.style.paddingBottom = afterItemsHeight + 'px'
+    this.container.style.paddingTop = px(beforeItemsHeight)
+    this.container.style.paddingBottom = px(afterItemsHeight)
     // Perform an intelligent "diff" re-render if the `items` are the same.
     const diffRender = prevState && items === prevState.items && prevState.items.length > 0
     // Remove no longer visible items from the DOM.
