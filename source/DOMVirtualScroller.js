@@ -95,7 +95,15 @@ export default class DOMVirtualScroller {
     this.virtualScroller.onItemHeightChange(i)
   }
 
+  /**
+   * @deprecated
+   * `.updateItems()` has been renamed to `.setItems()`.
+   */
   updateItems(newItems, options) {
-    this.virtualScroller.updateItems(newItems, options)
+    return this.setItems(newItems, options)
+  }
+
+  setItems(newItems, options) {
+    this.virtualScroller.setItems(newItems, options)
   }
 }

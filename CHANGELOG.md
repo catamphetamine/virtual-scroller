@@ -3,7 +3,13 @@
 1.0.13 / 08.12.2019
 ===================
 
-* Renamed `preserveScrollPosition` option/property to `preserveScrollPositionOnPrependItems`.
+* Renamed `VirtualScroller.updateItems()` to `VirtualScroller.setItems()`. The old method name still works but is considered deprecated.
+
+* Renamed `ReactVirtualScroller.updateItem(i)` to `ReactVirtualScroller.renderItem(i)`. The old method name still works but is considered deprecated.
+
+* Renamed `preserveScrollPosition` option/property to `preserveScrollPositionOnPrependItems`. The old option/property name still works but is considered deprecated.
+
+* Fixed `preserveScrollPosition` (previously it could measure the change in document height incorrectly).
 
 * Fixed re-layout on window resize.
 

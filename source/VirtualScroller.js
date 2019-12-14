@@ -12,7 +12,7 @@ const WINDOW_RESIZE_THROTTLE_DURATION = 200
 export default class VirtualScroller {
 	/**
 	 * @param  {function} getContainerNode — Returns container DOM `Element`.
-	 * @param  {any[]} items — Are only used for getting items count and for comparing "previous" items to "next" items if `.updateItems(newItems)` is called.
+	 * @param  {any[]} items — Are only used for getting items count and for comparing "previous" items to "next" items if `.setItems(newItems)` is called.
 	 * @param  {Object} [options] — See README.md.
 	 * @return {VirtualScroller}
 	 */
@@ -412,6 +412,7 @@ export default class VirtualScroller {
 			if (showItemsToIndex < this.restoreScrollAfterPrepend.index) {
 				showItemsToIndex = this.restoreScrollAfterPrepend.index
 			}
+			// `showItemsFromIndex` is always `0` when prepending items.
 			// No need to redo layout after render because all
 			// prepended items are rendered in a single pass.
 			// It removes the visual jitter otherwise happening
@@ -426,7 +427,7 @@ export default class VirtualScroller {
 		}
 	}
 
-	getInvisibleItemIndexes() {
+	getOffscreenListShownItemIndexes() {
 		const i = START_FROM_INDEX
 		return {
 			firstShownItemIndex: i,
@@ -438,7 +439,7 @@ export default class VirtualScroller {
 	getItemIndexes(screenTop, screenBottom, top, bottom) {
 		const isVisible = bottom > screenTop && top < screenBottom
 		if (!isVisible) {
-			return this.getInvisibleItemIndexes()
+			return this.getOffscreenListShownItemIndexes()
 		}
 		// Find the items which are displayed in the viewport.
 		const indexes = this.getVisibleItemIndexes(screenTop, screenBottom, top)
@@ -447,7 +448,7 @@ export default class VirtualScroller {
 		// to be in the viewport in reality the list isn't visible
 		// in which case `firstShownItemIndex` will be `undefined`.
 		if (indexes.firstShownItemIndex === undefined) {
-			return this.getInvisibleItemIndexes()
+			return this.getOffscreenListShownItemIndexes()
 		}
 		return indexes
 	}
@@ -588,6 +589,7 @@ export default class VirtualScroller {
 			return {
 				firstShownItemIndex,
 				lastShownItemIndex,
+				// Redo layout untill all items are rendered.
 				redoLayoutAfterRender: lastShownItemIndex < this.getItemsCount() - 1
 			}
 		}
@@ -731,7 +733,7 @@ export default class VirtualScroller {
 		// This could happen when using `<ReactVirtualScroller/>`
 		// because it calls `.captureScroll()` inside `.render()`
 		// which is followed by `<VirtualScroller/>`'s `.componentDidUpdate()`
-		// which also alls `.captureScroll()` with the same arguments.
+		// which also calls `.captureScroll()` with the same arguments.
 		// (this is done to prevent scroll Y position from jumping
 		//  when showing the first page of the "Previous items",
 		//  see the comments in `<ReactVirtualScroller/>`'s `.render()` method).
@@ -844,11 +846,19 @@ export default class VirtualScroller {
 	}
 
 	/**
+	 * @deprecated
+	 * `.updateItems()` has been renamed to `.setItems()`.
+	 */
+	updateItems(newItems, options) {
+		return this.setItems(newItems, options)
+	}
+
+	/**
 	 * Updates `items`. For example, can prepend or append new items to the list.
 	 * @param  {any[]} newItems
 	 * @param {boolean} [options.preserveScrollPositionOnPrependItems] — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
 	 */
-	updateItems(newItems, options = {}) {
+	setItems(newItems, options = {}) {
 		// * @param  {object} [newCustomState] — If `customState` was passed to `getInitialState()`, this `newCustomState` updates it.
 		const {
 			items: previousItems

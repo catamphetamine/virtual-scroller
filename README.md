@@ -85,7 +85,7 @@ Available `options`:
 * `getState()` — Returns `VirtualScroller` state. Is used for React `VirtualScroller` component implementation.
 * `onItemHeightChange(i)` — Should be called whenever a list item's height changes: triggers a re-layout of `VirtualScroller`. This allows `VirtualScroller` to re-measure the new item's height and re-render correctly. Calling `onItemHeightChange()` manually could be replaced with detecting item height changes automatically via [Resize Observer](https://caniuse.com/#search=Resize%20Observer). For example, when a user clicks an "Expand"/"Collapse" button in a post. Calling `onItemHeightChange()` is only required when an item shrinks in height. For example, consider a post with an "Expand"/"Collapse" button: when such post is expanded the next posts in the feed might not be visible yet but if a user clicks the "Collapse" button the post is collapsed and the next posts become visible but they're not yet rendered because `VirtualScroller` didn't render them previously due to them being invisible. Calling `onItemHeightChange(i)` in such case would make `VirtualScroller` re-measure the collapsed post height and perform a re-layout.
 * `onItemStateChange(i, itemState)` — Can be used to update a list item's state inside `VirtualScroller` state. For example, storing list item's state inside `VirtualScroller` state is used in React `VirtualScroller` component to preserve the state of list items that are unmounted due to being no longer visible: when they're visible again they're re-mounted and their state isn't lost. Calling `onItemStateChange()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout isn't necessarily required. If a re-layout is required then call `onItemHeightChange(i)` manually. For example, consider a social network feed, each post optionally having an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a thumbnail that expands into an embedded YouTube player on click. If a user expands the video, then scrolls down so that the post with the video is unmounted, then scrolls back up so that the post with the video is re-mounted again, then the video should stay expanded (or maybe not, but you get the idea).
-* `updateItems(newItems, [options])` — Updates `VirtualScroller` `items`. For example, can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details. Available options: `preserveScrollPositionOnPrependItems: boolean` — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
+* `setItems(newItems, [options])` — Updates `VirtualScroller` `items`. For example, can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details. Available options: `preserveScrollPositionOnPrependItems: boolean` — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
 * `layout()` — (advanced) Triggers a re-layout of `VirtualScroller`. It's what's called every time on page scroll or window resize. You most likely won't ever need to call this method manually. Still, it can be called manually when the list's top position changes not as a result of scrolling the page or resizing the window. For example, if some DOM elements above the list are removed (like a closeable "info" panel) or collapsed (like an "accordion" panel) then the list's top position changes which means that now some of the previoulsy shown items might go off screen and the user might be seeing a blank area where items haven't been rendered yet because they were off-screen during the previous `VirtualScroller` layout. `VirtualScroller` automatically performs a layout only on page scroll or window resize; in all other cases, when layout needs to be re-run then call it manually via this instance method.
 
 `VirtualScroller` state provides properties:
@@ -94,7 +94,7 @@ Available `options`:
 * `lastShownItemIndex` — The index of the last item to render.
 * `beforeItemsHeight` — The `padding-top` which should be applied to the "container" element.
 * `afterItemsHeight` — The `padding-bottom` which should be applied to the "container" element.
-* `items` — The list of items (can be updated via [`.updateItems()`](#dynamically-loaded-lists)).
+* `items` — The list of items (can be updated via [`.setItems()`](#dynamically-loaded-lists)).
 * `itemStates` — The list of item states.
 * `itemHeights` — A list of measured item heights. If an item's height hasn't been measured yet then it's height is `undefined`.
 * `itemSpacing` — Inter-item spacing. If it hasn't been measured yet then it's `undefined`.
@@ -155,7 +155,7 @@ const virtualScroller = new VirtualScroller(
 
 `VirtualScroller` instance provides methods:
 
-* `updateItems(items, options)` — A proxy for the corresponding `VirtualScroller` method.
+* `setItems(items, options)` — A proxy for the corresponding `VirtualScroller` method.
 * `onItemHeightChange(i)` — A proxy for the corresponding `VirtualScroller` method.
 * `onItemStateChange(i, itemState)` — A proxy for the corresponding `VirtualScroller` method.
 
@@ -222,7 +222,7 @@ Message.propTypes = {
 * `itemComponent` — List item component. Receives the list item as the `children` property. Can optionally receive `state` and `onSaveState()` properties for saving list item state before unmounting it and then restoring that state after the item is re-mounted (for example, this supports "Show more" buttons, "Expand YouTube video" buttons, etc). For best performance, make sure it's a `React.PureComponent` or a `React.memo()`, otherwise it'll be re-rendering as the user scrolls.
 * `itemComponentProps: object` — (optional) The props passed to `itemComponent`.
 * `estimatedItemHeight: number` — (optional) The `estimatedItemHeight` option of `VirtualScroller` class.
-* `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.updateItems()` method.
+* `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.setItems()` method.
 * `onMount()` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
 * `onItemFirstRender(i)` — (optional) The `onItemFirstRender` option of `VirtualScroller` class.
 <!-- * `bypass` — (optional) The `bypass` option of `VirtualScroller` class. -->
@@ -264,10 +264,10 @@ class Example extends React.Component {
 
 ## Dynamically Loaded Lists
 
-The previous examples showcase a static `items` list. For cases when new items are loaded when the user clicks "Show previous" / "Show next" buttons `virtualScroller.updateItems(newItems)` method can be used where `newItems` will be `previousItems.concat(items)` for "Show previous" button and `items.concat(nextItems)` for "Show next" button. `virtual-scroller/react` will automatically call `.updateItems(newItems)` when new `items` property is passed, and `virtual-scroller/dom` provides a manual `.updateItems(newItems)` method same as `VirtualScroller`.
+The previous examples showcase a static `items` list. For cases when new items are loaded when the user clicks "Show previous" / "Show next" buttons `virtualScroller.setItems(newItems)` method can be used where `newItems` will be `previousItems.concat(items)` for "Show previous" button and `items.concat(nextItems)` for "Show next" button. `virtual-scroller/react` will automatically call `.setItems(newItems)` when new `items` property is passed, and `virtual-scroller/dom` provides a manual `.setItems(newItems)` method same as `VirtualScroller`.
 
 <!--
-`virtualScroller.updateItems(newItems)` also receives an optional second `options` argument having shape `{ state }` where `state` can be used for updating "custom state" previously set in `getInitialState(customState)` and can be an `object` or a function `(previousState, { prependedCount, appendedCount }) => object`. If the items update is not incremental (i.e. if `newItems` doesn't contain previous `items`) then both `prependedCount` and `appendedCount` will be `undefined`.
+`virtualScroller.setItems(newItems)` also receives an optional second `options` argument having shape `{ state }` where `state` can be used for updating "custom state" previously set in `getInitialState(customState)` and can be an `object` or a function `(previousState, { prependedCount, appendedCount }) => object`. If the items update is not incremental (i.e. if `newItems` doesn't contain previous `items`) then both `prependedCount` and `appendedCount` will be `undefined`.
 -->
 
 Also, one can use [`on-scroll-to`](https://github.com/catamphetamine/on-scroll-to) library to render a "Load more items on scroll down" component for "infinite scroll" lists.
@@ -315,7 +315,7 @@ An example of a `:first-child`/`:last-child` style that will not work correctly 
 
 ### Search, focus management.
 
-Due to offscreen list items not being rendered native browser features like "Find on page", moving focus through items via `Tab` key, screen reader announcement and such won't work. A workaround for "search on page" is adding a custom "🔍 Search" input field that would filter items by their content and then call `VirtualScroller.updateItems()`.
+Due to offscreen list items not being rendered native browser features like "Find on page", moving focus through items via `Tab` key, screen reader announcement and such won't work. A workaround for "search on page" is adding a custom "🔍 Search" input field that would filter items by their content and then call `VirtualScroller.setItems()`.
 
 ### Only the first item is rendered on page load.
 
@@ -367,7 +367,7 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 
 * Use [Resize Observer](https://caniuse.com/#search=Resize%20Observer) instead of calling `.onItemHeightChange(i)` manually.
 
-* Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.updateItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.updateItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
+* Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.updateItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.setItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
 -->
 
 ## License

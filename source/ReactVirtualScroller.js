@@ -108,8 +108,8 @@ export default class ReactVirtualScroller extends React.Component {
 	layout = () => this.virtualScroller.layout()
 
 	// This proxy is required for cases when
-	// `onItemFirstRender` property changes.
-	// For example, if it's passed as:
+	// `onItemFirstRender` property changes at subsequent renders.
+	// For example, if it's passed as an "anonymous" function:
 	// `<VirtualScroller onItemFirstRender={() => ...}/>`.
 	onItemFirstRender = (...args) => {
 		const { onItemFirstRender } = this.props
@@ -227,11 +227,11 @@ export default class ReactVirtualScroller extends React.Component {
 		// Re-measure rendered items' heights.
 		this.virtualScroller.onUpdate(prevState)
 		// If `items` property did change then update `virtual-scroller` items.
-		// This could have been done in `.render()` but `.updateItems()` calls
+		// This could have been done in `.render()` but `.setItems()` calls
 		// `.setState()` internally which would result in React throwing an error.
 		const { items, preserveScrollPosition, preserveScrollPositionOnPrependItems } = this.props
 		if (items !== prevProps.items) {
-			this.virtualScroller.updateItems(items, {
+			this.virtualScroller.setItems(items, {
 				// `preserveScrollPosition` property name is deprecated,
 				// use `preserveScrollPositionOnPrependItems` instead.
 				preserveScrollPositionOnPrependItems: preserveScrollPositionOnPrependItems || preserveScrollPosition
@@ -300,7 +300,7 @@ export default class ReactVirtualScroller extends React.Component {
 		// which results in the scroll Y position jumping forward
 		// by the height of the "Show previous" button.
 		// This is because `<VirtualScroller/>` restores scroll Y position
-		// when items are prepended via `.updateItems()` and it does that
+		// when items are prepended via `.setItems()` and it does that
 		// when the "Show previous" button has already been hidden
 		// so that's the reason for the scroll Y jump.
 		//
