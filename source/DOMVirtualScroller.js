@@ -100,10 +100,14 @@ export default class DOMVirtualScroller {
    * `.updateItems()` has been renamed to `.setItems()`.
    */
   updateItems(newItems, options) {
-    return this.setItems(newItems, options)
+    this.setItems(newItems, options)
   }
 
   setItems(newItems, options) {
     this.virtualScroller.setItems(newItems, options)
+  }
+
+  getItemCoordinates(i) {
+    return this.virtualScroller.getItemCoordinates(i)
   }
 }

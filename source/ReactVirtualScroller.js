@@ -141,6 +141,15 @@ export default class ReactVirtualScroller extends React.Component {
 	}
 
 	/**
+	 * A proxy to `VirtualScroller.getItemCoordinates(i)`.
+	 * @param  {number} i
+	 * @return {object}
+	 */
+	getItemCoordinates(i) {
+		return this.virtualScroller.getItemCoordinates(i)
+	}
+
+	/**
 	 * `updateItem(i)` has been renamed to `renderItem(i)`.
 	 * @param {number} i
 	 */

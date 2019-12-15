@@ -155,6 +155,11 @@ export default class ItemHeights {
 		// this.updateAverageItemHeight()
 	}
 
+	/**
+	 * Re-measures item height.
+	 * @param  {number} i — Item index.
+	 * @param  {number} firstShownItemIndex
+	 */
 	updateItemHeight(i, firstShownItemIndex) {
 		const previousHeight = this.get(i)
 		const height = this._getItemHeight(i, firstShownItemIndex)

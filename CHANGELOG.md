@@ -11,6 +11,10 @@
 
 * Added `preserveScrollPositionAtBottomOnMount: boolean` option/property.
 
+<!-- * Added preserving scroll position on showing an item when its height has changed (for some reason) while it was hidden. This feature is only active when the item's new bottom border is above the center of the screen. -->
+
+* Added `.getItemCoordinates(i)` instance method.
+
 * Fixed `preserveScrollPosition` (previously it could measure the change in document height incorrectly).
 
 * Fixed re-layout on window resize.

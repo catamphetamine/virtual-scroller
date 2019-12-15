@@ -308,11 +308,18 @@ export default class VirtualScroller {
 		if (firstShownItemIndex !== prevState.firstShownItemIndex ||
 			lastShownItemIndex !== prevState.lastShownItemIndex ||
 			items !== prevState.items) {
+			// // If some items' height changed then maybe adjust scroll position accordingly.
+			// const prevItemHeights = this.getState().itemHeights.slice()
 			// Update seen item heights.
 			this.updateItemHeights(
 				firstShownItemIndex,
 				lastShownItemIndex
 			)
+			// let i = firstShownItemIndex
+			// while (i <= lastShownItemIndex) {
+			// 	this.adjustScrollPositionIfNeeded(i, prevItemHeights[i])
+			// 	i++
+			// }
 		}
 	}
 
@@ -359,6 +366,29 @@ export default class VirtualScroller {
 			log('Previous height', previousHeight)
 			log('New height', newHeight)
 			this.onUpdateShownItemIndexes({ reason: 'item height change' })
+		}
+	}
+
+	/**
+	 * Returns coordinates of item with index `i` relative to the document.
+	 * `top` is the top offset of the item relative to the start of the document.
+	 * `bottom` is the top offset of the item's bottom edge relative to the start of the document.
+	 * `height` is the item's height.
+	 * @param  {number} i
+	 * @return {object} coordinates — An object of shape `{ top, bottom, height }`.
+	 */
+	getItemCoordinates(i) {
+		let { top } = getOffset(this.getContainerNode())
+		let j = 0
+		while (j < i) {
+			top += this.getState().itemHeights[j]
+			top += this.getItemSpacing()
+			j++
+		}
+		return {
+			top,
+			bottom: top + this.getState().itemHeights[i],
+			height: this.getState().itemHeights[j]
 		}
 	}
 
@@ -774,6 +804,22 @@ export default class VirtualScroller {
 			window.scrollTo(0, getScrollY() + scrollByY)
 		}
 	}
+
+	// This turned out to not work so well:
+	// scrolling becomes "janky" with this feature turned on
+	// when there're items whose height did change while they were hidden.
+	// adjustScrollPositionIfNeeded(i, prevItemHeight) {
+	// 	const itemHeight = this.getState().itemHeights[i]
+	// 	if (itemHeight !== prevItemHeight) {
+	// 		const { bottom } = this.getItemCoordinates(i)
+	// 		// `window.scrollY` and `window.scrollX` aren't supported in Internet Explorer.
+	// 		const scrollY = window.pageYOffset
+	// 		const horizonLine = scrollY + getScreenHeight() / 2
+	// 		if (bottom < horizonLine) {
+	// 			window.scrollTo(0, scrollY + (itemHeight - prevItemHeight))
+	// 		}
+	// 	}
+	// }
 
 	onUpdateShownItemIndexes = ({ reason, force }) => {
 		// Not implementing the "delayed" layout feature for now.
