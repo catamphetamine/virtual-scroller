@@ -262,7 +262,7 @@ class Example extends React.Component {
 
 `<VirtualScroller/>` component instance provides methods:
 
-* `updateItem(i)` — Calls `.forceUpdate()` on the `itemComponent` instance for item with index `i`. Does nothing if the item isn't rendered. Is only supported for `component`s that are `React.Component`s.
+* `renderItem(i)` — Calls `.forceUpdate()` on the `itemComponent` instance for item with index `i`. Does nothing if the item isn't rendered. Is only supported for `component`s that are `React.Component`s.
 
 ## Dynamically Loaded Lists
 
@@ -369,7 +369,7 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 
 * Use [Resize Observer](https://caniuse.com/#search=Resize%20Observer) instead of calling `.onItemHeightChange(i)` manually.
 
-* Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.updateItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.setItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
+* Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.renderItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.setItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
 -->
 
 ## License
