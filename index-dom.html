@@ -92,7 +92,7 @@
 					...newState
 				}
 				if (newState.messages) {
-					virtualScroller.updateItems(newState.messages, {
+					virtualScroller.setItems(newState.messages, {
 						preserveScrollPosition: true
 					})
 					renderShowPrevious()
