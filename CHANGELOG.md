@@ -9,6 +9,8 @@
 
 * Renamed `preserveScrollPosition` option/property to `preserveScrollPositionOnPrependItems`. The old option/property name still works but is considered deprecated.
 
+* Added `preserveScrollPositionAtBottomOnMount: boolean` option/property.
+
 * Fixed `preserveScrollPosition` (previously it could measure the change in document height incorrectly).
 
 * Fixed re-layout on window resize.

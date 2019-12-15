@@ -25,6 +25,7 @@ export default class VirtualScroller {
 			getState,
 			setState,
 			onStateChange,
+			preserveScrollPositionAtBottomOnMount,
 			bypass,
 			bypassBatchSize
 		} = options
@@ -107,6 +108,10 @@ export default class VirtualScroller {
 		this.getContainerNode = getContainerNode
 		this.itemHeights = new ItemHeights(getContainerNode, this.getState)
 
+		this.preserveScrollPositionAtBottomOnMount = {
+			documentHeight: document.documentElement.scrollHeight
+		}
+
 		this.setState(state || this.getInitialState(), () => {
 			this.itemHeights.onInitItemHeights()
 		})
@@ -145,6 +150,10 @@ export default class VirtualScroller {
 		if (itemsCount > 0) {
 			firstShownItemIndex = Math.min(START_FROM_INDEX, itemsCount - 1)
 			lastShownItemIndex = this.getLastShownItemIndex(firstShownItemIndex, itemsCount)
+		}
+		if (this.preserveScrollPositionAtBottomOnMount) {
+			firstShownItemIndex = 0
+			lastShownItemIndex = itemsCount - 1
 		}
 		// Optionally preload items to be rendered.
 		this.onShowItems(firstShownItemIndex, lastShownItemIndex)
@@ -256,7 +265,12 @@ export default class VirtualScroller {
 				lastShownItemIndex
 			)
 		}
-		this.onUpdateShownItemIndexes({ reason })
+		if (this.preserveScrollPositionAtBottomOnMount) {
+			// `window.scrollY` and `window.scrollX` aren't supported in Internet Explorer.
+			window.scrollTo(0, window.pageYOffset + (document.documentElement.scrollHeight - this.preserveScrollPositionAtBottomOnMount.documentHeight))
+		} else {
+			this.onUpdateShownItemIndexes({ reason })
+		}
 	}
 
 	layout   = () => this.onUpdateShownItemIndexes({ reason: 'manual' })

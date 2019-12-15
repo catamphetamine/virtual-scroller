@@ -76,6 +76,7 @@ Available `options`:
 * `onStateChange(newState, prevState)` — Is called whenever `VirtualScroller` `state` is updated (including setting the initial `state`) if `getState()` and `setState()` properties aren't defined.
 * `onItemFirstRender(i)` — Is called for each item the first time it's rendered. For example, consider a list of items that must be somehow preprocessed before being rendered and such preprocessing takes some time. In this case instead of preprocessing the whole list of items upfront a developer may only preprocess the items as they're being rendered.
 <!-- * `bypass` — Set to `true` to disable the "virtual scroller" behavior: it will (eventually) render the entire list on mount and won't hide items that go offscreen as the user scrolls. -->
+* `preserveScrollPositionAtBottomOnMount: boolean` — (optional) Set to `true` to preserve scroll position of the bottom of the list when it's first mounted. A possible use case: consider a forum thread only showing unread posts by default. If a user navigates to such thread, it could show "No new posts" message with a "Show previous" button above it. When the user clicks the "Show previous" button, a `<VirtualScroller/>` is mounted with a list of posts. If `preserveScrollPositionAtBottomOnMount: true` is set then, after the list of posts is show, page scroll will be restored so that the bottom of the list remain on screen so that the user could scroll up from the most recent posts to the oldest ones.
 
 `VirtualScroller` class instance provides methods:
 
@@ -223,6 +224,7 @@ Message.propTypes = {
 * `itemComponentProps: object` — (optional) The props passed to `itemComponent`.
 * `estimatedItemHeight: number` — (optional) The `estimatedItemHeight` option of `VirtualScroller` class.
 * `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.setItems()` method.
+* `preserveScrollPositionAtBottomOnMount: boolean` — (optional) The `preserveScrollPositionAtBottomOnMount` option of `VirtualScroller`.
 * `onMount()` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
 * `onItemFirstRender(i)` — (optional) The `onItemFirstRender` option of `VirtualScroller` class.
 <!-- * `bypass` — (optional) The `bypass` option of `VirtualScroller` class. -->
