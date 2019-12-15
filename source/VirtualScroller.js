@@ -108,8 +108,10 @@ export default class VirtualScroller {
 		this.getContainerNode = getContainerNode
 		this.itemHeights = new ItemHeights(getContainerNode, this.getState)
 
-		this.preserveScrollPositionAtBottomOnMount = {
-			documentHeight: document.documentElement.scrollHeight
+		if (preserveScrollPositionAtBottomOnMount) {
+			this.preserveScrollPositionAtBottomOnMount = {
+				documentHeight: document.documentElement.scrollHeight
+			}
 		}
 
 		this.setState(state || this.getInitialState(), () => {
