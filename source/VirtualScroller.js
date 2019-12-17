@@ -227,13 +227,14 @@ export default class VirtualScroller {
 			} else {
 				if (firstShownItemIndex < this.firstSeenItemIndex) {
 					let i = firstShownItemIndex
-					while (i < this.firstSeenItemIndex) {
+					const tillIndex = Math.min(this.firstSeenItemIndex - 1, lastShownItemIndex)
+					while (i <= tillIndex) {
 						this.onItemFirstRender(i)
 						i++
 					}
 				}
 				if (lastShownItemIndex > this.lastSeenItemIndex) {
-					let i = this.lastSeenItemIndex + 1
+					let i = Math.max(this.lastSeenItemIndex + 1, firstShownItemIndex)
 					while (i <= lastShownItemIndex) {
 						this.onItemFirstRender(i)
 						i++
