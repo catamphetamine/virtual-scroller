@@ -158,7 +158,7 @@ export default class VirtualScroller {
 			lastShownItemIndex = itemsCount - 1
 		}
 		// Optionally preload items to be rendered.
-		this.onShowItems(firstShownItemIndex, lastShownItemIndex)
+		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
 		return {
 			itemHeights: new Array(itemsCount),
 			itemSpacing: undefined,
@@ -216,7 +216,7 @@ export default class VirtualScroller {
 		return window.innerHeight
 	}
 
-	onShowItems(firstShownItemIndex, lastShownItemIndex) {
+	onBeforeShowItems(firstShownItemIndex, lastShownItemIndex) {
 		if (this.onItemFirstRender) {
 			if (this.firstSeenItemIndex === undefined) {
 				let i = firstShownItemIndex
@@ -711,7 +711,7 @@ export default class VirtualScroller {
 			log('Redo layout after render')
 		}
 		// Optionally preload items to be rendered.
-		this.onShowItems(firstShownItemIndex, lastShownItemIndex)
+		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
 		// Render.
 		this.setState({
 			firstShownItemIndex,
@@ -1007,7 +1007,9 @@ export default class VirtualScroller {
 		log('Before items height', beforeItemsHeight)
 		log('After items height', afterItemsHeight)
 		// Optionally preload items to be rendered.
-		this.onShowItems(firstShownItemIndex, lastShownItemIndex)
+		this.firstSeenItemIndex = undefined
+		this.lastSeenItemIndex = undefined
+		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
 		// Render.
 		this.setState({
 			...customState,
@@ -1020,8 +1022,6 @@ export default class VirtualScroller {
 			afterItemsHeight
 		}, () => {
 			if (!isIncrementalUpdate) {
-				this.firstSeenItemIndex = undefined
-				this.lastSeenItemIndex = undefined
 				this.itemHeights.onInitItemHeights()
 			}
 			this.onUpdateShownItemIndexes({
