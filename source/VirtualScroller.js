@@ -4,7 +4,6 @@ import ItemHeights from './ItemHeights'
 import log, { isDebug } from './log'
 import { throttle } from './utility'
 
-const START_FROM_INDEX = 0
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 500
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION = 3000
 const WINDOW_RESIZE_THROTTLE_DURATION = 200
@@ -119,7 +118,6 @@ export default class VirtualScroller {
 		})
 
 		log('Items count', items.length)
-		// log('Start from index', START_FROM_INDEX)
 		if (estimatedItemHeight) {
 			log('Estimated item height', estimatedItemHeight)
 		}
@@ -150,7 +148,7 @@ export default class VirtualScroller {
 		const itemsCount = this.initialItems.length
 		// If there're no items then `firstShownItemIndex` stays `undefined`.
 		if (itemsCount > 0) {
-			firstShownItemIndex = Math.min(START_FROM_INDEX, itemsCount - 1)
+			firstShownItemIndex = Math.min(0, itemsCount - 1)
 			lastShownItemIndex = this.getLastShownItemIndex(firstShownItemIndex, itemsCount)
 		}
 		if (this.preserveScrollPositionAtBottomOnMount) {
@@ -410,7 +408,7 @@ export default class VirtualScroller {
 		let showItemsToIndex
 		let itemsHeight = 0
 		let redoLayoutAfterRender = false
-		let i = START_FROM_INDEX
+		let i = 0
 		while (i < this.getItemsCount()) {
 			const height = this.itemHeights.get(i)
 			// If an item that hasn't been shown (and measured) yet is encountered
@@ -484,11 +482,10 @@ export default class VirtualScroller {
 	}
 
 	getOffscreenListShownItemIndexes() {
-		const i = START_FROM_INDEX
 		return {
-			firstShownItemIndex: i,
-			lastShownItemIndex: i,
-			redoLayoutAfterRender: this.itemHeights.get(i) === undefined
+			firstShownItemIndex: 0,
+			lastShownItemIndex: 0,
+			redoLayoutAfterRender: this.itemHeights.get(0) === undefined
 		}
 	}
 
@@ -518,7 +515,7 @@ export default class VirtualScroller {
 	getBeforeItemsHeight(firstShownItemIndex, lastShownItemIndex) {
 		let beforeItemsHeight = 0
 		// Add all "before" items height.
-		let i = START_FROM_INDEX
+		let i = 0
 		while (i < firstShownItemIndex) {
 			beforeItemsHeight += (this.itemHeights.get(i) || this.itemHeights.getAverage())
 			beforeItemsHeight += this.getItemSpacing()
