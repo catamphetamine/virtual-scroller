@@ -25,6 +25,7 @@ export default class VirtualScroller {
 			setState,
 			onStateChange,
 			preserveScrollPositionAtBottomOnMount,
+			measureItemsBatchSize,
 			bypass,
 			bypassBatchSize
 		} = options
@@ -63,6 +64,8 @@ export default class VirtualScroller {
 
 		this.estimatedItemHeight = estimatedItemHeight
 		// this.getItemState = getItemState
+
+		this.measureItemsBatchSize = measureItemsBatchSize === undefined ? 50 : measureItemsBatchSize
 
 		if (onItemFirstRender) {
 			this.onItemFirstRender = onItemFirstRender
@@ -404,8 +407,8 @@ export default class VirtualScroller {
 
 	// Finds the items which are displayed in the viewport.
 	getVisibleItemIndexes(screenTop, screenBottom, listTop) {
-		let showItemsFromIndex
-		let showItemsToIndex
+		let firstShownItemIndex
+		let lastShownItemIndex
 		let itemsHeight = 0
 		let redoLayoutAfterRender = false
 		let i = 0
@@ -415,11 +418,11 @@ export default class VirtualScroller {
 			// then show such item and then retry after it has been measured.
 			if (height === undefined) {
 				log(`Item ${i} height hasn't been measured yet: render and redo layout`)
-				if (showItemsFromIndex === undefined) {
-					showItemsFromIndex = i
+				if (firstShownItemIndex === undefined) {
+					firstShownItemIndex = i
 				}
 				const heightLeft = screenBottom - (listTop + itemsHeight)
-				showItemsToIndex = Math.min(
+				lastShownItemIndex = Math.min(
 					i + (this.getEstimatedItemsCount(heightLeft) - 1),
 					// Guard against index overflow.
 					this.getItemsCount() - 1
@@ -430,10 +433,10 @@ export default class VirtualScroller {
 			itemsHeight += height
 			// If this is the first item visible
 			// then start showing items from it.
-			if (showItemsFromIndex === undefined) {
+			if (firstShownItemIndex === undefined) {
 				if (listTop + itemsHeight > screenTop) {
 					log('First visible item index (including margin)', i)
-					showItemsFromIndex = i
+					firstShownItemIndex = i
 				}
 			}
 			// Items can have spacing.
@@ -446,37 +449,52 @@ export default class VirtualScroller {
 				// The list height is estimated until all items have been seen,
 				// so it's possible that even when the list DOM element happens
 				// to be in the viewport in reality the list isn't visible
-				// in which case `showItemsFromIndex` will be `undefined`.
-				if (showItemsFromIndex !== undefined) {
-					showItemsToIndex = i
+				// in which case `firstShownItemIndex` will be `undefined`.
+				if (firstShownItemIndex !== undefined) {
+					lastShownItemIndex = i
 				}
 				break
 			}
 			i++
 		}
 		// If there're no more items then the last item is the last one to show.
-		if (showItemsFromIndex !== undefined && showItemsToIndex === undefined) {
-			showItemsToIndex = this.getItemsCount() - 1
-			log('Last item index (is fully visible)', showItemsToIndex)
+		if (firstShownItemIndex !== undefined && lastShownItemIndex === undefined) {
+			lastShownItemIndex = this.getItemsCount() - 1
+			log('Last item index (is fully visible)', lastShownItemIndex)
 		}
-		// If scroll position is scheduled to be restored
-		// after render then the anchor item must be rendered
-		// and all the prepended items before it.
+		// If scroll position is scheduled to be restored after render
+		// then the anchor item must be rendered, and all the prepended
+		// items before it, all in a single pass. This way, all the
+		// prepended items could be measured right after the render
+		// and the scroll position can then be immediately restored.
 		if (this.restoreScrollAfterPrepend) {
-			if (showItemsToIndex < this.restoreScrollAfterPrepend.index) {
-				showItemsToIndex = this.restoreScrollAfterPrepend.index
+			if (lastShownItemIndex < this.restoreScrollAfterPrepend.index) {
+				lastShownItemIndex = this.restoreScrollAfterPrepend.index
 			}
-			// `showItemsFromIndex` is always `0` when prepending items.
-			// No need to redo layout after render because all
-			// prepended items are rendered in a single pass.
-			// It removes the visual jitter otherwise happening
-			// due to scroll position restoration waiting for
-			// two layout cycles instead of one.
+			// `firstShownItemIndex` is always `0` when prepending items.
+			// And `lastShownItemIndex` always covers all prepended items in this case.
+			// None of the prepended items have been rendered before,
+			// so their heights are unknown. The code at the start of this function
+			// did therefore set `redoLayoutAfterRender` to `true`
+			// in order to render just the first prepended item in order to
+			// measure it, and only then make a decision on how many other
+			// prepended items to render. But since we've instructed the code
+			// to show all of the prepended items at once, then no need to
+			// "redo layout after render". Additionally, if `redoLayoutAfterRender`
+			// was left `true` then there would be a short the visual "jitter"
+			// happening due to scroll position restoration waiting for two
+			// layout cycles instead of one.
 			redoLayoutAfterRender = false
 		}
+		// If some items will be rendered in order to measure their height,
+		// and it's not a `preserveScrollPositionOnPrependItems` case,
+		// then limit the amount of such items being measured in a single pass.
+		if (redoLayoutAfterRender && this.measureItemsBatchSize) {
+			lastShownItemIndex = Math.min(lastShownItemIndex, firstShownItemIndex + this.measureItemsBatchSize)
+		}
 		return {
-			firstShownItemIndex: showItemsFromIndex,
-			lastShownItemIndex: showItemsToIndex,
+			firstShownItemIndex,
+			lastShownItemIndex,
 			redoLayoutAfterRender
 		}
 	}
