@@ -224,25 +224,34 @@ export default class VirtualScroller {
 					this.onItemFirstRender(i)
 					i++
 				}
+				this.firstSeenItemIndex = firstShownItemIndex
+				this.lastSeenItemIndex = lastShownItemIndex
 			} else {
+				// The library is designed in such a way that
+				// `[firstShownItemIndex, lastShownItemIndex]` always intersects
+				// (or touches or contains or is contained by)
+				// `[this.firstSeenItemIndex, this.lastSeenItemIndex]`.
 				if (firstShownItemIndex < this.firstSeenItemIndex) {
-					let i = firstShownItemIndex
-					const tillIndex = Math.min(this.firstSeenItemIndex - 1, lastShownItemIndex)
-					while (i <= tillIndex) {
+					const fromIndex = firstShownItemIndex
+					const toIndex = Math.min(lastShownItemIndex, this.firstSeenItemIndex - 1)
+					let i = fromIndex
+					while (i <= toIndex) {
 						this.onItemFirstRender(i)
 						i++
 					}
+					this.firstSeenItemIndex = firstShownItemIndex
 				}
 				if (lastShownItemIndex > this.lastSeenItemIndex) {
-					let i = Math.max(this.lastSeenItemIndex + 1, firstShownItemIndex)
-					while (i <= lastShownItemIndex) {
+					const toIndex = lastShownItemIndex
+					const fromIndex = Math.max(firstShownItemIndex, this.lastSeenItemIndex + 1)
+					let i = fromIndex
+					while (i <= toIndex) {
 						this.onItemFirstRender(i)
 						i++
 					}
+					this.lastSeenItemIndex = lastShownItemIndex
 				}
 			}
-			this.firstSeenItemIndex = firstShownItemIndex
-			this.lastSeenItemIndex = lastShownItemIndex
 		}
 	}
 
@@ -711,6 +720,19 @@ export default class VirtualScroller {
 		if (redoLayoutAfterRender) {
 			log('Redo layout after render')
 		}
+		// The page could be scrolled up, to any scroll position,
+		// for example, via "Home" key, resulting in `lastShownItemIndex`
+		// being less than `this.firstSeenItemIndex`.
+		// `firstShownItemIndex` can't be greater than `this.lastSeenItemIndex`
+		// in the current design of this library, but just in case.
+		if (this.firstSeenItemIndex !== undefined) {
+			if (firstShownItemIndex > this.lastSeenItemIndex + 1 ||
+				lastShownItemIndex < this.firstSeenItemIndex - 1) {
+				// Reset "seen" indexes.
+				this.firstSeenItemIndex = undefined
+				this.lastSeenItemIndex = undefined
+			}
+		}
 		// Optionally preload items to be rendered.
 		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
 		// Render.
@@ -944,9 +966,6 @@ export default class VirtualScroller {
 		if (isIncrementalUpdate) {
 			if (prependedItemsCount > 0) {
 				log('Prepended items count', prependedItemsCount)
-				if (this.firstSeenItemIndex !== undefined) {
-					this.firstSeenItemIndex += prependedItemsCount
-				}
 				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
 				this.itemHeights.onPrepend(prependedItemsCount)
 				if (itemStates) {
@@ -971,6 +990,10 @@ export default class VirtualScroller {
 					itemStates = itemStates.concat(new Array(appendedItemsCount))
 				}
 			}
+			if (this.firstSeenItemIndex !== undefined) {
+				this.firstSeenItemIndex += prependedItemsCount
+				this.lastSeenItemIndex += prependedItemsCount
+			}
 			firstShownItemIndex += prependedItemsCount
 			lastShownItemIndex += prependedItemsCount
 			beforeItemsHeight += this.itemHeights.getAverage() * prependedItemsCount
@@ -981,6 +1004,8 @@ export default class VirtualScroller {
 			log('New items', newItems)
 			itemHeights = new Array(newItems.length)
 			itemStates = new Array(newItems.length)
+			this.firstSeenItemIndex = undefined
+			this.lastSeenItemIndex = undefined
 			if (newItems.length === 0) {
 				firstShownItemIndex = undefined
 				lastShownItemIndex = undefined
@@ -1008,8 +1033,6 @@ export default class VirtualScroller {
 		log('Before items height', beforeItemsHeight)
 		log('After items height', afterItemsHeight)
 		// Optionally preload items to be rendered.
-		this.firstSeenItemIndex = undefined
-		this.lastSeenItemIndex = undefined
 		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
 		// Render.
 		this.setState({
