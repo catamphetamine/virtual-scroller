@@ -410,6 +410,7 @@ export default class VirtualScroller {
 		let firstShownItemIndex
 		let lastShownItemIndex
 		let itemsHeight = 0
+		let firstNonMeasuredItemIndex
 		let redoLayoutAfterRender = false
 		let i = 0
 		while (i < this.getItemsCount()) {
@@ -418,6 +419,7 @@ export default class VirtualScroller {
 			// then show such item and then retry after it has been measured.
 			if (height === undefined) {
 				log(`Item ${i} height hasn't been measured yet: render and redo layout`)
+				firstNonMeasuredItemIndex = i
 				if (firstShownItemIndex === undefined) {
 					firstShownItemIndex = i
 				}
@@ -490,7 +492,7 @@ export default class VirtualScroller {
 		// and it's not a `preserveScrollPositionOnPrependItems` case,
 		// then limit the amount of such items being measured in a single pass.
 		if (redoLayoutAfterRender && this.measureItemsBatchSize) {
-			lastShownItemIndex = Math.min(lastShownItemIndex, firstShownItemIndex + this.measureItemsBatchSize)
+			lastShownItemIndex = Math.min(lastShownItemIndex, firstNonMeasuredItemIndex + this.measureItemsBatchSize - 1)
 		}
 		return {
 			firstShownItemIndex,
