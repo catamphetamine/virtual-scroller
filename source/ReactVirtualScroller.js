@@ -25,6 +25,7 @@ export default class ReactVirtualScroller extends React.Component {
 		// use `preserveScrollPositionOnPrependItems` instead.
 		preserveScrollPosition: PropTypes.bool,
 		preserveScrollPositionAtBottomOnMount: PropTypes.bool,
+		shouldUpdateLayoutOnWindowResize: PropTypes.func,
 		measureItemsBatchSize: PropTypes.number,
 		onMount: PropTypes.func,
 		onItemFirstRender: PropTypes.func,
@@ -91,6 +92,7 @@ export default class ReactVirtualScroller extends React.Component {
 				bypassBatchSize,
 				onItemFirstRender: this.onItemFirstRender,
 				preserveScrollPositionAtBottomOnMount,
+				shouldUpdateLayoutOnWindowResize: this.shouldUpdateLayoutOnWindowResize,
 				measureItemsBatchSize,
 				state: initialState,
 				getState: () => this.state,
@@ -110,8 +112,11 @@ export default class ReactVirtualScroller extends React.Component {
 		this.generateUniquePrefix()
 	}
 
-	// This is a proxy for `VirtualScroller`'s `.layout` instance method.
-	layout = () => this.virtualScroller.layout()
+	// This is a proxy for `VirtualScroller`'s `.updateLayout` instance method.
+	updateLayout = () => this.virtualScroller.updateLayout()
+
+	// `.layout()` method name is depreacted, use `.updateLayout()` instead.
+	layout = () => this.updateLayout()
 
 	// This proxy is required for cases when
 	// `onItemFirstRender` property changes at subsequent renders.
@@ -121,6 +126,17 @@ export default class ReactVirtualScroller extends React.Component {
 		const { onItemFirstRender } = this.props
 		if (onItemFirstRender) {
 			onItemFirstRender(...args)
+		}
+	}
+
+	// This proxy is required for cases when
+	// `shouldUpdateLayoutOnWindowResize` property changes at subsequent renders.
+	// For example, if it's passed as an "anonymous" function:
+	// `<VirtualScroller shouldUpdateLayoutOnWindowResize={() => ...}/>`.
+	shouldUpdateLayoutOnWindowResize = (...args) => {
+		const { shouldUpdateLayoutOnWindowResize } = this.props
+		if (shouldUpdateLayoutOnWindowResize) {
+			return shouldUpdateLayoutOnWindowResize(...args)
 		}
 	}
 
@@ -285,6 +301,7 @@ export default class ReactVirtualScroller extends React.Component {
 			// use `preserveScrollPositionOnPrependItems` instead.
 			preserveScrollPosition,
 			preserveScrollPositionAtBottomOnMount,
+			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
 			initialState,
 			onStateChange,

@@ -27,6 +27,19 @@ export function throttle(func, interval) {
 		}
 	}
 }
+/**
+ * Same as `lodash`'s `debounce()` for functions with no arguments.
+ * @param  {function} func
+ * @param  {number} interval
+ * @return {function}
+ */
+export function debounce(func, interval) {
+	let timeout
+	return function() {
+		clearTimeout(timeout)
+		timeout = setTimeout(func, interval)
+	}
+}
 
 /**
  * Rounds coordinates upto 4th decimal place (after dot) and appends "px".

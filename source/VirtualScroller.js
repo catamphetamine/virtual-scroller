@@ -1,12 +1,19 @@
 import shallowEqual from './shallowEqual'
-import { getOffset, getScrollY, getScreenHeight, getScreenBounds, clearElement } from './DOM'
+import {
+	getOffset,
+	getScrollY,
+	getScreenHeight,
+	getScreenWidth,
+	getScreenBounds,
+	clearElement
+} from './DOM'
 import ItemHeights from './ItemHeights'
 import log, { isDebug } from './log'
-import { throttle } from './utility'
+import { debounce } from './utility'
 
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 500
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION = 3000
-const WINDOW_RESIZE_THROTTLE_DURATION = 200
+const WINDOW_RESIZE_DEBOUNCE_INTERVAL = 250
 
 export default class VirtualScroller {
 	/**
@@ -25,6 +32,7 @@ export default class VirtualScroller {
 			setState,
 			onStateChange,
 			preserveScrollPositionAtBottomOnMount,
+			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
 			bypass,
 			bypassBatchSize
@@ -65,6 +73,7 @@ export default class VirtualScroller {
 		this.estimatedItemHeight = estimatedItemHeight
 		// this.getItemState = getItemState
 
+		this._shouldUpdateLayoutOnWindowResize = shouldUpdateLayoutOnWindowResize
 		this.measureItemsBatchSize = measureItemsBatchSize === undefined ? 50 : measureItemsBatchSize
 
 		if (onItemFirstRender) {
@@ -259,6 +268,8 @@ export default class VirtualScroller {
 	onMount() {
 		this.onInitialRender('mount')
 		this.isMounted = true
+		this.screenWidth = getScreenWidth()
+		this.screenHeight = getScreenHeight()
 		if (!this.bypass) {
 			window.addEventListener('scroll', this.onScroll)
 			window.addEventListener('resize', this.onResize)
@@ -286,20 +297,55 @@ export default class VirtualScroller {
 		}
 	}
 
-	layout   = () => this.onUpdateShownItemIndexes({ reason: 'manual' })
+	updateLayout = () => this.onUpdateShownItemIndexes({ reason: 'manual' })
 	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
+
+	// `.layout()` method name is depreacted, use `.updateLayout()` instead.
+	layout = () => this.updateLayout()
+
+	shouldUpdateLayoutOnWindowResize(event) {
+		// By default, `VirtualScroller` always performs a re-layout
+		// on window `resize` event. But browsers (Chrome, Firefox)
+		// [trigger](https://developer.mozilla.org/en-US/docs/Web/API/Window/fullScreen#Notes)
+		// window `resize` event also when a user switches into fullscreen mode:
+		// for example, when a user is watching a video and double-clicks on it
+		// to maximize it. And also when the user goes out of the fullscreen mode.
+		// Each such fullscreen mode entering/exiting will trigger window `resize`
+		// event that will it turn trigger a re-layout of `VirtualScroller`,
+		// resulting in bad user experience. To prevent that, such cases are filtered out.
+		// Some other workaround:
+		// https://stackoverflow.com/questions/23770449/embedded-youtube-video-fullscreen-or-causing-resize
+		if (document.fullscreenElement && this.getContainerNode().contains(document.fullscreenElement)) {
+			return false
+		}
+		if (this._shouldUpdateLayoutOnWindowResize) {
+			if (!this._shouldUpdateLayoutOnWindowResize(event)) {
+				return false
+			}
+		}
+		const screenWidth = getScreenWidth()
+		const screenHeight = getScreenHeight()
+		if (screenWidth === this.screenWidth && screenHeight === this.screenHeight) {
+			return false
+		}
+		this.screenWidth = screenWidth
+		this.screenHeight = screenHeight
+		return true
+	}
 
 	// Maybe add throttling here. Or maybe leave it as-is.
 	// I guess I'll leave it as-is for now.
-	onResize = throttle(() => {
-		// Reset item heights because now that window width changed
-		// the list width most likely also has changed, and also
-		// some CSS `@media()` rules might have been added or removed.
-		// Re-render the list entirely.
-		this.setState(this.getInitialLayoutState(), () => {
-			this.onInitialRender('resize')
-		})
-	}, WINDOW_RESIZE_THROTTLE_DURATION)
+	onResize = debounce((event) => {
+		if (this.shouldUpdateLayoutOnWindowResize(event)) {
+			// Reset item heights because now that window width changed
+			// the list width most likely also has changed, and also
+			// some CSS `@media()` rules might have been added or removed.
+			// Re-render the list entirely.
+			this.setState(this.getInitialLayoutState(), () => {
+				this.onInitialRender('resize')
+			})
+		}
+	}, WINDOW_RESIZE_DEBOUNCE_INTERVAL)
 
 	onUnmount() {
 		this.isMounted = false
@@ -638,7 +684,7 @@ export default class VirtualScroller {
 			// There could be other cases changing the `top` coordinate
 			// of the list (like collapsing an "accordeon" panel above the list
 			// without scrolling the page), but those cases should be handled
-			// by manually calling `.layout()` instance method on `VirtualScroller` instance.
+			// by manually calling `.updateLayout()` instance method on `VirtualScroller` instance.
 			if (Date.now() - startedAt < WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION) {
 				this.watchContainerElementTopCoordinateTimer = setTimeout(check, WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL)
 			}
@@ -931,10 +977,6 @@ export default class VirtualScroller {
 		// // A minor optimization. Just because I can.
 		// this.listCoordinatesCached = listCoordinates
 		// Re-render the list.
-		this.updateLayout(reason)
-	}
-
-	updateLayout(reason) {
 		log(`~ Update layout (${reason}) ~`)
 		this.isUpdatingItemIndexes = true
 		this.updateShownItemIndexesRecursive()

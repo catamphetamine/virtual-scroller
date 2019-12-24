@@ -1,5 +1,18 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.0.20 / 24.12.2019
+===================
+
+* Fixed `VirtualScroller` not rendering more than `measureItemsBatchSize` items.
+
+* Fixed `VirtualScroller` performing a re-layout on enter/exit fullscreen.
+
+* Added `shouldUpdateLayoutOnWindowResize(event)` option / property to prevent re-layout on some window `resize` events. The `resize` event is not only triggered when a user resizes the window itself: it's also [triggered](https://developer.mozilla.org/en-US/docs/Web/API/Window/fullScreen#Notes) when the user switches into (and out of) fullscreen mode. By default, `VirtualScroller` performs a re-layout on all window `resize` events, except for ones that don't result in actual window width or height change, and except for cases when, for example, a video somewhere in a list is maximized into fullscreen. There still can be other "custom" cases: for example, when an application uses a custom "slideshow" component (rendered outside of the list DOM element) that goes into fullscreen when a user clicks a picture or a video in the list. For such "custom" cases `shouldUpdateLayoutOnWindowResize(event)` option / property can be specified.
+
+* Renamed `VirtualScroller.layout()` to `VirtualScroller.updateLayout()`. The old method name still works but is considered deprecated.
+
+* Replaced `throttle` with `debounce` on window `resize`.
+
 1.0.13 / 08.12.2019
 ===================
 

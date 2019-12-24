@@ -46,6 +46,10 @@ export function getScreenHeight() {
 	return window.innerHeight
 }
 
+export function getScreenWidth() {
+	return window.innerWidth
+}
+
 export function getScreenBounds() {
 	const height = getScreenHeight()
 	return {
