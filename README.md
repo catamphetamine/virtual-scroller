@@ -71,6 +71,7 @@ Available `options`:
 * `margin` — Renders items which are outside of the screen by the amount of this "margin". Is the screen height by default: seems to be the optimal value for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
 -->
 * `state: object` — The initial state for `VirtualScroller`. Can be used, for example, to quicky restore the list on "Back" navigation.
+* `customState: object` — (advanced) The initial "custom" state for `VirtualScroller`. It can be used to initialize the "custom" part of `VirtualScroller` state in cases when `VirtualScroller` state is used to store some "custom" list state.
 * `getState(): object` — Returns `VirtualScroller` `state`. Is used for React `VirtualScroller` component implementation.
 * `setState(newState: object)` — Stores `VirtualScroller` `state` (including setting the initial `state`). The `state` must reflect what's currently rendered on screen. Is used for React `VirtualScroller` component implementation.
 * `onStateChange(newState: object, prevState: object?)` — Is called whenever `VirtualScroller` `state` is updated (including setting the initial `state`) if `getState()` and `setState()` properties aren't defined.
@@ -235,6 +236,7 @@ Message.propTypes = {
 <!-- * `bypass` — (optional) The `bypass` option of `VirtualScroller` class. -->
 <!-- * `shouldUpdateLayoutOnWindowResize(event)`  — (optional) The `shouldUpdateLayoutOnWindowResize` option of `VirtualScroller` class. -->
 * `initialState: object` — (optional) The initial state for `VirtualScroller`: the `state` option of `VirtualScroller`. For example, can be used to quicky restore the list on "Back" navigation.
+* `initialCustomState: object` — (advanced) (optional) The initial "custom" state for `VirtualScroller`: the `customState` option of `VirtualScroller`. It can be used to initialize the "custom" part of `VirtualScroller` state in cases when `VirtualScroller` state is used to store some "custom" list state.
 * `onStateChange(newState: object, prevState: object)` — (optional) Can be called when `VirtualScroller` `state` is updated (including setting the initial `state`). For example, can be used to keep `VirtualScroller` `state` copy in an instance variable and later in `componentWillUnmount()` persist it somewhere in global application state for quickly restoring it later on "Back" navigation:
 
 ```js

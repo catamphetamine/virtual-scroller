@@ -31,6 +31,7 @@ export default class VirtualScroller {
 			getState,
 			setState,
 			onStateChange,
+			customState,
 			preserveScrollPositionAtBottomOnMount,
 			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
@@ -125,7 +126,7 @@ export default class VirtualScroller {
 			}
 		}
 
-		this.setState(state || this.getInitialState(), () => {
+		this.setState(state || this.getInitialState(customState), () => {
 			this.itemHeights.onInitItemHeights()
 		})
 

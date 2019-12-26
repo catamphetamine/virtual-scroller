@@ -30,6 +30,7 @@ export default class ReactVirtualScroller extends React.Component {
 		onMount: PropTypes.func,
 		onItemFirstRender: PropTypes.func,
 		onStateChange: PropTypes.func,
+		initialCustomState: PropTypes.object,
 		initialState: PropTypes.shape({
 			items: PropTypes.arrayOf(PropTypes.object).isRequired,
 			itemStates: PropTypes.arrayOf(PropTypes.any),
@@ -73,6 +74,7 @@ export default class ReactVirtualScroller extends React.Component {
 		const {
 			items,
 			initialState,
+			initialCustomState,
 			estimatedItemHeight,
 			preserveScrollPositionAtBottomOnMount,
 			measureItemsBatchSize,
@@ -95,6 +97,7 @@ export default class ReactVirtualScroller extends React.Component {
 				shouldUpdateLayoutOnWindowResize: this.shouldUpdateLayoutOnWindowResize,
 				measureItemsBatchSize,
 				state: initialState,
+				customState: initialCustomState,
 				getState: () => this.state,
 				setState: (newState, callback) => {
 					if (this.state) {
@@ -304,6 +307,7 @@ export default class ReactVirtualScroller extends React.Component {
 			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
 			initialState,
+			initialCustomState,
 			onStateChange,
 			onItemFirstRender,
 			onMount,
