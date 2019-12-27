@@ -14,6 +14,7 @@ const elementType = PropTypes.elementType || PropTypes.oneOfType([
 
 export default class ReactVirtualScroller extends React.Component {
 	static propTypes = {
+		as: elementType,
 		items: PropTypes.arrayOf(PropTypes.object).isRequired,
 		itemComponent: elementType.isRequired,
 		itemComponentProps: PropTypes.object,
@@ -41,6 +42,10 @@ export default class ReactVirtualScroller extends React.Component {
 			itemHeights: PropTypes.arrayOf(PropTypes.number).isRequired,
 			itemSpacing: PropTypes.number
 		})
+	}
+
+	static defaultProps = {
+		as: 'div'
 	}
 
 	// `this.state` is already reserved for `virtual-scroller`.
@@ -292,6 +297,7 @@ export default class ReactVirtualScroller extends React.Component {
 
 	render() {
 		const {
+			as: AsComponent,
 			itemComponent: Component,
 			itemComponentProps,
 			// Rest
@@ -395,7 +401,7 @@ export default class ReactVirtualScroller extends React.Component {
 			}
 		}
 		return (
-			<div
+			<AsComponent
 				{...rest}
 				ref={this.container}
 				style={{
@@ -418,7 +424,7 @@ export default class ReactVirtualScroller extends React.Component {
 					}
 					return null
 				})}
-			</div>
+			</AsComponent>
 		)
 	}
 }
