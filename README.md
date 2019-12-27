@@ -227,6 +227,7 @@ Message.propTypes = {
 * `items` — The items list.
 * `itemComponent` — List item component. Receives the list item as the `children` property. Can optionally receive `state` and `onSaveState()` properties for saving list item state before unmounting it and then restoring that state after the item is re-mounted (for example, this supports "Show more" buttons, "Expand YouTube video" buttons, etc). For best performance, make sure it's a `React.PureComponent` or a `React.memo()`, otherwise it'll be re-rendering as the user scrolls.
 * `itemComponentProps: object` — (optional) The props passed to `itemComponent`.
+* `as` — A component used as a container for the list items. Is `"div"` by default.
 * `estimatedItemHeight: number` — (optional) The `estimatedItemHeight` option of `VirtualScroller` class.
 * `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.setItems()` method.
 * `preserveScrollPositionAtBottomOnMount: boolean` — (optional) The `preserveScrollPositionAtBottomOnMount` option of `VirtualScroller`.
