@@ -326,12 +326,20 @@ export default class VirtualScroller {
 		}
 		const screenWidth = getScreenWidth()
 		const screenHeight = getScreenHeight()
-		if (screenWidth === this.screenWidth && screenHeight === this.screenHeight) {
-			return false
-		}
+		const prevScreenWidth = this.screenWidth
+		const prevScreenHeight = this.screenHeight
 		this.screenWidth = screenWidth
 		this.screenHeight = screenHeight
-		return true
+		if (screenWidth === prevScreenWidth) {
+			if (screenHeight === prevScreenHeight) {
+				return false
+			} else {
+				this.onUpdateShownItemIndexes({ reason: 'resize' })
+				return false
+			}
+		} else {
+			return true
+		}
 	}
 
 	// Maybe add throttling here. Or maybe leave it as-is.
@@ -342,6 +350,7 @@ export default class VirtualScroller {
 			// the list width most likely also has changed, and also
 			// some CSS `@media()` rules might have been added or removed.
 			// Re-render the list entirely.
+			log('~ Window width changed, re-measure item heights. ~')
 			this.setState(this.getInitialLayoutState(), () => {
 				this.onInitialRender('resize')
 			})
