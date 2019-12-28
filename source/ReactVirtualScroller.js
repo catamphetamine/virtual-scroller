@@ -8,6 +8,7 @@ import { px } from './utility'
 // `PropTypes.elementType` is available in some version of `prop-types`.
 // https://github.com/facebook/prop-types/issues/200
 const elementType = PropTypes.elementType || PropTypes.oneOfType([
+	PropTypes.string,
 	PropTypes.func,
 	PropTypes.object
 ])
