@@ -345,6 +345,11 @@ export default class VirtualScroller {
 	// Maybe add throttling here. Or maybe leave it as-is.
 	// I guess I'll leave it as-is for now.
 	onResize = debounce((event) => {
+		// If `VirtualScroller` has been unmounted
+		// while `setTimeout()` was waiting, then exit.
+		if (!this.isMounted) {
+			return
+		}
 		if (this.shouldUpdateLayoutOnWindowResize(event)) {
 			// Reset item heights because now that window width changed
 			// the list width most likely also has changed, and also
@@ -677,6 +682,11 @@ export default class VirtualScroller {
 	watchContainerElementTopCoordinate() {
 		const startedAt = Date.now()
 		const check = () => {
+			// If `VirtualScroller` has been unmounted
+			// while `setTimeout()` was waiting, then exit.
+			if (!this.isMounted) {
+				return
+			}
 			// Skip comparing `top` coordinate of the list
 			// when this function is called the first time.
 			if (this.top !== undefined) {
