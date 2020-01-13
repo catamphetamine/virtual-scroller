@@ -190,7 +190,7 @@ export default class VirtualScroller {
 	}
 
 	getItemSpacing() {
-		return this.getState().itemSpacing || 0
+		return this.getState() && this.getState().itemSpacing || 0
 	}
 
 	getEstimatedItemsCount(height) {
