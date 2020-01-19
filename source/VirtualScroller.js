@@ -305,7 +305,7 @@ export default class VirtualScroller {
 
 	updateScrollPosition = () => this.getState().scrollY = getScrollY()
 
-	// `.layout()` method name is depreacted, use `.updateLayout()` instead.
+	// `.layout()` method name is deprecated, use `.updateLayout()` instead.
 	layout = () => this.updateLayout()
 
 	shouldUpdateLayoutOnWindowResize(event) {
@@ -346,8 +346,6 @@ export default class VirtualScroller {
 		}
 	}
 
-	// Maybe add throttling here. Or maybe leave it as-is.
-	// I guess I'll leave it as-is for now.
 	onResize = debounce((event) => {
 		// If `VirtualScroller` has been unmounted
 		// while `setTimeout()` was waiting, then exit.

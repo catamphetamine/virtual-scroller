@@ -124,7 +124,7 @@ export default class ReactVirtualScroller extends React.Component {
 	// This is a proxy for `VirtualScroller`'s `.updateLayout` instance method.
 	updateLayout = () => this.virtualScroller.updateLayout()
 
-	// `.layout()` method name is depreacted, use `.updateLayout()` instead.
+	// `.layout()` method name is deprecated, use `.updateLayout()` instead.
 	layout = () => this.updateLayout()
 
 	// This proxy is required for cases when
