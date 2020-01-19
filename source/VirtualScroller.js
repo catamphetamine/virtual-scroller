@@ -176,7 +176,8 @@ export default class VirtualScroller {
 			beforeItemsHeight: 0,
 			afterItemsHeight: 0,
 			firstShownItemIndex,
-			lastShownItemIndex
+			lastShownItemIndex,
+			scrollY: undefined
 		}
 	}
 
@@ -271,6 +272,8 @@ export default class VirtualScroller {
 		this.isMounted = true
 		this.screenWidth = getScreenWidth()
 		this.screenHeight = getScreenHeight()
+		this.updateScrollPosition()
+		window.addEventListener('scroll', this.updateScrollPosition)
 		if (!this.bypass) {
 			window.addEventListener('scroll', this.onScroll)
 			window.addEventListener('resize', this.onResize)
@@ -291,8 +294,7 @@ export default class VirtualScroller {
 			)
 		}
 		if (this.preserveScrollPositionAtBottomOnMount) {
-			// `window.scrollY` and `window.scrollX` aren't supported in Internet Explorer.
-			window.scrollTo(0, window.pageYOffset + (document.documentElement.scrollHeight - this.preserveScrollPositionAtBottomOnMount.documentHeight))
+			window.scrollTo(0, getScrollY() + (document.documentElement.scrollHeight - this.preserveScrollPositionAtBottomOnMount.documentHeight))
 		} else {
 			this.onUpdateShownItemIndexes({ reason })
 		}
@@ -300,6 +302,8 @@ export default class VirtualScroller {
 
 	updateLayout = () => this.onUpdateShownItemIndexes({ reason: 'manual' })
 	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
+
+	updateScrollPosition = () => this.getState().scrollY = getScrollY()
 
 	// `.layout()` method name is depreacted, use `.updateLayout()` instead.
 	layout = () => this.updateLayout()
@@ -364,6 +368,7 @@ export default class VirtualScroller {
 
 	onUnmount() {
 		this.isMounted = false
+		window.removeEventListener('scroll', this.updateScrollPosition)
 		if (!this.bypass) {
 			window.removeEventListener('scroll', this.onScroll)
 			window.removeEventListener('resize', this.onResize)

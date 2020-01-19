@@ -102,7 +102,8 @@ Available `options`:
 * `items: any[]` — The list of items (can be updated via [`.setItems()`](#dynamically-loaded-lists)).
 * `itemStates: object?[]` — The list of item states.
 * `itemHeights: number?[]` — A list of measured item heights. If an item's height hasn't been measured yet then it's height is `undefined`.
-* `itemSpacing: number?` — Inter-item spacing. If it hasn't been measured yet then it's `undefined`.
+* `itemSpacing: number?` — Inter-item spacing. Is `undefined` until at least two items have been rendered.
+* `scrollY: number?` — Vertical scroll offset. Is `undefined` until the component has mounted.
 
 ### DOM
 
