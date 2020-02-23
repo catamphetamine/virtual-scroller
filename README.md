@@ -103,7 +103,7 @@ Available `options`:
 * `itemStates: object?[]` — The list of item states.
 * `itemHeights: number?[]` — A list of measured item heights. If an item's height hasn't been measured yet then it's height is `undefined`.
 * `itemSpacing: number?` — Inter-item spacing. Is `undefined` until at least two items have been rendered.
-* `scrollY: number?` — Vertical scroll offset. Is `undefined` until the component has mounted.
+* `scrollY: number?` — Current page scroll Y (page vertical scroll offset). This property is exposed just for convenience: it isn't related to the `VirtualScroller` itself and doesn't affect its behavior in any way. Instead, it's just a convenient way to capture a user's scroll position as they navigate away from a page with a `VirtualScroller` to be able to restore the scroll position later when (if) they navigate "Back" to it.
 
 ### DOM
 
