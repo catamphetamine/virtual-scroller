@@ -1,5 +1,10 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.1.0 / 23.02.2020
+===================
+
+* `state.scrollY` is now applied on mount: if initial `state` is passed, then the page will be scrolled to `state.scrollY` on `VirtualScroller` mount.
+
 1.0.26 / 19.01.2020
 ===================
 

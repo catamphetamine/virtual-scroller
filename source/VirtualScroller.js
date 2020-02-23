@@ -272,6 +272,7 @@ export default class VirtualScroller {
 		this.isMounted = true
 		this.screenWidth = getScreenWidth()
 		this.screenHeight = getScreenHeight()
+		this.restoreScrollPosition()
 		this.updateScrollPosition()
 		window.addEventListener('scroll', this.updateScrollPosition)
 		if (!this.bypass) {
@@ -302,6 +303,17 @@ export default class VirtualScroller {
 
 	updateLayout = () => this.onUpdateShownItemIndexes({ reason: 'manual' })
 	onScroll = () => this.onUpdateShownItemIndexes({ reason: 'scroll' })
+
+	/**
+	 * Restores page scroll Y on `VirtualScroller` mount
+	 * if a previously captured `VirtualScroller` `state` was passed.
+	 */
+	restoreScrollPosition = () => {
+		const { scrollY } = this.getState()
+		if (scrollY !== undefined) {
+			window.scrollTo(0, scrollY)
+		}
+	}
 
 	updateScrollPosition = () => this.getState().scrollY = getScrollY()
 
