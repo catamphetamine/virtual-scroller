@@ -62,9 +62,16 @@ export default class VirtualScroller {
 		// 	margin = typeof window === 'undefined' ? 0 : window.innerHeight
 		// }
 
-		// `bypass` mode could work but turns out that
-		// unmounting large React component trees is a
-		// very long process, so it's still not a viable UX.
+		// In `bypass` mode, `VirtualScroller` doesn't wait
+		// for the user to scroll down to render all items:
+		// instead, it renders all items right away, as if
+		// the list is rendered without using `VirtualScroller`.
+		// It was added just to measure how much is the
+		// performance difference between using a `VirtualScroller`
+		// and not using a `VirtualScroller`.
+		// It turned out that unmounting large React component trees
+		// is a very long process, so `VirtualScroller` does seem to
+		// make sense when used in a React application.
 		this.bypass = bypass
 		this.bypassBatchSize = bypassBatchSize || 10
 
