@@ -750,7 +750,7 @@ export default class VirtualScroller {
 			return {
 				firstShownItemIndex,
 				lastShownItemIndex,
-				// Redo layout untill all items are rendered.
+				// Redo layout until all items are rendered.
 				redoLayoutAfterRender: lastShownItemIndex < this.getItemsCount() - 1
 			}
 		}
