@@ -36,7 +36,7 @@ export default class VirtualScroller {
 			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
 			bypass,
-			bypassBatchSize
+			// bypassBatchSize
 		} = options
 
 		let {
@@ -73,7 +73,7 @@ export default class VirtualScroller {
 		// is a very long process, so `VirtualScroller` does seem to
 		// make sense when used in a React application.
 		this.bypass = bypass
-		this.bypassBatchSize = bypassBatchSize || 10
+		// this.bypassBatchSize = bypassBatchSize || 10
 
 		this.initialItems = items
 		// this.margin = margin
@@ -168,7 +168,7 @@ export default class VirtualScroller {
 		const itemsCount = this.initialItems.length
 		// If there're no items then `firstShownItemIndex` stays `undefined`.
 		if (itemsCount > 0) {
-			firstShownItemIndex = Math.min(0, itemsCount - 1)
+			firstShownItemIndex = 0
 			lastShownItemIndex = this.getLastShownItemIndex(firstShownItemIndex, itemsCount)
 		}
 		if (this.preserveScrollPositionAtBottomOnMount) {
@@ -218,6 +218,9 @@ export default class VirtualScroller {
 	}
 
 	getLastShownItemIndex(firstShownItemIndex, itemsCount) {
+		if (this.bypass) {
+			return itemsCount - 1
+		}
 		return Math.min(
 			firstShownItemIndex + (this.getEstimatedItemsCountOnScreen() - 1),
 			itemsCount - 1
@@ -741,18 +744,23 @@ export default class VirtualScroller {
 	 */
 	getShownItemIndexes() {
 		if (this.bypass) {
-			const { firstShownItemIndex } = this.getState()
-			let { lastShownItemIndex } = this.getState()
-			lastShownItemIndex = Math.min(
-				lastShownItemIndex + this.bypassBatchSize,
-				this.getItemsCount() - 1
-			)
 			return {
-				firstShownItemIndex,
-				lastShownItemIndex,
-				// Redo layout until all items are rendered.
-				redoLayoutAfterRender: lastShownItemIndex < this.getItemsCount() - 1
+				firstShownItemIndex: 0,
+				lastShownItemIndex: this.getItemsCount() - 1
 			}
+			// This code emulates batch loading in bypass mode.
+			// const { firstShownItemIndex } = this.getState()
+			// let { lastShownItemIndex } = this.getState()
+			// lastShownItemIndex = Math.min(
+			// 	lastShownItemIndex + this.bypassBatchSize,
+			// 	this.getItemsCount() - 1
+			// )
+			// return {
+			// 	firstShownItemIndex,
+			// 	lastShownItemIndex,
+			// 	// Redo layout until all items are rendered.
+			// 	redoLayoutAfterRender: lastShownItemIndex < this.getItemsCount() - 1
+			// }
 		}
 		// // A minor optimization. Just because I can.
 		// let listCoordinates

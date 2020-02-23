@@ -5,6 +5,8 @@
 
 * `state.scrollY` is now applied on mount: if initial `state` is passed, then the page will be scrolled to `state.scrollY` on `VirtualScroller` mount.
 
+* Documented `bypass: boolean` property/option. Can be used on server side to render the full list of items (for example, search engine indexing).
+
 1.0.26 / 19.01.2020
 ===================
 
