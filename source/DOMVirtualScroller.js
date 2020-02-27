@@ -11,6 +11,7 @@ export default class DOMVirtualScroller {
       onItemUnmount,
       ...restOptions
     } = options
+    this.onItemUnmount = onItemUnmount
     this.virtualScroller = new VirtualScroller(
       () => this.container,
       items,
@@ -22,7 +23,6 @@ export default class DOMVirtualScroller {
     if (onMount) {
       onMount()
     }
-    this.onItemUnmount = onItemUnmount
     this.virtualScroller.onMount()
   }
 

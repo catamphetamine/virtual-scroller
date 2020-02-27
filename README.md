@@ -162,9 +162,9 @@ const virtualScroller = new VirtualScroller(
 
 Additional `options`:
 
-* `onMount` — Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
+* `onMount` — Is called before `VirtualScroller.onMount()` is called.
 
-* `onItemUnmount` — Is called after a `<VirtualScroller/>` item DOM `Element` is unmounted. Can be used to add DOM `Element` ["pooling"](https://github.com/ChrisAntaki/dom-pool#what-performance-gains-can-i-expect).
+* `onItemUnmount` — Is called after a `VirtualScroller` item DOM `Element` is unmounted. Can be used to add DOM `Element` ["pooling"](https://github.com/ChrisAntaki/dom-pool#what-performance-gains-can-i-expect).
 
 `VirtualScroller` instance provides methods:
 
@@ -237,7 +237,7 @@ Message.propTypes = {
 * `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.setItems()` method.
 * `preserveScrollPositionAtBottomOnMount: boolean` — (optional) The `preserveScrollPositionAtBottomOnMount` option of `VirtualScroller`.
 * `measureItemsBatchSize: number` — (optional) The `measureItemsBatchSize` option of `VirtualScroller`.
-* `onMount()` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
+* `onMount()` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called.
 * `onItemFirstRender(i)` — (optional) The `onItemFirstRender` option of `VirtualScroller` class.
 <!-- * `shouldUpdateLayoutOnWindowResize(event)`  — (optional) The `shouldUpdateLayoutOnWindowResize` option of `VirtualScroller` class. -->
 * `initialState: object` — (optional) The initial state for `VirtualScroller`: the `state` option of `VirtualScroller`. For example, can be used to quicky restore the list on "Back" navigation.
