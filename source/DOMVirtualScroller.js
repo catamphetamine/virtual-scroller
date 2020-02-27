@@ -6,7 +6,11 @@ export default class DOMVirtualScroller {
   constructor(element, items, renderItem, options = {}) {
     this.container = element
     this.renderItem = renderItem
-    const { onMount, ...restOptions } = options
+    const {
+      onMount,
+      onItemUnmount,
+      ...restOptions
+    } = options
     this.virtualScroller = new VirtualScroller(
       () => this.container,
       items,
@@ -18,6 +22,7 @@ export default class DOMVirtualScroller {
     if (onMount) {
       onMount()
     }
+    this.onItemUnmount = onItemUnmount
     this.virtualScroller.onMount()
   }
 
@@ -49,15 +54,14 @@ export default class DOMVirtualScroller {
         } else {
           log('Remove item', i)
           // The item is no longer visible so remove it from the DOM.
-          const item = this.container.childNodes[i - prevState.firstShownItemIndex]
-          this.container.removeChild(item)
+          this.unmountItem(this.container.childNodes[i - prevState.firstShownItemIndex])
         }
         i--
       }
     } else {
       log('Clean render')
       while (this.container.firstChild) {
-        this.container.removeChild(this.container.firstChild)
+        this.unmountItem(this.container.firstChild)
       }
     }
     // Add newly visible items to the DOM.
@@ -89,6 +93,13 @@ export default class DOMVirtualScroller {
 
   onUnmount = () => {
     this.virtualScroller.onUnmount()
+  }
+
+  unmountItem(itemElement) {
+    this.container.removeChild(itemElement)
+    if (this.onItemUnmount) {
+      this.onItemUnmount(itemElement)
+    }
   }
 
   onItemHeightChange(i) {

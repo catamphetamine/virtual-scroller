@@ -171,6 +171,8 @@ Additional `options`:
 
 * `onMount` — Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. Can be used in advanced cases: for example, to restore page scroll Y position for the corresponding `VirtualScroller` `state` on "Back" navigation.
 
+* `onItemUnmount` — Is called after a `<VirtualScroller/>` item DOM `Element` is unmounted. Can be used to add DOM `Element` ["pooling"](https://github.com/ChrisAntaki/dom-pool#what-performance-gains-can-i-expect).
+
 ### React
 
 This is an example of using the React `virtual-scroller/react` component. It's the source code of the [React demo](https://catamphetamine.github.io/virtual-scroller).
