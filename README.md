@@ -162,9 +162,9 @@ const virtualScroller = new VirtualScroller(
 
 Additional `options`:
 
-<!-- * `onMount` — Is called before `VirtualScroller.onMount()` is called. -->
+<!-- * `onMount()` — Is called before `VirtualScroller.onMount()` is called. -->
 
-* `onItemUnmount` — Is called after a `VirtualScroller` item DOM `Element` is unmounted. Can be used to add DOM `Element` ["pooling"](https://github.com/ChrisAntaki/dom-pool#what-performance-gains-can-i-expect).
+* `onItemUnmount(itemElement)` — Is called after a `VirtualScroller` item DOM `Element` is unmounted. Can be used to add DOM `Element` ["pooling"](https://github.com/ChrisAntaki/dom-pool#what-performance-gains-can-i-expect).
 
 `VirtualScroller` instance provides methods:
 
