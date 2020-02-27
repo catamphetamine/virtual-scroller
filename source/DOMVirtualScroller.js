@@ -3,9 +3,10 @@ import log from './log'
 import { px } from './utility'
 
 export default class DOMVirtualScroller {
-  constructor(element, items, renderItem, options = {}) {
+  constructor(element, items, renderItem, releaseItem, options = {}) {
     this.container = element
     this.renderItem = renderItem
+    this.releaseItem = releaseItem
     const { onMount, ...restOptions } = options
     this.virtualScroller = new VirtualScroller(
       () => this.container,
@@ -51,13 +52,15 @@ export default class DOMVirtualScroller {
           // The item is no longer visible so remove it from the DOM.
           const item = this.container.childNodes[i - prevState.firstShownItemIndex]
           this.container.removeChild(item)
+          this.releaseItem(item, indexOfItemInStateItemArray) //missing `indexOfItemInStateItemArray` TO DO
         }
         i--
       }
     } else {
       log('Clean render')
       while (this.container.firstChild) {
-        this.container.removeChild(this.container.firstChild)
+        const item = this.container.removeChild(this.container.firstChild)
+        this.releaseItem(item, indexOfItemInStateItemArray) //missing `indexOfItemInStateItemArray` TO DO
       }
     }
     // Add newly visible items to the DOM.
