@@ -52,7 +52,7 @@ export default class DOMVirtualScroller {
           // The item is no longer visible so remove it from the DOM.
           const item = this.container.childNodes[i - prevState.firstShownItemIndex]
           this.container.removeChild(item)
-          this.releaseItem(item, indexOfItemInStateItemArray) //missing `indexOfItemInStateItemArray` TO DO
+          this.releaseItem(item)
         }
         i--
       }
@@ -60,7 +60,7 @@ export default class DOMVirtualScroller {
       log('Clean render')
       while (this.container.firstChild) {
         const item = this.container.removeChild(this.container.firstChild)
-        this.releaseItem(item, indexOfItemInStateItemArray) //missing `indexOfItemInStateItemArray` TO DO
+        this.releaseItem(item)
       }
     }
     // Add newly visible items to the DOM.
