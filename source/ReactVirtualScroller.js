@@ -257,9 +257,8 @@ export default class ReactVirtualScroller extends React.Component {
 
 	componentDidMount() {
 		const { onMount } = this.props
-		// `onMount()` should be called before `VirtualScroller`'s
-		// in order for it to be able to be used for restoring
-		// page scroll Y position.
+		// `onMount()` option is deprecated due to no longer being used.
+		// If someone thinks there's a valid use case for it, create an issue.
 		if (onMount) {
 			onMount()
 		}

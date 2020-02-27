@@ -20,6 +20,8 @@ export default class DOMVirtualScroller {
         onStateChange: this.onStateChange
       }
     )
+    // `onMount()` option is deprecated due to no longer being used.
+    // If someone thinks there's a valid use case for it, create an issue.
     if (onMount) {
       onMount()
     }

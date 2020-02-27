@@ -5,6 +5,7 @@
 
 * Added `onItemUnmount` option on DOM `VirtualScroller`: it's called when a `VirtualScroller` item DOM `Element` is unmounted. Can be used to add DOM `Element` ["pooling"](https://github.com/ChrisAntaki/dom-pool#what-performance-gains-can-i-expect).
 
+* Deprecated `onMount` option.
 
 1.1.0 / 23.02.2020
 ===================
