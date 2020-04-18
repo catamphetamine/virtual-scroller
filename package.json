@@ -1,6 +1,6 @@
 {
   "name": "virtual-scroller",
-  "version": "1.2.0",
+  "version": "1.2.3",
   "description": "A component for efficiently rendering large lists of variable height items",
   "main": "index.commonjs.js",
   "module": "index.js",
@@ -45,7 +45,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catamphetamine/virtual-scroller.git"
+    "url": "git+https://gitlab.com/catamphetamine/virtual-scroller.git"
   },
   "keywords": [
     "virtual-scroller",
@@ -58,7 +58,7 @@
   "author": "catamphetamine <purecatamphetamine@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/catamphetamine/virtual-scroller/issues"
+    "url": "https://gitlab.com/catamphetamine/virtual-scroller/issues"
   },
-  "homepage": "https://github.com/catamphetamine/virtual-scroller#readme"
+  "homepage": "https://gitlab.com/catamphetamine/virtual-scroller#readme"
 }

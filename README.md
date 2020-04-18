@@ -6,13 +6,13 @@ An open-source implementation of Twitter's [`VirtualScroller`](https://medium.co
 
 DOM (no frameworks):
 
-* [Basic](https://catamphetamine.github.io/virtual-scroller/index-dom.html)
-* [Dynamically loaded](https://catamphetamine.github.io/virtual-scroller/index-dom.html?dynamic=✓)
+* [Basic](https://catamphetamine.gitlab.io/virtual-scroller/index-dom.html)
+* [Dynamically loaded](https://catamphetamine.gitlab.io/virtual-scroller/index-dom.html?dynamic=✓)
 
 React:
 
-* [Basic](https://catamphetamine.github.io/virtual-scroller/)
-* [Dynamically loaded](https://catamphetamine.github.io/virtual-scroller/?dynamic=✓)
+* [Basic](https://catamphetamine.gitlab.io/virtual-scroller/)
+* [Dynamically loaded](https://catamphetamine.gitlab.io/virtual-scroller/?dynamic=✓)
 
 ## Rationale
 
@@ -34,9 +34,13 @@ There's also an ["RFC"](https://github.com/WICG/virtual-scroller) for a native `
 
 It works by measuring each list item's height as it's being rendered and then as the user scrolls it hides the items which are no longer visible and shows the now-visible items as they're scrolled to. The hidden items on top are compensated by setting `padding-top` on the container, and the hidden items on the bottom are compensated by setting `padding-bottom` on the container. The component listens to `scroll` / `resize` events and re-renders the currently visible items as the user scrolls (or if the browser window is resized).
 
-Go to the [demo](https://catamphetamine.github.io/virtual-scroller) page, open Developer Tools ("Elements" tab), find `<div id="root"/>` element, expand it, see `<div id="messages"/>` element, expand it and observe the changes to it while scrolling the page.
+Go to the [demo](https://catamphetamine.gitlab.io/virtual-scroller) page, open Developer Tools ("Elements" tab), find `<div id="root"/>` element, expand it, see `<div id="messages"/>` element, expand it and observe the changes to it while scrolling the page.
 
 List items can also have inter-item spacing via `margin-top` / `margin-bottom` or `border-top` / `border-bottom`, see the [Gotchas](#gotchas) section for more details on how to do that properly.
+
+## GitHub
+
+On March 9th, 2020, GitHub, Inc. silently [banned](https://medium.com/@catamphetamine/how-github-blocked-me-and-all-my-libraries-c32c61f061d3) my account (and all my libraries) without any notice. I opened a support ticked but they didn't answer. Because of that, I had to move all my libraries to [GitLab](https://gitlab.com/catamphetamine).
 
 ## Install
 
@@ -85,7 +89,7 @@ Available `options`:
 `VirtualScroller` class instance provides methods:
 
 * `onMount()` — Should be called when the `VirtualScroller` component is "mounted" (rendered) on a page.
-* `onUpdate()` — Is only used when `getState()` and `setState()` are supplied: should be called after `setState()` updates the page. Is used for React `VirtualScroller` component implementation.
+* `onUpdate(prevState: object)` — Is only used when `getState()` and `setState(newState)` options are passed, in which case `onUpdate(prevState)` should be called after a `setState(newState)` call has caused a re-render. Is currently only used for React `VirtualScroller` component implementation, so it could be considered an internal implementation detail.
 * `onUnmount()` — Should be called when the `VirtualScroller` component is "unmounted" (removed) from the page.
 * `getState(): object` — Returns `VirtualScroller` state. Is used for React `VirtualScroller` component implementation.
 * `onItemHeightChange(i: number)` — Should be called whenever a list item's height changes: triggers a re-layout of `VirtualScroller`. This allows `VirtualScroller` to re-measure the new item's height and re-render correctly. Calling `onItemHeightChange()` manually could be replaced with detecting item height changes automatically via [Resize Observer](https://caniuse.com/#search=Resize%20Observer). For example, when a user clicks an "Expand"/"Collapse" button in a post. Calling `onItemHeightChange()` is only required when an item shrinks in height. For example, consider a post with an "Expand"/"Collapse" button: when such post is expanded the next posts in the feed might not be visible yet but if a user clicks the "Collapse" button the post is collapsed and the next posts become visible but they're not yet rendered because `VirtualScroller` didn't render them previously due to them being invisible. Calling `onItemHeightChange(i)` in such case would make `VirtualScroller` re-measure the collapsed post height and perform a re-layout.
@@ -108,7 +112,7 @@ Available `options`:
 
 ### DOM
 
-This is an example of using `virtual-scroller/dom` component. It's the source code of the [DOM demo](https://catamphetamine.github.io/virtual-scroller/index-dom.html).
+This is an example of using `virtual-scroller/dom` component. It's the source code of the [DOM demo](https://catamphetamine.gitlab.io/virtual-scroller/index-dom.html).
 
 ```js
 import VirtualScroller from 'virtual-scroller/dom'
@@ -175,7 +179,7 @@ Additional `options`:
 
 ### React
 
-This is an example of using the React `virtual-scroller/react` component. It's the source code of the [React demo](https://catamphetamine.github.io/virtual-scroller).
+This is an example of using the React `virtual-scroller/react` component. It's the source code of the [React demo](https://catamphetamine.gitlab.io/virtual-scroller).
 
 ```js
 import React from 'react'
@@ -287,7 +291,7 @@ The previous examples showcase a static `items` list. For cases when new items a
 `virtualScroller.setItems(newItems)` also receives an optional second `options` argument having shape `{ state }` where `state` can be used for updating "custom state" previously set in `getInitialState(customState)` and can be an `object` or a function `(previousState, { prependedCount, appendedCount }) => object`. If the items update is not incremental (i.e. if `newItems` doesn't contain previous `items`) then both `prependedCount` and `appendedCount` will be `undefined`.
 -->
 
-Also, one can use [`on-scroll-to`](https://github.com/catamphetamine/on-scroll-to) library to render a "Load more items on scroll down" component for "infinite scroll" lists.
+Also, one can use [`on-scroll-to`](https://gitlab.com/catamphetamine/on-scroll-to) library to render a "Load more items on scroll down" component for "infinite scroll" lists.
 
 ## Gotchas
 
@@ -329,6 +333,10 @@ An example of a `:first-child`/`:last-child` style that will not work correctly 
   border-top: 1px solid black;
 }
 ```
+
+### `<tbody/>`
+
+Due to the [inherent limitations](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1) of the `<tbody/>` HTML tag, when used as a container for the list items, a workaround involving CSS variables has to be used, and CSS variables aren't supported in Internet Explorer, so using a `<tbody/>` as a list items container won't work in Internet Explorer: in such case, `VirtualScroller` renders in "bypass" mode (render all items).
 
 ### Search, focus management.
 

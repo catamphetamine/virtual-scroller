@@ -1,5 +1,12 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.2.1 / 18.04.2020
+===================
+
+* Fixed an [infinite initial render loop](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1) in `DOMVirtualScroller`.
+
+* It [turned out](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1) that rendering items as `<tr/>`s inside a `<tbody/>` didn't work because a `<tbody/>` [can't have](https://stackoverflow.com/questions/294885/how-to-put-spacing-between-tbody-elements/294925) `padding`. A workaround has been added that involves CSS variables which aren't supported in Internet Explorer: in such case, `VirtualScroller` renders in "bypass" mode (render all items).
+
 1.2.0 / 27.02.2020
 ===================
 

@@ -83,7 +83,7 @@ export default class ItemHeights {
 				const spacing = secondItemRect.top - (firstItemRect.top + firstItemRect.height)
 				// Debugging.
 				if (window.VirtualScrollerDebug) {
-					log('Item spacing', spacing)
+					log('Measure item spacing', spacing)
 				}
 				return spacing
 			}

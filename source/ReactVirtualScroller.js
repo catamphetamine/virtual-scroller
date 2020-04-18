@@ -29,6 +29,7 @@ export default class ReactVirtualScroller extends React.Component {
 		preserveScrollPositionAtBottomOnMount: PropTypes.bool,
 		shouldUpdateLayoutOnWindowResize: PropTypes.func,
 		measureItemsBatchSize: PropTypes.number,
+		className: PropTypes.string,
 		onMount: PropTypes.func,
 		onItemFirstRender: PropTypes.func,
 		onStateChange: PropTypes.func,
@@ -78,6 +79,7 @@ export default class ReactVirtualScroller extends React.Component {
 	constructor(props) {
 		super(props)
 		const {
+			as: AsComponent,
 			items,
 			initialState,
 			initialCustomState,
@@ -102,6 +104,7 @@ export default class ReactVirtualScroller extends React.Component {
 				preserveScrollPositionAtBottomOnMount,
 				shouldUpdateLayoutOnWindowResize: this.shouldUpdateLayoutOnWindowResize,
 				measureItemsBatchSize,
+				tbody: AsComponent === 'tbody',
 				state: initialState,
 				customState: initialCustomState,
 				getState: () => this.state,
@@ -317,6 +320,7 @@ export default class ReactVirtualScroller extends React.Component {
 			onStateChange,
 			onItemFirstRender,
 			onMount,
+			className,
 			...rest
 		} = this.props
 		const {
@@ -400,13 +404,15 @@ export default class ReactVirtualScroller extends React.Component {
 				this.itemRefs = new Array(newItems.length)
 			}
 		}
+		const tbody = this.virtualScroller.tbody
 		return (
 			<AsComponent
 				{...rest}
 				ref={this.container}
+				className={tbody ? (className ? className + ' ' + 'VirtualScroller' : 'VirtualScroller') : className}
 				style={{
-					paddingTop: px(beforeItemsHeight),
-					paddingBottom: px(afterItemsHeight)
+					paddingTop: tbody ? undefined : px(beforeItemsHeight),
+					paddingBottom: tbody ? undefined : px(afterItemsHeight)
 				}}>
 				{items.map((item, i) => {
 					if (i >= firstShownItemIndex && i <= lastShownItemIndex) {

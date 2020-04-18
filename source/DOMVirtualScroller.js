@@ -12,11 +12,13 @@ export default class DOMVirtualScroller {
       ...restOptions
     } = options
     this.onItemUnmount = onItemUnmount
+    this.tbody = this.container.tagName === 'TBODY'
     this.virtualScroller = new VirtualScroller(
       () => this.container,
       items,
       {
         ...restOptions,
+        tbody: this.tbody,
         onStateChange: this.onStateChange
       }
     )
@@ -40,13 +42,19 @@ export default class DOMVirtualScroller {
     log('Previous state', prevState)
     log('New state', state)
     // Set container padding top and bottom.
-    this.container.style.paddingTop = px(beforeItemsHeight)
-    this.container.style.paddingBottom = px(afterItemsHeight)
+    // Work around `<tbody/>` not being able to have `padding`.
+    // https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
+    // `this.virtualScroller` hasn't been initialized yet at this stage,
+    // so using `this.tbody` instead of `this.virtualScroller.tbody`.
+    if (!this.tbody) {
+      this.container.style.paddingTop = px(beforeItemsHeight)
+      this.container.style.paddingBottom = px(afterItemsHeight)
+    }
     // Perform an intelligent "diff" re-render if the `items` are the same.
     const diffRender = prevState && items === prevState.items && prevState.items.length > 0
     // Remove no longer visible items from the DOM.
     if (diffRender) {
-      log('Incremental render')
+      log('Incremental rerender')
       // Decrement instead of increment here because
       // `this.container.removeChild()` changes indexes.
       let i = prevState.lastShownItemIndex
@@ -54,14 +62,14 @@ export default class DOMVirtualScroller {
         if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
           // The item is still being shown.
         } else {
-          log('Remove item', i)
+          log('Remove item index', i)
           // The item is no longer visible so remove it from the DOM.
           this.unmountItem(this.container.childNodes[i - prevState.firstShownItemIndex])
         }
         i--
       }
     } else {
-      log('Clean render')
+      log('Rerender from scratch')
       while (this.container.firstChild) {
         this.unmountItem(this.container.firstChild)
       }
@@ -80,11 +88,11 @@ export default class DOMVirtualScroller {
       } else {
         const item = this.renderItem(items[i])
         if (shouldPrependItems) {
-          log('Prepend item', i)
+          log('Prepend item index', i)
           // Append `item` to `this.container` before the retained items.
           this.container.insertBefore(item, prependBeforeItemElement)
         } else {
-          log('Append item', i)
+          log('Append item index', i)
           // Append `item` to `this.container`.
           this.container.appendChild(item)
         }
