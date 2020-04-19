@@ -1,5 +1,10 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.3.0 / 19.04.2020
+==================
+
+* Added an *experimental* `getScrollableContainer()` option that supports rendering `VirtualScroller` somewhere in a scrollable ancestor.
+
 1.2.1 / 18.04.2020
 ===================
 

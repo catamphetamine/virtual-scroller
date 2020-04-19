@@ -1,11 +1,6 @@
-import {
-	getOffset,
-	getScrollY,
-	getScreenHeight,
-	getScreenWidth,
-	getScreenBounds,
-	clearElement
-} from './DOM'
+import ScrollableContainer, {
+	ScrollableWindowContainer
+} from './ScrollableContainer'
 
 import {
 	supportsTbody,
@@ -15,6 +10,7 @@ import {
 } from './tbody'
 
 import ItemHeights from './ItemHeights'
+import { clearElement } from './DOM'
 import log, { isDebug } from './log'
 import { debounce } from './utility'
 import shallowEqual from './shallowEqual'
@@ -43,6 +39,7 @@ export default class VirtualScroller {
 			preserveScrollPositionAtBottomOnMount,
 			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
+			getScrollableContainer,
 			tbody,
 			// bypassBatchSize
 		} = options
@@ -64,11 +61,17 @@ export default class VirtualScroller {
 			items = state.items
 		}
 
+		if (getScrollableContainer) {
+			this.scrollableContainer = new ScrollableContainer(getScrollableContainer)
+		} else {
+			this.scrollableContainer = new ScrollableWindowContainer()
+		}
+
 		// if (margin === undefined) {
 		// 	// Renders items which are outside of the screen by this "margin".
 		// 	// Is the screen height by default: seems to be the optimal value
 		// 	// for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
-		// 	margin = typeof window === 'undefined' ? 0 : window.innerHeight
+		// 	margin = typeof window === 'undefined' ? 0 : this.scrollableContainer.getHeight()
 		// }
 
 		// Work around `<tbody/>` not being able to have `padding`.
@@ -113,7 +116,7 @@ export default class VirtualScroller {
 			this.onItemFirstRender = onItemFirstRender
 		}
 
-		// Remove accidental text nodes from container.
+		// Remove any accidental text nodes from container (like whitespace).
     // Also guards against cases when someone accidentally tries
     // using `VirtualScroller` on a non-empty element.
 		if (getContainerNode()) {
@@ -154,7 +157,7 @@ export default class VirtualScroller {
 
 		if (preserveScrollPositionAtBottomOnMount) {
 			this.preserveScrollPositionAtBottomOnMount = {
-				documentHeight: document.documentElement.scrollHeight
+				scrollableContainerContentHeight: this.scrollableContainer.getContentHeight()
 			}
 		}
 
@@ -236,7 +239,7 @@ export default class VirtualScroller {
 
 	getEstimatedItemsCountOnScreen() {
 		if (typeof window !== 'undefined') {
-			return this.getEstimatedItemsCount(this.getMargin() * 2 + window.innerHeight)
+			return this.getEstimatedItemsCount(this.getMargin() * 2 + this.scrollableContainer.getHeight())
 		} else {
 			return 1
 		}
@@ -257,10 +260,10 @@ export default class VirtualScroller {
 	}
 
 	getMargin() {
-		// Renders items which are outside of the screen by this "margin".
+		// Renders items that are outside of the screen by this "margin".
 		// Is the screen height by default: seems to be the optimal value
 		// for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
-		return window.innerHeight
+		return this.scrollableContainer.getHeight()
 	}
 
 	onBeforeShowItems(firstShownItemIndex, lastShownItemIndex) {
@@ -308,13 +311,13 @@ export default class VirtualScroller {
 		// if `this.onInitialRender('mount')` is called before setting `this.isMounted` to `true`.
 		this.isMounted = true
 		this.onInitialRender('mount')
-		this.screenWidth = getScreenWidth()
-		this.screenHeight = getScreenHeight()
+		this.scrollableContainerWidth = this.scrollableContainer.getWidth()
+		this.scrollableContainerHeight = this.scrollableContainer.getHeight()
 		this.restoreScrollPosition()
 		this.updateScrollPosition()
-		window.addEventListener('scroll', this.updateScrollPosition)
+		this.removeScrollPositionListener = this.scrollableContainer.addScrollListener(this.updateScrollPosition)
 		if (!this.bypass) {
-			window.addEventListener('scroll', this.onScroll)
+			this.removeScrollListener = this.scrollableContainer.addScrollListener(this.onScroll)
 			window.addEventListener('resize', this.onResize)
 		}
 		// Work around `<tbody/>` not being able to have `padding`.
@@ -340,7 +343,7 @@ export default class VirtualScroller {
 			)
 		}
 		if (this.preserveScrollPositionAtBottomOnMount) {
-			window.scrollTo(0, getScrollY() + (document.documentElement.scrollHeight - this.preserveScrollPositionAtBottomOnMount.documentHeight))
+			this.scrollTo(0, this.getScrollY() + (this.getScrollableContentHeight() - this.preserveScrollPositionAtBottomOnMount.scrollableContainerContentHeight))
 		} else {
 			this.onUpdateShownItemIndexes({ reason })
 		}
@@ -356,14 +359,52 @@ export default class VirtualScroller {
 	restoreScrollPosition = () => {
 		const { scrollY } = this.getState()
 		if (scrollY !== undefined) {
-			window.scrollTo(0, scrollY)
+			this.scrollTo(0, scrollY)
 		}
 	}
 
-	updateScrollPosition = () => this.getState().scrollY = getScrollY()
+	updateScrollPosition = () => this.getState().scrollY = this.getScrollY()
 
 	// `.layout()` method name is deprecated, use `.updateLayout()` instead.
 	layout = () => this.updateLayout()
+
+	scrollTo(scrollX, scrollY) {
+		this.scrollableContainer.scrollTo(scrollX, scrollY)
+	}
+
+	getScrollY() {
+		return this.scrollableContainer.getScrollY()
+	}
+
+	/**
+	 * Returns visible area coordinates relative to the scrollable container.
+	 * @return {object} `{ top: number, bottom: number }`
+	 */
+	getVisibleAreaBounds() {
+		const scrollY = this.getScrollY()
+		return {
+			// The first pixel of the screen.
+			top: scrollY,
+			// The pixel after the last pixel of the screen.
+			bottom: scrollY + this.scrollableContainer.getHeight()
+		}
+	}
+
+	/**
+	 * Returns list height.
+	 * @return {number}
+	 */
+	getHeight() {
+		return this.getContainerNode().getBoundingClientRect().height
+	}
+
+	/**
+	 * Returns list top coordinate relative to the scrollable container.
+	 * @return {number}
+	 */
+	getTopOffset() {
+		return this.scrollableContainer.getTopOffset(this.getContainerNode())
+	}
 
 	shouldUpdateLayoutOnWindowResize(event) {
 		// By default, `VirtualScroller` always performs a re-layout
@@ -385,14 +426,12 @@ export default class VirtualScroller {
 				return false
 			}
 		}
-		const screenWidth = getScreenWidth()
-		const screenHeight = getScreenHeight()
-		const prevScreenWidth = this.screenWidth
-		const prevScreenHeight = this.screenHeight
-		this.screenWidth = screenWidth
-		this.screenHeight = screenHeight
-		if (screenWidth === prevScreenWidth) {
-			if (screenHeight === prevScreenHeight) {
+		const prevScrollableContainerWidth = this.scrollableContainerWidth
+		const prevScrollableContainerHeight = this.scrollableContainerHeight
+		this.scrollableContainerWidth = this.scrollableContainer.getWidth()
+		this.scrollableContainerHeight = this.scrollableContainer.getHeight()
+		if (this.scrollableContainerWidth === prevScrollableContainerWidth) {
+			if (this.scrollableContainerHeight === prevScrollableContainerHeight) {
 				return false
 			} else {
 				this.onUpdateShownItemIndexes({ reason: 'resize' })
@@ -423,12 +462,12 @@ export default class VirtualScroller {
 
 	onUnmount() {
 		this.isMounted = false
-		window.removeEventListener('scroll', this.updateScrollPosition)
+		this.removeScrollPositionListener()
 		if (!this.bypass) {
-			window.removeEventListener('scroll', this.onScroll)
+			this.removeScrollListener()
 			window.removeEventListener('resize', this.onResize)
 			clearTimeout(this.onUserStopsScrollingTimeout)
-			clearTimeout(this.watchContainerElementTopCoordinateTimer)
+			clearTimeout(this.watchContainerElementCoordinatesTimer)
 		}
 	}
 
@@ -526,7 +565,7 @@ export default class VirtualScroller {
 	 * @return {object} coordinates — An object of shape `{ top, bottom, height }`.
 	 */
 	getItemCoordinates(i) {
-		let { top } = getOffset(this.getContainerNode())
+		let top = this.getTopOffset()
 		let j = 0
 		while (j < i) {
 			top += this.getState().itemHeights[j]
@@ -541,7 +580,7 @@ export default class VirtualScroller {
 	}
 
 	// Finds the items which are displayed in the viewport.
-	getVisibleItemIndexes(screenTop, screenBottom, listTop) {
+	getVisibleItemIndexes(visibleAreaTop, visibleAreaBottom, listTopOffset) {
 		let firstShownItemIndex
 		let lastShownItemIndex
 		let itemsHeight = 0
@@ -558,7 +597,7 @@ export default class VirtualScroller {
 				if (firstShownItemIndex === undefined) {
 					firstShownItemIndex = i
 				}
-				const heightLeft = screenBottom - (listTop + itemsHeight)
+				const heightLeft = visibleAreaBottom - (listTopOffset + itemsHeight)
 				lastShownItemIndex = Math.min(
 					i + (this.getEstimatedItemsCount(heightLeft) - 1),
 					// Guard against index overflow.
@@ -571,8 +610,8 @@ export default class VirtualScroller {
 			// If this is the first item visible
 			// then start showing items from it.
 			if (firstShownItemIndex === undefined) {
-				if (listTop + itemsHeight > screenTop) {
-					log('First visible item index (including margin)', i)
+				if (listTopOffset + itemsHeight > visibleAreaTop) {
+					log('First visible item index', i)
 					firstShownItemIndex = i
 				}
 			}
@@ -581,8 +620,8 @@ export default class VirtualScroller {
 				itemsHeight += this.getItemSpacing()
 			}
 			// If this item is the last one visible in the viewport then exit.
-			if (listTop + itemsHeight > screenBottom) {
-				log('Last visible item index (including margin)', i)
+			if (listTopOffset + itemsHeight > visibleAreaBottom) {
+				log('Last visible item index', i)
 				// The list height is estimated until all items have been seen,
 				// so it's possible that even when the list DOM element happens
 				// to be in the viewport in reality the list isn't visible
@@ -644,19 +683,21 @@ export default class VirtualScroller {
 		}
 	}
 
-	getItemIndexes(screenTop, screenBottom, top, bottom) {
-		const isVisible = bottom > screenTop && top < screenBottom
+	getItemIndexes(visibleAreaTop, visibleAreaBottom, listTopOffset, listHeight) {
+		const isVisible = listTopOffset + listHeight > visibleAreaTop && listTopOffset < visibleAreaBottom
 		if (!isVisible) {
-			return this.getOffscreenListShownItemIndexes()
+			log('Off-screen')
+			return
 		}
 		// Find the items which are displayed in the viewport.
-		const indexes = this.getVisibleItemIndexes(screenTop, screenBottom, top)
+		const indexes = this.getVisibleItemIndexes(visibleAreaTop, visibleAreaBottom, listTopOffset)
 		// The list height is estimated until all items have been seen,
 		// so it's possible that even when the list DOM element happens
-		// to be in the viewport in reality the list isn't visible
+		// to be in the viewport, in reality the list isn't visible
 		// in which case `firstShownItemIndex` will be `undefined`.
 		if (indexes.firstShownItemIndex === undefined) {
-			return this.getOffscreenListShownItemIndexes()
+			log('Off-screen')
+			return
 		}
 		return indexes
 	}
@@ -753,7 +794,7 @@ export default class VirtualScroller {
 	// list container DOM element periodically (every second) to check if the
 	// `top` coordinate has changed as a result of CSS being applied:
 	// if it has then it recalculates the shown item indexes.
-	watchContainerElementTopCoordinate() {
+	watchContainerElementCoordinates() {
 		const startedAt = Date.now()
 		const check = () => {
 			// If `VirtualScroller` has been unmounted
@@ -763,12 +804,12 @@ export default class VirtualScroller {
 			}
 			// Skip comparing `top` coordinate of the list
 			// when this function is called the first time.
-			if (this.top !== undefined) {
-				// Calling `getOffset()` on an element is about
+			if (this.topOffset !== undefined) {
+				// Calling `this.getTopOffset()` on an element is about
 				// 0.003 milliseconds on a modern desktop CPU,
 				// so I guess it's fine calling it twice a second.
-				const { top } = getOffset(this.getContainerNode())
-				if (top !== this.top) {
+				const topOffset = this.getTopOffset()
+				if (topOffset !== this.topOffset) {
 					this.onUpdateShownItemIndexes({ reason: 'top offset change' })
 				}
 			}
@@ -780,7 +821,7 @@ export default class VirtualScroller {
 			// without scrolling the page), but those cases should be handled
 			// by manually calling `.updateLayout()` instance method on `VirtualScroller` instance.
 			if (Date.now() - startedAt < WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION) {
-				this.watchContainerElementTopCoordinateTimer = setTimeout(check, WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL)
+				this.watchContainerElementCoordinatesTimer = setTimeout(check, WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL)
 			}
 		}
 		// Run the cycle.
@@ -812,34 +853,45 @@ export default class VirtualScroller {
 			// }
 		}
 		// // A minor optimization. Just because I can.
-		// let listCoordinates
-		// if (this.listCoordinatesCached) {
-		// 	listCoordinates = this.listCoordinatesCached
-		// 	this.listCoordinatesCached = undefined
+		// let topOffset
+		// if (this.topOffsetCached !== undefined) {
+		// 	topOffset = this.topOffsetCached
+		// 	this.topOffsetCached = undefined
 		// } else {
-		// 	listCoordinates = getOffset(this.getContainerNode())
+		// 	topOffset = this.getTopOffset()
 		// }
-		// const { top, height } = listCoordinates
-		const { top, height } = getOffset(this.getContainerNode())
-		// `this.top` is not used for any "caching",
-		// it's only used in `this.watchContainerElementTopCoordinate()` method.
-		if (this.top === undefined) {
-			// See the comments for `watchContainerElementTopCoordinate()` method
+		const topOffset = this.getTopOffset()
+		// `this.topOffset` is not used for any "caching",
+		// it's only used in `this.watchContainerElementCoordinates()` method.
+		if (this.topOffset === undefined) {
+			// See the comments for `watchContainerElementCoordinates()` method
 			// for the rationale on why it's here.
-			this.watchContainerElementTopCoordinate()
+			this.watchContainerElementCoordinates()
 		}
-		this.top = top
-		const { top: screenTop, bottom: screenBottom } = getScreenBounds()
+		this.topOffset = topOffset
+		const { top: visibleAreaTop, bottom: visibleAreaBottom } = this.getVisibleAreaBounds()
 		// Set screen top and bottom for current layout.
-		this.latestLayoutScreenTopAfterMargin = screenTop - this.getMargin()
-		this.latestLayoutScreenBottomAfterMargin = screenBottom + this.getMargin()
+		this.latestLayoutVisibleAreaTopAfterIncludingMargin = visibleAreaTop - this.getMargin()
+		this.latestLayoutVisibleAreaBottomAfterIncludingMargin = visibleAreaBottom + this.getMargin()
+		// For scrollable containers, this function could not only check
+		// the scrollable container visibility here, but also
+		// adjust `visibleAreaTop` and `visibleAreaBottom`
+		// because some parts of the scrollable container
+		// could be off the screen and therefore not actually visible.
+		// That would also involve somehow fixing the "should rerender on scroll"
+		// function, because currently it only checks the scrollable container's
+		// `this.getScrollY()` and compares it to the latest `visibleAreaTop` and `visibleAreaBottom`,
+		// so if those "actual visibility" adjustments were applied, they would have to
+		// be somehow accounted for in that "should rerender on scroll" function.
+		// Overall, I suppose that such "actual visibility" feature would be
+		// a very minor optimization and not something I'd deal with.
 		// Find the items that are displayed in the viewport.
 		return this.getItemIndexes(
-			screenTop - this.getMargin(),
-			screenBottom + this.getMargin(),
-			top,
-			top + height
-		)
+			visibleAreaTop - this.getMargin(),
+			visibleAreaBottom + this.getMargin(),
+			topOffset,
+			this.getHeight()
+		) || this.getOffscreenListShownItemIndexes()
 	}
 
 	/**
@@ -977,18 +1029,18 @@ export default class VirtualScroller {
 			previousItems,
 			nextItems,
 			index: firstPreviousItemIndex,
-			screenTop: this.getItemElement(0).getBoundingClientRect().top
+			visibleAreaTop: this.getItemElement(0).getBoundingClientRect().top
 		}
 	}
 
 	restoreScroll = () => {
-		const { index, screenTop } = this.restoreScrollAfterPrepend
+		const { index, visibleAreaTop } = this.restoreScrollAfterPrepend
 		this.restoreScrollAfterPrepend = undefined
-		const newScreenTop = this.getItemElement(index).getBoundingClientRect().top
-		const scrollByY = newScreenTop - screenTop
+		const newVisibleAreaTop = this.getItemElement(index).getBoundingClientRect().top
+		const scrollByY = newVisibleAreaTop - visibleAreaTop
 		if (scrollByY !== 0) {
 			log('Restore scroll position: scroll by', scrollByY)
-			window.scrollTo(0, getScrollY() + scrollByY)
+			this.scrollTo(0, this.getScrollY() + scrollByY)
 		}
 	}
 
@@ -999,11 +1051,10 @@ export default class VirtualScroller {
 	// 	const itemHeight = this.getState().itemHeights[i]
 	// 	if (itemHeight !== prevItemHeight) {
 	// 		const { bottom } = this.getItemCoordinates(i)
-	// 		// `window.scrollY` and `window.scrollX` aren't supported in Internet Explorer.
-	// 		const scrollY = window.pageYOffset
-	// 		const horizonLine = scrollY + getScreenHeight() / 2
+	// 		const scrollY = this.getScrollY()
+	// 		const horizonLine = scrollY + this.scrollableContainer.getHeight() / 2
 	// 		if (bottom < horizonLine) {
-	// 			window.scrollTo(0, scrollY + (itemHeight - prevItemHeight))
+	// 			this.scrollTo(0, scrollY + (itemHeight - prevItemHeight))
 	// 		}
 	// 	}
 	// }
@@ -1036,26 +1087,26 @@ export default class VirtualScroller {
 		if (reason === 'scroll') {
 			// See whether rendering new previous/next items is required right now
 			// or it can be deferred until the user stops scrolling for better perceived performance.
-			// const listCoordinates = getOffset(this.getContainerNode())
-			// const { top, height } = listCoordinates
+			// const top = this.getTopOffset()
+			// const height = this.scrollableContainer.getHeight()
 			// const bottom = top + height
-			// const { top: screenTop, bottom: screenBottom } = getScreenBounds()
+			// const { top: visibleAreaTop, bottom: visibleAreaBottom } = this.getVisibleAreaBounds()
 			// const renderedItemsTop = top + this.getState().beforeItemsHeight
 			// const renderedItemsBottom = top + height - this.getState().afterItemsHeight
-			// const forceRender = (screenTop < renderedItemsTop && this.getState().firstShownItemIndex > 0) ||
-			// 	(screenBottom > renderedItemsBottom && this.getState().lastShownItemIndex < this.getItemsCount() - 1)
+			// const forceRender = (visibleAreaTop < renderedItemsTop && this.getState().firstShownItemIndex > 0) ||
+			// 	(visibleAreaBottom > renderedItemsBottom && this.getState().lastShownItemIndex < this.getItemsCount() - 1)
 			const forceRender = (
 				// If the items have been rendered at least one
-				this.latestLayoutScreenTopAfterMargin !== undefined &&
+				this.latestLayoutVisibleAreaTopAfterIncludingMargin !== undefined &&
 					// If the user has scrolled up past the extra "margin"
-					(getScrollY() < this.latestLayoutScreenTopAfterMargin) &&
+					(this.getScrollY() < this.latestLayoutVisibleAreaTopAfterIncludingMargin) &&
 					// and if there're any previous non-rendered items to render.
 					(this.getState().firstShownItemIndex > 0)
 			) || (
 				// If the items have been rendered at least one
-				this.latestLayoutScreenBottomAfterMargin !== undefined &&
+				this.latestLayoutVisibleAreaBottomAfterIncludingMargin !== undefined &&
 					// If the user has scrolled down past the extra "margin"
-					(getScrollY() + getScreenHeight() > this.latestLayoutScreenBottomAfterMargin) &&
+					(this.getScrollY() + this.scrollableContainer.getHeight() > this.latestLayoutVisibleAreaBottomAfterIncludingMargin) &&
 					// and if there're any next non-rendered items to render.
 					(this.getState().lastShownItemIndex < this.getItemsCount() - 1)
 			)
