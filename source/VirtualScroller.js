@@ -343,7 +343,7 @@ export default class VirtualScroller {
 			)
 		}
 		if (this.preserveScrollPositionAtBottomOnMount) {
-			this.scrollTo(0, this.getScrollY() + (this.getScrollableContentHeight() - this.preserveScrollPositionAtBottomOnMount.scrollableContainerContentHeight))
+			this.scrollTo(0, this.getScrollY() + (this.scrollableContainer.getHeight() - this.preserveScrollPositionAtBottomOnMount.scrollableContainerContentHeight))
 		} else {
 			this.onUpdateShownItemIndexes({ reason })
 		}
