@@ -35,9 +35,9 @@ export function throttle(func, interval) {
  */
 export function debounce(func, interval) {
 	let timeout
-	return function() {
+	return function(...args) {
 		clearTimeout(timeout)
-		timeout = setTimeout(func, interval)
+		timeout = setTimeout(() => func.apply(this, args), interval)
 	}
 }
 

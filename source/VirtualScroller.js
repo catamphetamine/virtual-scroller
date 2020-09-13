@@ -1,3 +1,9 @@
+// For some weird reason, in Chrome, `setTimeout()` would lag up to a second (or more) behind.
+// Turns out, Chrome developers have deprecated `setTimeout()` API entirely without asking anyone.
+// Replacing `setTimeout()` with `requestAnimationFrame()` can work around that Chrome bug.
+// https://github.com/bvaughn/react-virtualized/issues/722
+import { setTimeout, clearTimeout } from 'request-animation-frame-timeout'
+
 import ScrollableContainer, {
 	ScrollableWindowContainer
 } from './ScrollableContainer'
@@ -17,17 +23,18 @@ import shallowEqual from './shallowEqual'
 
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_INTERVAL = 500
 const WATCH_CONTAINER_ELEMENT_TOP_COORDINATE_MAX_DURATION = 3000
-const WINDOW_RESIZE_DEBOUNCE_INTERVAL = 250
+const SCROLLABLE_CONTAINER_RESIZE_DEBOUNCE_INTERVAL = 250
+const WAIT_FOR_USER_TO_STOP_SCROLLING_TIMEOUT = 100
 
 export default class VirtualScroller {
 	/**
-	 * @param  {function} getContainerNode — Returns container DOM `Element`.
-	 * @param  {any[]} items — Are only used for getting items count and for comparing "previous" items to "next" items if `.setItems(newItems)` is called.
+	 * @param  {function} getContainerElement — Returns the container DOM `Element`.
+	 * @param  {any[]} items — The list of items.
 	 * @param  {Object} [options] — See README.md.
 	 * @return {VirtualScroller}
 	 */
 	constructor(
-		getContainerNode,
+		getContainerElement,
 		items,
 		options = {}
 	) {
@@ -36,9 +43,13 @@ export default class VirtualScroller {
 			setState,
 			onStateChange,
 			customState,
+			// `preserveScrollPositionAtBottomOnMount` option name is deprecated,
+			// use `preserveScrollPositionOfTheBottomOfTheListOnMount` option instead.
 			preserveScrollPositionAtBottomOnMount,
 			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
+			// `getScrollableContainer` option is deprecated.
+			// Use `scrollableContainer` instead.
 			getScrollableContainer,
 			tbody,
 			// bypassBatchSize
@@ -49,7 +60,11 @@ export default class VirtualScroller {
 			// margin,
 			estimatedItemHeight,
 			// getItemState,
+			onItemInitialRender,
+			// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 			onItemFirstRender,
+			scrollableContainer,
+			preserveScrollPositionOfTheBottomOfTheListOnMount,
 			state
 		} = options
 
@@ -61,9 +76,14 @@ export default class VirtualScroller {
 			items = state.items
 		}
 
-		if (getScrollableContainer) {
-			this.scrollableContainer = new ScrollableContainer(getScrollableContainer)
-		} else {
+		// `getScrollableContainer` option is deprecated.
+		// Use `scrollableContainer` instead.
+		if (!scrollableContainer && getScrollableContainer) {
+			scrollableContainer = getScrollableContainer()
+		}
+		if (scrollableContainer) {
+			this.scrollableContainer = new ScrollableContainer(scrollableContainer)
+		} else if (typeof window !== 'undefined') {
 			this.scrollableContainer = new ScrollableWindowContainer()
 		}
 
@@ -71,7 +91,7 @@ export default class VirtualScroller {
 		// 	// Renders items which are outside of the screen by this "margin".
 		// 	// Is the screen height by default: seems to be the optimal value
 		// 	// for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
-		// 	margin = typeof window === 'undefined' ? 0 : this.scrollableContainer.getHeight()
+		// 	margin = this.scrollableContainer ? this.scrollableContainer.getHeight() : 0
 		// }
 
 		// Work around `<tbody/>` not being able to have `padding`.
@@ -109,42 +129,53 @@ export default class VirtualScroller {
 		this.estimatedItemHeight = estimatedItemHeight
 		// this.getItemState = getItemState
 
+		this.onStateChange = onStateChange
+
 		this._shouldUpdateLayoutOnWindowResize = shouldUpdateLayoutOnWindowResize
 		this.measureItemsBatchSize = measureItemsBatchSize === undefined ? 50 : measureItemsBatchSize
 
-		if (onItemFirstRender) {
-			this.onItemFirstRender = onItemFirstRender
+		if (onItemInitialRender) {
+			this.onItemFirstRender = onItemInitialRender
 		}
-
-		// Remove any accidental text nodes from container (like whitespace).
-    // Also guards against cases when someone accidentally tries
-    // using `VirtualScroller` on a non-empty element.
-		if (getContainerNode()) {
-			clearElement(getContainerNode())
+		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
+		else if (onItemFirstRender) {
+			this.onItemFirstRender = (item) => {
+				console.warn("[virtual-scroller] `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.")
+				const { items } = this.getState()
+				const i = items.indexOf(item)
+				// The `item` could also be non-found due to the inconsistency bug:
+				// The reason is that `i` can be non-consistent with the `items`
+				// passed to `<VirtualScroller/>` in React due to `setState()` not being
+				// instanteneous: when new `items` are passed to `<VirtualScroller/>`,
+				// `VirtualScroller.setState({ items })` is called, and if `onItemFirstRender(i)`
+				// is called after the aforementioned `setState()` is called but before it finishes,
+				// `i` would point to an index in "previous" `items` while the application
+				// would assume that `i` points to an index in the "new" `items`,
+				// resulting in an incorrect item being assumed by the application
+				// or even in an "array index out of bounds" error.
+				if (i >= 0) {
+					onItemFirstRender(i)
+				}
+			}
 		}
 
 		if (setState) {
 			this.getState = getState
-			this.setState = setState
+			this.setState = (state) => setState(state, {
+				willUpdateState: this.willUpdateState,
+				didUpdateState: this.didUpdateState
+			})
 		} else {
 			this.getState = () => this.state
-			this.setState = (state, callback) => {
-				const prevState = this.state
-				this.state = {
+			this.setState = (state) => {
+				const prevState = this.getState()
+				const newState = {
 					...prevState,
 					...state
 				}
-				if (!shallowEqual(this.state, prevState)) {
-					if (onStateChange) {
-						onStateChange(this.state, prevState)
-					}
-					if (this.isMounted) {
-						this.onUpdate(prevState)
-					}
-				}
-				if (callback) {
-					callback()
-				}
+				this.willUpdateState(newState, prevState)
+				this.state = newState
+				this.didUpdateState(prevState)
 			}
 		}
 
@@ -152,18 +183,35 @@ export default class VirtualScroller {
 			log('Initial state (passed)', state)
 		}
 
-		this.getContainerNode = getContainerNode
-		this.itemHeights = new ItemHeights(getContainerNode, this.getState)
+		// Sometimes, when `new VirtualScroller()` instance is created,
+		// `getContainerElement()` might not be ready to return the "container" DOM Element yet
+		// (for example, because it's not rendered yet). That's the reason why it's a getter function.
+		// For example, in React, on server side, where there's no "container" DOM Element,
+		// it still "renders" a list with a predefined amount of items in it by default.
+		// (`initiallyRenderedItemsCount`, or `1`).
+		this.getContainerElement = getContainerElement
+		// Remove any accidental text nodes from container (like whitespace).
+		// Also guards against cases when someone accidentally tries
+		// using `VirtualScroller` on a non-empty element.
+		if (getContainerElement()) {
+			clearElement(getContainerElement())
+		}
 
-		if (preserveScrollPositionAtBottomOnMount) {
-			this.preserveScrollPositionAtBottomOnMount = {
-				scrollableContainerContentHeight: this.scrollableContainer.getContentHeight()
+		this.itemHeights = new ItemHeights(this.getContainerElement, this.getState)
+
+		if (this.scrollableContainer) {
+			if (preserveScrollPositionAtBottomOnMount) {
+				console.warn('[virtual-scroller] `preserveScrollPositionAtBottomOnMount` option/property has been renamed to `preserveScrollPositionOfTheBottomOfTheListOnMount`')
+				preserveScrollPositionOfTheBottomOfTheListOnMount = preserveScrollPositionAtBottomOnMount
+			}
+			if (preserveScrollPositionOfTheBottomOfTheListOnMount) {
+				this.preserveScrollPositionOfTheBottomOfTheListOnMount = {
+					scrollableContainerContentHeight: this.scrollableContainer.getContentHeight()
+				}
 			}
 		}
 
-		this.setState(state || this.getInitialState(customState), () => {
-			this.itemHeights.onInitItemHeights()
-		})
+		this.setState(state || this.getInitialState(customState))
 
 		log('Items count', items.length)
 		if (estimatedItemHeight) {
@@ -193,18 +241,23 @@ export default class VirtualScroller {
 	getInitialLayoutState() {
 		let firstShownItemIndex
 		let lastShownItemIndex
-		const itemsCount = this.initialItems.length
+		const items = this.initialItems
+		const itemsCount = items.length
 		// If there're no items then `firstShownItemIndex` stays `undefined`.
 		if (itemsCount > 0) {
 			firstShownItemIndex = 0
 			lastShownItemIndex = this.getLastShownItemIndex(firstShownItemIndex, itemsCount)
 		}
-		if (this.preserveScrollPositionAtBottomOnMount) {
+		if (this.preserveScrollPositionOfTheBottomOfTheListOnMount) {
 			firstShownItemIndex = 0
 			lastShownItemIndex = itemsCount - 1
 		}
 		// Optionally preload items to be rendered.
-		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
+		this.onBeforeShowItems(
+			items,
+			firstShownItemIndex,
+			lastShownItemIndex
+		)
 		return {
 			itemHeights: new Array(itemsCount),
 			itemSpacing: undefined,
@@ -238,7 +291,7 @@ export default class VirtualScroller {
 	}
 
 	getEstimatedItemsCountOnScreen() {
-		if (typeof window !== 'undefined') {
+		if (this.scrollableContainer) {
 			return this.getEstimatedItemsCount(this.getMargin() * 2 + this.scrollableContainer.getHeight())
 		} else {
 			return 1
@@ -260,18 +313,23 @@ export default class VirtualScroller {
 	}
 
 	getMargin() {
-		// Renders items that are outside of the screen by this "margin".
-		// Is the screen height by default: seems to be the optimal value
-		// for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
-		return this.scrollableContainer.getHeight()
+		// `VirtualScroller` also items that are outside of the screen
+		// by the amount of this "render ahead margin" (both on top and bottom).
+		// The default "render ahead margin" is equal to the screen height:
+		// this seems to be the optimal value for "Page Up" / "Page Down" navigation
+		// and optimized mouse wheel scrolling (a user is unlikely to continuously
+		// scroll past the height of a screen, and when they stop scrolling,
+		// the list is re-rendered).
+		const renderAheadMarginRatio = 1 // in scrollable container heights.
+		return this.scrollableContainer.getHeight() * renderAheadMarginRatio
 	}
 
-	onBeforeShowItems(firstShownItemIndex, lastShownItemIndex) {
+	onBeforeShowItems(items, firstShownItemIndex, lastShownItemIndex) {
 		if (this.onItemFirstRender) {
 			if (this.firstSeenItemIndex === undefined) {
 				let i = firstShownItemIndex
 				while (i <= lastShownItemIndex) {
-					this.onItemFirstRender(i)
+					this.onItemFirstRender(items[i])
 					i++
 				}
 				this.firstSeenItemIndex = firstShownItemIndex
@@ -286,7 +344,7 @@ export default class VirtualScroller {
 					const toIndex = Math.min(lastShownItemIndex, this.firstSeenItemIndex - 1)
 					let i = fromIndex
 					while (i <= toIndex) {
-						this.onItemFirstRender(i)
+						this.onItemFirstRender(items[i])
 						i++
 					}
 					this.firstSeenItemIndex = firstShownItemIndex
@@ -296,7 +354,7 @@ export default class VirtualScroller {
 					const fromIndex = Math.max(firstShownItemIndex, this.lastSeenItemIndex + 1)
 					let i = fromIndex
 					while (i <= toIndex) {
-						this.onItemFirstRender(i)
+						this.onItemFirstRender(items[i])
 						i++
 					}
 					this.lastSeenItemIndex = lastShownItemIndex
@@ -306,11 +364,27 @@ export default class VirtualScroller {
 	}
 
 	onMount() {
-		// `this.isMounted = true` should be the first statement in this function,
-		// because otherwise `DOMVirtualScroller` would enter an infinite re-render loop
-		// if `this.onInitialRender('mount')` is called before setting `this.isMounted` to `true`.
-		this.isMounted = true
-		this.onInitialRender('mount')
+		console.warn('[virtual-scroller] `.onMount()` instance method name is deprecated, use `.listen()` instance method name instead.')
+		this.listen()
+	}
+
+	render() {
+		console.warn('[virtual-scroller] `.render()` instance method name is deprecated, use `.listen()` instance method name instead.')
+		this.listen()
+	}
+
+	/**
+	 * Should be invoked after a "container" DOM Element is mounted (inserted into the DOM tree).
+	 */
+	listen() {
+		if (this.isRendered === false) {
+			throw new Error('[virtual-scroller] Can\'t restart a `VirtualScroller` after it has been stopped')
+		}
+		log('~ Rendered (initial) ~')
+		// `this.isRendered = true` should be the first statement in this function,
+		// otherwise `DOMVirtualScroller` would enter an infinite re-render loop.
+		this.isRendered = true
+		this.onRendered()
 		this.scrollableContainerWidth = this.scrollableContainer.getWidth()
 		this.scrollableContainerHeight = this.scrollableContainer.getHeight()
 		this.restoreScrollPosition()
@@ -318,34 +392,27 @@ export default class VirtualScroller {
 		this.removeScrollPositionListener = this.scrollableContainer.addScrollListener(this.updateScrollPosition)
 		if (!this.bypass) {
 			this.removeScrollListener = this.scrollableContainer.addScrollListener(this.onScroll)
-			window.addEventListener('resize', this.onResize)
+			this.scrollableContainerUnlistenResize = this.scrollableContainer.onResize(this.onResize)
 		}
 		// Work around `<tbody/>` not being able to have `padding`.
 		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
 		if (this.tbody) {
-			addTbodyStyles(this.getContainerNode())
-			this.updateTbodyPadding()
+			addTbodyStyles(this.getContainerElement())
+		}
+		if (this.preserveScrollPositionOfTheBottomOfTheListOnMount) {
+			// In this case, all items are shown, so there's no need to call
+			// `this.onUpdateShownItemIndexes()` after the initial render.
+			this.scrollTo(0, this.getScrollY() + (this.scrollableContainer.getHeight() - this.preserveScrollPositionOfTheBottomOfTheListOnMount.scrollableContainerContentHeight))
+		} else {
+			this.onUpdateShownItemIndexes({ reason: 'mount' })
 		}
 	}
 
-	onInitialRender(reason) {
-		const {
-			firstShownItemIndex,
-			lastShownItemIndex
-		} = this.getState()
-		log('~ Rendered (initial) ~')
-		// If there're any items.
-		if (this.getItemsCount() > 0) {
-			// Update item heights.
-			this.updateItemHeights(
-				firstShownItemIndex,
-				lastShownItemIndex
-			)
-		}
-		if (this.preserveScrollPositionAtBottomOnMount) {
-			this.scrollTo(0, this.getScrollY() + (this.scrollableContainer.getHeight() - this.preserveScrollPositionAtBottomOnMount.scrollableContainerContentHeight))
-		} else {
-			this.onUpdateShownItemIndexes({ reason })
+	onRendered() {
+		// Update seen item heights.
+		this.updateItemHeights()
+		if (this.tbody) {
+			this.updateTbodyPadding()
 		}
 	}
 
@@ -395,7 +462,7 @@ export default class VirtualScroller {
 	 * @return {number}
 	 */
 	getHeight() {
-		return this.getContainerNode().getBoundingClientRect().height
+		return this.getContainerElement().getBoundingClientRect().height
 	}
 
 	/**
@@ -403,27 +470,29 @@ export default class VirtualScroller {
 	 * @return {number}
 	 */
 	getTopOffset() {
-		return this.scrollableContainer.getTopOffset(this.getContainerNode())
+		return this.scrollableContainer.getTopOffset(this.getContainerElement())
 	}
 
-	shouldUpdateLayoutOnWindowResize(event) {
-		// By default, `VirtualScroller` always performs a re-layout
-		// on window `resize` event. But browsers (Chrome, Firefox)
-		// [trigger](https://developer.mozilla.org/en-US/docs/Web/API/Window/fullScreen#Notes)
-		// window `resize` event also when a user switches into fullscreen mode:
-		// for example, when a user is watching a video and double-clicks on it
-		// to maximize it. And also when the user goes out of the fullscreen mode.
-		// Each such fullscreen mode entering/exiting will trigger window `resize`
-		// event that will it turn trigger a re-layout of `VirtualScroller`,
-		// resulting in bad user experience. To prevent that, such cases are filtered out.
-		// Some other workaround:
-		// https://stackoverflow.com/questions/23770449/embedded-youtube-video-fullscreen-or-causing-resize
-		if (document.fullscreenElement && this.getContainerNode().contains(document.fullscreenElement)) {
-			return false
-		}
-		if (this._shouldUpdateLayoutOnWindowResize) {
-			if (!this._shouldUpdateLayoutOnWindowResize(event)) {
+	shouldUpdateLayoutOnScrollableContainerResize(event) {
+		if (event && event.target === window) {
+			// By default, `VirtualScroller` always performs a re-layout
+			// on window `resize` event. But browsers (Chrome, Firefox)
+			// [trigger](https://developer.mozilla.org/en-US/docs/Web/API/Window/fullScreen#Notes)
+			// window `resize` event also when a user switches into fullscreen mode:
+			// for example, when a user is watching a video and double-clicks on it
+			// to maximize it. And also when the user goes out of the fullscreen mode.
+			// Each such fullscreen mode entering/exiting will trigger window `resize`
+			// event that will it turn trigger a re-layout of `VirtualScroller`,
+			// resulting in bad user experience. To prevent that, such cases are filtered out.
+			// Some other workaround:
+			// https://stackoverflow.com/questions/23770449/embedded-youtube-video-fullscreen-or-causing-resize
+			if (document.fullscreenElement && this.getContainerElement().contains(document.fullscreenElement)) {
 				return false
+			}
+			if (this._shouldUpdateLayoutOnWindowResize) {
+				if (!this._shouldUpdateLayoutOnWindowResize(event)) {
+					return false
+				}
 			}
 		}
 		const prevScrollableContainerWidth = this.scrollableContainerWidth
@@ -434,69 +503,166 @@ export default class VirtualScroller {
 			if (this.scrollableContainerHeight === prevScrollableContainerHeight) {
 				return false
 			} else {
-				this.onUpdateShownItemIndexes({ reason: 'resize' })
-				return false
+				// Scrollable container height has changed,
+				// so recalculate shown item indexes.
+				return 'UPDATE_INDEXES'
 			}
 		} else {
-			return true
+			return 'UPDATE_LAYOUT'
 		}
 	}
 
+	/**
+	 * On scrollable container resize.
+	 * @param  {Event} [event] — DOM resize event.
+	 */
 	onResize = debounce((event) => {
 		// If `VirtualScroller` has been unmounted
 		// while `setTimeout()` was waiting, then exit.
-		if (!this.isMounted) {
+		if (!this.isRendered) {
 			return
 		}
-		if (this.shouldUpdateLayoutOnWindowResize(event)) {
-			// Reset item heights because now that window width changed
-			// the list width most likely also has changed, and also
-			// some CSS `@media()` rules might have been added or removed.
+		const action = this.shouldUpdateLayoutOnScrollableContainerResize(event)
+		if (action === 'UPDATE_LAYOUT') {
+			// Reset item heights because if scrollable container's width (or height)
+			// has changed, the list width (or height) most likely also has changed,
+			// and also some CSS `@media()` rules might have been added or removed.
 			// Re-render the list entirely.
-			log('~ Window width changed, re-measure item heights. ~')
-			this.setState(this.getInitialLayoutState(), () => {
-				this.onInitialRender('resize')
-			})
+			log('~ Scrollable container size changed, re-measure item heights. ~')
+			this.resized = true
+			this.setState(this.getInitialLayoutState())
+		} else if (action === 'UPDATE_INDEXES') {
+			// No need to perform a complete re-layout.
+			// Just update shown item indexes.
+			this.onUpdateShownItemIndexes({ reason: 'resize' })
 		}
-	}, WINDOW_RESIZE_DEBOUNCE_INTERVAL)
+	}, SCROLLABLE_CONTAINER_RESIZE_DEBOUNCE_INTERVAL)
 
 	onUnmount() {
-		this.isMounted = false
+		console.warn('[virtual-scroller] `.onUnmount()` instance method name is deprecated, use `.stop()` instance method name instead.')
+		this.stop()
+	}
+
+	destroy() {
+		console.warn('[virtual-scroller] `.destroy()` instance method name is deprecated, use `.stop()` instance method name instead.')
+		this.stop()
+	}
+
+	stop() {
+		this.isRendered = false
 		this.removeScrollPositionListener()
 		if (!this.bypass) {
 			this.removeScrollListener()
-			window.removeEventListener('resize', this.onResize)
+			this.scrollableContainerUnlistenResize()
+			// this.untrackScrollableContainer
 			clearTimeout(this.onUserStopsScrollingTimeout)
 			clearTimeout(this.watchContainerElementCoordinatesTimer)
 		}
 	}
 
-	onUpdate(prevState) {
-		const {
-			items,
-			firstShownItemIndex,
-			lastShownItemIndex
-		} = this.getState()
+	/**
+	 * Should be called right before `state` is updated.
+	 * Is used to capture scroll position in order to restore it after the update.
+	 * @param  {object} prevState
+	 * @param  {object} newState
+	 */
+	willUpdateState = (newState, prevState) => {
+		// Ignore setting initial state.
+		if (!prevState) {
+			return
+		}
+		if (this.preserveScrollPositionOnPrependItems) {
+			this.preserveScrollPositionOnPrependItems = undefined
+			const { items: previousItems } = prevState
+			const { items: newItems } = newState
+			const { prependedItemsCount } = getItemsDiff(previousItems, newItems)
+			// Since some items were prepended, scroll Y position
+			// should be restored after rendering those new items.
+			this.captureScroll(
+				previousItems,
+				newItems,
+				prependedItemsCount
+			)
+		}
+	}
+
+	/**
+	 * Should be called right after `state` is updated.
+	 * @param  {object} prevState
+	 */
+	didUpdateState = (prevState) => {
+		const newState = this.getState()
+		if (this.onStateChange) {
+			if (!shallowEqual(newState, prevState)) {
+				this.onStateChange(newState, prevState)
+			}
+		}
+		// Ignore setting initial state.
+		if (!prevState) {
+			return
+		}
+		if (!this.isRendered) {
+			return
+		}
 		log('~ Rendered ~')
 		// If new items are shown (or older items are hidden).
-		if (firstShownItemIndex !== prevState.firstShownItemIndex ||
-			lastShownItemIndex !== prevState.lastShownItemIndex ||
-			items !== prevState.items) {
+		if (newState.firstShownItemIndex !== prevState.firstShownItemIndex ||
+			newState.lastShownItemIndex !== prevState.lastShownItemIndex ||
+			newState.items !== prevState.items) {
 			// // If some items' height changed then maybe adjust scroll position accordingly.
 			// const prevItemHeights = this.getState().itemHeights.slice()
-			// Update seen item heights.
-			this.updateItemHeights(
-				firstShownItemIndex,
-				lastShownItemIndex
-			)
+			this.onRendered()
 			// let i = firstShownItemIndex
 			// while (i <= lastShownItemIndex) {
 			// 	this.adjustScrollPositionIfNeeded(i, prevItemHeights[i])
 			// 	i++
 			// }
-			if (this.tbody) {
-				this.updateTbodyPadding()
+		}
+		const { items: previousItems } = prevState
+		const { items: newItems } = newState
+		if (newItems !== previousItems) {
+			const {
+				prependedItemsCount,
+				appendedItemsCount
+			} = getItemsDiff(previousItems, newItems)
+			const isIncrementalUpdate = prependedItemsCount > 0 || appendedItemsCount > 0
+			if (isIncrementalUpdate) {
+				if (prependedItemsCount > 0) {
+					this.itemHeights.onPrepend(prependedItemsCount)
+					if (this.firstSeenItemIndex !== undefined) {
+						this.firstSeenItemIndex += prependedItemsCount
+						this.lastSeenItemIndex += prependedItemsCount
+					}
+				}
+			} else {
+				this.itemHeights.initialize()
+				this.firstSeenItemIndex = undefined
+				this.lastSeenItemIndex = undefined
 			}
+			// Stop "multi-render layout" if it's in progress.
+			if (this.multiRenderLayout) {
+				this.stopMultiRenderLayout()
+			}
+			return this.onUpdateShownItemIndexes({
+				reason: 'update items',
+				force: true
+			})
+		}
+		if (this.resized) {
+			this.resized = undefined
+			log('~ Rendered (resize) ~')
+			// Stop "multi-render layout" if it's in progress.
+			if (this.multiRenderLayout) {
+				this.stopMultiRenderLayout()
+			}
+			// Reset item heights because if scrollable container's width (or height)
+			// has changed, the list width (or height) most likely also has changed,
+			// and also some CSS `@media()` rules might have been added or removed.
+			// Re-render the list entirely.
+			return this.onUpdateShownItemIndexes({ reason: 'resize' })
+		}
+		if (this.multiRenderLayout) {
+			return this.onMultiRenderLayoutRendered()
 		}
 	}
 
@@ -507,10 +673,14 @@ export default class VirtualScroller {
    */
 	updateTbodyPadding() {
 		const { beforeItemsHeight, afterItemsHeight } = this.getState()
-		setTbodyPadding(this.getContainerNode(), beforeItemsHeight, afterItemsHeight)
+		setTbodyPadding(this.getContainerElement(), beforeItemsHeight, afterItemsHeight)
 	}
 
-	updateItemHeights(fromIndex, toIndex) {
+	updateItemHeights() {
+		const {
+			firstShownItemIndex: fromIndex,
+			lastShownItemIndex: toIndex
+		} = this.getState()
 		const {
 			firstShownItemIndex
 		} = this.getState()
@@ -786,7 +956,7 @@ export default class VirtualScroller {
 	// and will appear offscreen and so it will only render the first item.
 	// Then, the page styles are loaded and applied and the sidebar
 	// is now `position: fixed` so `<main/>` is now rendered at the top of the page
-	// but `VirtualScroller`'s `onMount()` has already been called
+	// but `VirtualScroller`'s `.render()` has already been called
 	// and it won't re-render until the user scrolls or the window is resized.
 	// This type of a bug doesn't occur in production, but it can appear
 	// in development mode when using Webpack. The workaround `VirtualScroller`
@@ -799,7 +969,7 @@ export default class VirtualScroller {
 		const check = () => {
 			// If `VirtualScroller` has been unmounted
 			// while `setTimeout()` was waiting, then exit.
-			if (!this.isMounted) {
+			if (!this.isRendered) {
 				return
 			}
 			// Skip comparing `top` coordinate of the list
@@ -903,7 +1073,7 @@ export default class VirtualScroller {
 	 * (and measured) before then `redoLayoutAfterRender` is `false`.
 	 * @param {Function} callback
 	 */
-	updateShownItemIndexes = (callback) => {
+	updateShownItemIndexes = () => {
 		// Find the items which are displayed in the viewport.
 		const {
 			firstShownItemIndex,
@@ -933,6 +1103,7 @@ export default class VirtualScroller {
 		}
 		if (redoLayoutAfterRender) {
 			log('Schedule a re-layout after the upcoming rerender')
+			this.redoLayoutAfterRender = true
 		}
 		// The page could be scrolled up, to any scroll position,
 		// for example, via "Home" key, resulting in `lastShownItemIndex`
@@ -948,7 +1119,11 @@ export default class VirtualScroller {
 			}
 		}
 		// Optionally preload items to be rendered.
-		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
+		this.onBeforeShowItems(
+			this.getState().items,
+			firstShownItemIndex,
+			lastShownItemIndex
+		)
 		// Render.
 		this.setState({
 			firstShownItemIndex,
@@ -958,34 +1133,37 @@ export default class VirtualScroller {
 			// // Average item height is stored in state to differentiate between
 			// // the initial state and "anything has been measured already" state.
 			// averageItemHeight: this.itemHeights.getAverage()
-		}, () => callback(redoLayoutAfterRender))
-	}
-
-	updateShownItemIndexesRecursive = () => {
-		this.updateShownItemIndexes((redoLayoutAfterRender) => {
-			if (redoLayoutAfterRender) {
-				// Recurse in a timeout to prevent React error:
-				// "Maximum update depth exceeded.
-				//  This can happen when a component repeatedly calls
-				//  setState inside componentWillUpdate or componentDidUpdate.
-				//  React limits the number of nested updates to prevent infinite loops."
-				setTimeout(() => {
-					if (this.isMounted) {
-						this.updateShownItemIndexesRecursive()
-					} else {
-						this.onDoneUpdatingItemIndexes()
-					}
-				}, 0)
-			} else {
-				this.onDoneUpdatingItemIndexes()
-			}
 		})
 	}
 
-	onDoneUpdatingItemIndexes() {
-		this.isUpdatingItemIndexes = false
-		if (this.restoreScrollAfterPrepend) {
-			this.restoreScroll()
+	updateShownItemIndexesRecursive = () => {
+		this.multiRenderLayout = true
+		this.updateShownItemIndexes()
+	}
+
+	onMultiRenderLayoutRendered() {
+		if (this.redoLayoutAfterRender) {
+			this.redoLayoutAfterRender = undefined
+			// Recurse in a timeout to prevent React error:
+			// "Maximum update depth exceeded.
+			//  This can happen when a component repeatedly calls
+			//  setState inside componentWillUpdate or componentDidUpdate.
+			//  React limits the number of nested updates to prevent infinite loops."
+			return setTimeout(() => {
+				if (this.isRendered) {
+					this.updateShownItemIndexesRecursive()
+				}
+			}, 0)
+		}
+		this.stopMultiRenderLayout()
+	}
+
+	stopMultiRenderLayout() {
+		this.multiRenderLayout = undefined
+		if (!this.redoLayoutAfterRender) {
+			if (this.restoreScrollAfterPrepend) {
+				this.restoreScroll()
+			}
 		}
 	}
 
@@ -1014,12 +1192,12 @@ export default class VirtualScroller {
 		// If the scroll position for these `previousItems` -> `nextItems`
 		// has already been captured then skip.
 		// This could happen when using `<ReactVirtualScroller/>`
-		// because it calls `.captureScroll()` inside `.render()`
+		// because it calls `.captureScroll()` inside `ReactVirtualScroller.render()`
 		// which is followed by `<VirtualScroller/>`'s `.componentDidUpdate()`
 		// which also calls `.captureScroll()` with the same arguments.
 		// (this is done to prevent scroll Y position from jumping
 		//  when showing the first page of the "Previous items",
-		//  see the comments in `<ReactVirtualScroller/>`'s `.render()` method).
+		//  see the comments in `ReactVirtualScroller.render()` method).
 		if (this.restoreScrollAfterPrepend &&
 			this.restoreScrollAfterPrepend.previousItems === previousItems &&
 			this.restoreScrollAfterPrepend.nextItems === nextItems) {
@@ -1072,7 +1250,7 @@ export default class VirtualScroller {
 		}
 		// If a re-layout is already scheduled then it will happen anyway
 		// for the same `state` so there's no need to start another one.
-		if (this.isUpdatingItemIndexes) {
+		if (this.multiRenderLayout) {
 			return
 		}
 		// Prefer not re-rendering the list as the user's scrolling.
@@ -1121,19 +1299,18 @@ export default class VirtualScroller {
 			// that either the user's no longer scrolling or the browser's
 			// stuttering (skipping frames due to high load) anyway.
 			if (!forceRender) {
-				return this.onUserStopsScrollingTimeout = setTimeout(this.onUserStoppedScrolling, 100)
+				return this.onUserStopsScrollingTimeout = setTimeout(this.onUserStoppedScrolling, WAIT_FOR_USER_TO_STOP_SCROLLING_TIMEOUT)
 			}
 		}
 		// // A minor optimization. Just because I can.
 		// this.listCoordinatesCached = listCoordinates
 		// Re-render the list.
 		log(`~ Update layout (on ${reason}) ~`)
-		this.isUpdatingItemIndexes = true
 		this.updateShownItemIndexesRecursive()
 	}
 
 	onUserStoppedScrolling = () => {
-		if (this.isMounted) {
+		if (this.isRendered) {
 			// Re-render the list.
 			this.updateLayout('stopped scrolling')
 		}
@@ -1176,20 +1353,8 @@ export default class VirtualScroller {
 			if (prependedItemsCount > 0) {
 				log('Prepended items count', prependedItemsCount)
 				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
-				this.itemHeights.onPrepend(prependedItemsCount)
 				if (itemStates) {
 					itemStates = new Array(prependedItemsCount).concat(itemStates)
-				}
-				// Since some items were prepended restore scroll Y
-				// position after rendering those new items.
-				// `preserveScrollPosition` property name is deprecated,
-				// use `preserveScrollPositionOnPrependItems` instead.
-				if (options.preserveScrollPositionOnPrependItems || options.preserveScrollPosition) {
-					this.captureScroll(
-						previousItems,
-						newItems,
-						prependedItemsCount
-					)
 				}
 			}
 			if (appendedItemsCount > 0) {
@@ -1198,10 +1363,6 @@ export default class VirtualScroller {
 				if (itemStates) {
 					itemStates = itemStates.concat(new Array(appendedItemsCount))
 				}
-			}
-			if (this.firstSeenItemIndex !== undefined) {
-				this.firstSeenItemIndex += prependedItemsCount
-				this.lastSeenItemIndex += prependedItemsCount
 			}
 			firstShownItemIndex += prependedItemsCount
 			lastShownItemIndex += prependedItemsCount
@@ -1213,8 +1374,6 @@ export default class VirtualScroller {
 			log('New items', newItems)
 			itemHeights = new Array(newItems.length)
 			itemStates = new Array(newItems.length)
-			this.firstSeenItemIndex = undefined
-			this.lastSeenItemIndex = undefined
 			if (newItems.length === 0) {
 				firstShownItemIndex = undefined
 				lastShownItemIndex = undefined
@@ -1225,7 +1384,7 @@ export default class VirtualScroller {
 			beforeItemsHeight = 0
 			afterItemsHeight = 0
 		}
-		let customState
+		// let customState
 		// `newCustomState` argument is not currently being used.
 		// if (newCustomState) {
 		// 	if (typeof newCustomState === 'function') {
@@ -1242,10 +1401,17 @@ export default class VirtualScroller {
 		log('Before items height', beforeItemsHeight)
 		log('After items height (actual or estimated)', afterItemsHeight)
 		// Optionally preload items to be rendered.
-		this.onBeforeShowItems(firstShownItemIndex, lastShownItemIndex)
+		this.onBeforeShowItems(
+			newItems,
+			firstShownItemIndex,
+			lastShownItemIndex
+		)
+		// `preserveScrollPosition` property name is deprecated,
+		// use `preserveScrollPositionOnPrependItems` instead.
+		this.preserveScrollPositionOnPrependItems = options.preserveScrollPositionOnPrependItems || options.preserveScrollPosition
 		// Render.
 		this.setState({
-			...customState,
+			// ...customState,
 			items: newItems,
 			itemStates,
 			itemHeights,
@@ -1253,19 +1419,11 @@ export default class VirtualScroller {
 			lastShownItemIndex,
 			beforeItemsHeight,
 			afterItemsHeight
-		}, () => {
-			if (!isIncrementalUpdate) {
-				this.itemHeights.onInitItemHeights()
-			}
-			this.onUpdateShownItemIndexes({
-				reason: 'update items',
-				force: true
-			})
 		})
 	}
 
 	getItemElement(i) {
-		return this.getContainerNode().childNodes[i]
+		return this.getContainerElement().childNodes[i]
 	}
 
 	// Turns out this optimization won't work
@@ -1366,11 +1524,11 @@ export default class VirtualScroller {
 	// 	// rather than immediately on mount.
 	// 	if (this.shouldDelayLayout) {
 	// 		this.layoutDelayedWithArgs = args
-	// 		// Then in `.onMount()`:
+	// 		// Then in `.render()`:
 	// 		// if (this.layoutDelayedWithArgs) {
 	// 		// 	this.shouldDelayLayout = false
 	// 		// 	setTimeout(() => {
-	// 		// 		if (this.isMounted) {
+	// 		// 		if (this.isRendered) {
 	// 		// 			this.onUpdateShownItemIndexes(this.layoutDelayedWithArgs)
 	// 		// 			this.layoutDelayedWithArgs = undefined
 	// 		// 		}

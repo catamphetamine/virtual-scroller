@@ -1,5 +1,41 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.5.1 / 13.09.2020
+==================
+
+* Renamed `.onMount()`/`.render()` instance method to `.listen()`. The older method name still works.
+
+* Renamed `.onUnmount()`/`.destroy()` instance method to `.stop()`. The older method name still works.
+
+1.5.0 / 12.09.2020
+==================
+
+* (unlikely breaking change) If custom `setState` is defined, then it must call two `VirtualScroller`'s instance methods: `.willUpdateState(newState, prevState)` and `.didUpdateState(prevState)`. This is unlikely to break anyone's code because it's unlikely that someone implemented their own `VirtualScroller` rather than using the provided `/dom` or `/react` ones.
+
+* (unlikely breaking change) Removed `.onUpdate(prevState)` instance method of `VirtualScroller`: it has been superceded by `.didUpdateState(prevState)`. This is unlikely to break anyone's code because it's unlikely that someone implemented their own `VirtualScroller` rather than using the provided `/dom` or `/react` ones.
+
+* (unlikely breaking change) `setState(newState)` option function no longer receives the second `callback` argument (instead, the argument is an object now). This is unlikely to break anyone's code because it's unlikely that someone implemented their own `VirtualScroller` rather than using the provided `/dom` or `/react` ones.
+
+* Fixed "window is not defined" error on server side.
+
+* Renamed `.onMount()` instance method to `.render()`. The older method name still works.
+
+* Renamed `.onUnmount()` instance method to `.destroy()`. The older method name still works.
+
+* Renamed `preserveScrollPositionAtBottomOnMount` option/property to `preserveScrollPositionOfTheBottomOfTheListOnMount`.
+
+* Deprecated `onItemFirstRender(i)`. Added `onItemInitialRender(item)` as a replacement. The reason is that `item` is more consistent than `i` which can be non-consistent with the `items` passed to `<VirtualScroller/>` in React due to `setState()` not being instanteneous: when new `items` are passed to `<VirtualScroller/>`, `VirtualScroller.setState({ items })` is called, and if `onItemFirstRender(i)` is called after the aforementioned `setState()` is called but before it finishes, `i` would point to an index in "previous" `items` while the application would assume that `i` points to an index in the "new" `items`, resulting in an incorrect item being assumed by the application or even in an "array index out of bounds" error.
+
+1.4.1 / 10.09.2020
+==================
+
+* Fixed Chrome's `setTimeout()` delay lag [bug](https://github.com/bvaughn/react-virtualized/issues/722) by using `requestAnimationFrame()`.
+
+1.4.0 / 10.09.2020
+==================
+
+* An *experimental* `getScrollableContainer()` option has been changed to just `scrollableContainer`.
+
 1.3.0 / 19.04.2020
 ==================
 

@@ -1,18 +1,18 @@
 // import json from 'rollup-plugin-json'
-// import commonjs from 'rollup-plugin-commonjs'
-// import resolve from 'rollup-plugin-node-resolve'
+import commonjs from 'rollup-plugin-commonjs'
+import resolve from 'rollup-plugin-node-resolve'
 import { terser } from 'rollup-plugin-terser'
 
-// const resolveModules = resolve({
-//   only: ['lodash']
-// })
+const resolveModules = resolve({
+  // only: ['lodash']
+})
 
 export default [
   {
     input: 'index.js',
     plugins: [
-      // resolveModules,
-      // commonjs(),
+      resolveModules,
+      commonjs(),
       // json(),
       terser()
     ],
@@ -26,8 +26,8 @@ export default [
   {
     input: 'dom/index.js',
     plugins: [
-      // resolveModules,
-      // commonjs(),
+      resolveModules,
+      commonjs(),
       // json(),
       terser()
     ],
@@ -41,8 +41,8 @@ export default [
   {
     input: 'react/index.js',
     plugins: [
-      // resolveModules,
-      // commonjs(),
+      resolveModules,
+      commonjs(),
       // json(),
       terser()
     ],

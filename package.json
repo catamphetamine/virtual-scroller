@@ -1,13 +1,15 @@
 {
   "name": "virtual-scroller",
-  "version": "1.3.0",
+  "version": "1.5.1",
   "description": "A component for efficiently rendering large lists of variable height items",
   "main": "index.commonjs.js",
   "module": "index.js",
   "sideEffects": [
     "*.css"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "request-animation-frame-timeout": "^1.0.0"
+  },
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.0.0",

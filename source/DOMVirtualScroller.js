@@ -27,7 +27,7 @@ export default class DOMVirtualScroller {
     if (onMount) {
       onMount()
     }
-    this.virtualScroller.onMount()
+    this.virtualScroller.listen()
   }
 
   onStateChange = (state, prevState) => {
@@ -51,7 +51,7 @@ export default class DOMVirtualScroller {
       this.container.style.paddingBottom = px(afterItemsHeight)
     }
     // Perform an intelligent "diff" re-render if the `items` are the same.
-    const diffRender = prevState && items === prevState.items && prevState.items.length > 0
+    const diffRender = prevState && items === prevState.items && items.length > 0
     // Remove no longer visible items from the DOM.
     if (diffRender) {
       log('Incremental rerender')
@@ -60,10 +60,10 @@ export default class DOMVirtualScroller {
       let i = prevState.lastShownItemIndex
       while (i >= prevState.firstShownItemIndex) {
         if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
-          // The item is still being shown.
+          // The item is still visible.
         } else {
           log('Remove item index', i)
-          // The item is no longer visible so remove it from the DOM.
+          // The item is no longer visible. Remove it.
           this.unmountItem(this.container.childNodes[i - prevState.firstShownItemIndex])
         }
         i--
@@ -80,8 +80,8 @@ export default class DOMVirtualScroller {
     let i = firstShownItemIndex
     while (i <= lastShownItemIndex) {
       if (diffRender && i >= prevState.firstShownItemIndex && i <= prevState.lastShownItemIndex) {
-        // The item is already shown, so don't re-render it.
-        // Next new items will be appended rather than prepended.
+        // The item is already being rendered.
+        // Next items will be appended rather than prepended.
         if (shouldPrependItems) {
           shouldPrependItems = false
         }
@@ -101,8 +101,21 @@ export default class DOMVirtualScroller {
     }
   }
 
+  // Public API. Should be "bound" to `this`.
   onUnmount = () => {
-    this.virtualScroller.onUnmount()
+    console.warn('[virtual-scroller] `.onUnmount()` instance method name is deprecated, use `.stop()` instance method name instead.')
+    this.stop()
+  }
+
+  // Public API. Should be "bound" to `this`.
+  destroy = () => {
+    console.warn('[virtual-scroller] `.destroy()` instance method name is deprecated, use `.stop()` instance method name instead.')
+    this.stop()
+  }
+
+  // Public API. Should be "bound" to `this`.
+  stop = () => {
+    this.virtualScroller.stop()
   }
 
   unmountItem(itemElement) {
