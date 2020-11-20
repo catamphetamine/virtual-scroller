@@ -1351,14 +1351,14 @@ export default class VirtualScroller {
 		const isIncrementalUpdate = prependedItemsCount > 0 || appendedItemsCount > 0
 		if (isIncrementalUpdate) {
 			if (prependedItemsCount > 0) {
-				log('Prepended items count', prependedItemsCount)
+				log('Prepend', prependedItemsCount, 'items')
 				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
 				if (itemStates) {
 					itemStates = new Array(prependedItemsCount).concat(itemStates)
 				}
 			}
 			if (appendedItemsCount > 0) {
-				log('Appended items count', appendedItemsCount)
+				log('Append', appendedItemsCount, 'items')
 				itemHeights = itemHeights.concat(new Array(appendedItemsCount))
 				if (itemStates) {
 					itemStates = itemStates.concat(new Array(appendedItemsCount))
@@ -1369,7 +1369,7 @@ export default class VirtualScroller {
 			beforeItemsHeight += this.itemHeights.getAverage() * prependedItemsCount
 			afterItemsHeight += this.itemHeights.getAverage() * appendedItemsCount
 		} else {
-			log('Non-incremental items update')
+			log('Items have changed, and it\'s not a simple append and/or prepend: rerender the entire list from scratch.')
 			log('Previous items', previousItems)
 			log('New items', newItems)
 			itemHeights = new Array(newItems.length)

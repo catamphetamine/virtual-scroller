@@ -222,7 +222,7 @@ Available `VirtualScroller` `options`:
 
 * `onItemStateChange(i: number, itemState: object)` — Can be used to update a list item's state inside `VirtualScroller` state. For example, storing list item's state inside `VirtualScroller` state is used in React `VirtualScroller` component to preserve the state of list items that are unmounted due to being no longer visible: when they're visible again they're re-mounted and their state isn't lost. Calling `onItemStateChange()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout isn't necessarily required. If a re-layout is required then call `onItemHeightChange(i)` manually. For example, consider a social network feed, each post optionally having an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a thumbnail that expands into an embedded YouTube player on click. If a user expands the video, then scrolls down so that the post with the video is unmounted, then scrolls back up so that the post with the video is re-mounted again, then the video should stay expanded (or maybe not, but you get the idea).
 
-* `setItems(newItems: any[], options: object?)` — Updates `VirtualScroller` `items`. For example, can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details. Available options: `preserveScrollPositionOnPrependItems: boolean` — Set to `true` to enable "restore scroll position after prepending items" feature (could be useful when implementing "Show previous items" button).
+* `setItems(newItems: any[], options: object?)` — Updates `VirtualScroller` `items`. For example, it can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details. Available options: `preserveScrollPositionOnPrependItems: boolean` — Set to `true` to enable "restore scroll position after prepending new items" feature (should be used when implementing a "Show previous items" button).
 
 * `getItemCoordinates(i: number): object` — Returns coordinates of item with index `i` relative to the document: `top` is the top offset of the item relative to the start of the document, `bottom` is the top offset of the item's bottom edge relative to the start of the document, `height` is the item's height.
 
@@ -404,13 +404,25 @@ React `<VirtualScroller/>` component instance provides methods:
 
 ## Dynamically Loaded Lists
 
-The previous examples showcase a static `items` list. For cases when new items are loaded when the user clicks "Show previous" / "Show next" buttons `virtualScroller.setItems(newItems)` method can be used where `newItems` will be `previousItems.concat(items)` for "Show previous" button and `items.concat(nextItems)` for "Show next" button. `virtual-scroller/react` will automatically call `.setItems(newItems)` when new `items` property is passed, and `virtual-scroller/dom` provides a manual `.setItems(newItems)` method same as `VirtualScroller`.
+All previous examples described cases with a static `items` list. When there's a need to update the `items` list, one could use `virtualScroller.setItems(newItems)` instance method. For example, when the user clicks "Show previous items" button, the `newItems` should be set to `previousItems.concat(currentlyShownItems)`, and when the user clicks "Show next items" button, the `newItems` should be set to `currentlyShownItems.concat(nextItems)`.
+
+When using `virtual-scroller/dom` component, a developer should call `.setItems(newItems)` instance method in order to update the items.
+
+When using `virtual-scroller/react` React component, it calls `.setItems(newItems)` method automatically when new `items` property is passed.
+
+The basic equality check (`===`) is used to intelligently compare `newItems` to the existing `items`. If a simple append and/or prepend operation is detected, then the list seamlessly transitions from the current state to the new state, preserving its state and scroll position. If, however, the items have been updated in such a way that it's not a simple append and/or prepend operation, then the entire list is rerendered from scratch, losing its state and resetting the scroll position. There're valid use cases for both situations.
+
+For example, suppose a user navigates to a page where a list of `items: object[]` is shown using a `VirtualScroller`. When a user scrolls down to the last item in the list, a developer might want to query the database for the newly added items, and then show those new items to the user. In that case, the developer could send a query to the API with `afterId: number` parameter being the `id: number` of the last item in the list, and the API would then return a list of the `newItems: object[]` whose `id: number` is greater than the `afterId: number` parameter. Then, the developer would append the `newItems: object[]` to the `items: object[]`, and then call `VirtualScroller.setItems()` with the updated `items: object[]`, resulting in a "seamless" update of the list, preserving its state and scroll position.
+
+Another example. Suppose a user navigates to a page where they can filter a huge list by a query entered in a search bar. In that case, when the user edits the query in the search bar, `VirtualScroller.setItems()` method is called with a list of filtered items, and the entire list is rerendered from scratch. In this case, it's ok to reset the `VirtualScroller` state and the scroll position.
 
 <!--
 `virtualScroller.setItems(newItems)` also receives an optional second `options` argument having shape `{ state }` where `state` can be used for updating "custom state" previously set in `getInitialState(customState)` and can be an `object` or a function `(previousState, { prependedCount, appendedCount }) => object`. If the items update is not incremental (i.e. if `newItems` doesn't contain previous `items`) then both `prependedCount` and `appendedCount` will be `undefined`.
 -->
 
-Also, one can use [`on-scroll-to`](https://gitlab.com/catamphetamine/on-scroll-to) library to render a "Load more items on scroll down" component for "infinite scroll" lists.
+When new items are appended to the list, the page scroll position remains unchanged. Same's for prepending new items to the list: the scroll position of the page stays the same, resulting in the list "jumping" down when new items get prepended. To fix that, pass `preserveScrollPositionOnPrependItems: true` option to the `VirtualScroller`. When using `virtual-scroller/dom` component, pass that option when creating a new instance, and when using `virtual-scroller/react` React component, pass `preserveScrollPositionOnPrependItems` property.
+
+For implementing "infinite scroll" lists, a developer could also use [`on-scroll-to`](https://gitlab.com/catamphetamine/on-scroll-to) component.
 
 ## Gotchas
 
