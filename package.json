@@ -1,6 +1,6 @@
 {
   "name": "virtual-scroller",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "A component for efficiently rendering large lists of variable height items",
   "main": "index.commonjs.js",
   "module": "index.js",

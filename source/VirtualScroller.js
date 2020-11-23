@@ -256,7 +256,9 @@ export default class VirtualScroller {
 		this.onBeforeShowItems(
 			items,
 			firstShownItemIndex,
-			lastShownItemIndex
+			lastShownItemIndex,
+			this.firstSeenItemIndex,
+			this.lastSeenItemIndex
 		)
 		return {
 			itemHeights: new Array(itemsCount),
@@ -324,43 +326,68 @@ export default class VirtualScroller {
 		return this.scrollableContainer.getHeight() * renderAheadMarginRatio
 	}
 
-	onBeforeShowItems(items, firstShownItemIndex, lastShownItemIndex) {
-		if (this.onItemFirstRender) {
-			if (this.firstSeenItemIndex === undefined) {
+	onBeforeShowItems(
+		items,
+		firstShownItemIndex,
+		lastShownItemIndex,
+		firstSeenItemIndex,
+		lastSeenItemIndex
+	) {
+		const { onItemFirstRender } = this
+		if (onItemFirstRender) {
+			if (firstSeenItemIndex === undefined) {
 				let i = firstShownItemIndex
 				while (i <= lastShownItemIndex) {
-					this.onItemFirstRender(items[i])
+					onItemFirstRender(items[i])
 					i++
 				}
-				this.firstSeenItemIndex = firstShownItemIndex
-				this.lastSeenItemIndex = lastShownItemIndex
 			} else {
 				// The library is designed in such a way that
 				// `[firstShownItemIndex, lastShownItemIndex]` always intersects
 				// (or touches or contains or is contained by)
-				// `[this.firstSeenItemIndex, this.lastSeenItemIndex]`.
-				if (firstShownItemIndex < this.firstSeenItemIndex) {
+				// `[firstSeenItemIndex, lastSeenItemIndex]`.
+				if (firstShownItemIndex < firstSeenItemIndex) {
 					const fromIndex = firstShownItemIndex
-					const toIndex = Math.min(lastShownItemIndex, this.firstSeenItemIndex - 1)
+					const toIndex = Math.min(lastShownItemIndex, firstSeenItemIndex - 1)
 					let i = fromIndex
 					while (i <= toIndex) {
-						this.onItemFirstRender(items[i])
+						onItemFirstRender(items[i])
 						i++
 					}
-					this.firstSeenItemIndex = firstShownItemIndex
 				}
-				if (lastShownItemIndex > this.lastSeenItemIndex) {
+				if (lastShownItemIndex > lastSeenItemIndex) {
 					const toIndex = lastShownItemIndex
-					const fromIndex = Math.max(firstShownItemIndex, this.lastSeenItemIndex + 1)
+					const fromIndex = Math.max(firstShownItemIndex, lastSeenItemIndex + 1)
 					let i = fromIndex
 					while (i <= toIndex) {
-						this.onItemFirstRender(items[i])
+						onItemFirstRender(items[i])
 						i++
 					}
-					this.lastSeenItemIndex = lastShownItemIndex
 				}
 			}
 		}
+	}
+
+	updateSeenItemIndexes() {
+		let { firstSeenItemIndex, lastSeenItemIndex } = this
+		const { firstShownItemIndex, lastShownItemIndex } = this.getState()
+		if (firstSeenItemIndex === undefined) {
+			firstSeenItemIndex = firstShownItemIndex
+			lastSeenItemIndex = lastShownItemIndex
+		} else {
+			// The library is designed in such a way that
+			// `[firstShownItemIndex, lastShownItemIndex]` always intersects
+			// (or touches or contains or is contained by)
+			// `[firstSeenItemIndex, lastSeenItemIndex]`.
+			if (firstShownItemIndex < firstSeenItemIndex) {
+				firstSeenItemIndex = firstShownItemIndex
+			}
+			if (lastShownItemIndex > lastSeenItemIndex) {
+				lastSeenItemIndex = lastShownItemIndex
+			}
+		}
+		this.firstSeenItemIndex = firstSeenItemIndex
+		this.lastSeenItemIndex = lastSeenItemIndex
 	}
 
 	onMount() {
@@ -639,6 +666,7 @@ export default class VirtualScroller {
 				this.firstSeenItemIndex = undefined
 				this.lastSeenItemIndex = undefined
 			}
+			this.updateSeenItemIndexes()
 			// Stop "multi-render layout" if it's in progress.
 			if (this.multiRenderLayout) {
 				this.stopMultiRenderLayout()
@@ -1122,7 +1150,9 @@ export default class VirtualScroller {
 		this.onBeforeShowItems(
 			this.getState().items,
 			firstShownItemIndex,
-			lastShownItemIndex
+			lastShownItemIndex,
+			this.firstSeenItemIndex,
+			this.lastSeenItemIndex
 		)
 		// Render.
 		this.setState({
@@ -1343,6 +1373,10 @@ export default class VirtualScroller {
 			itemHeights,
 			itemSpacing
 		} = this.getState()
+		let {
+			firstSeenItemIndex,
+			lastSeenItemIndex
+		} = this
 		log('~ Update items ~')
 		const {
 			prependedItemsCount,
@@ -1366,12 +1400,18 @@ export default class VirtualScroller {
 			}
 			firstShownItemIndex += prependedItemsCount
 			lastShownItemIndex += prependedItemsCount
+			if (firstSeenItemIndex !== undefined) {
+				firstSeenItemIndex += prependedItemsCount
+				lastSeenItemIndex += prependedItemsCount
+			}
 			beforeItemsHeight += this.itemHeights.getAverage() * prependedItemsCount
 			afterItemsHeight += this.itemHeights.getAverage() * appendedItemsCount
 		} else {
 			log('Items have changed, and it\'s not a simple append and/or prepend: rerender the entire list from scratch.')
 			log('Previous items', previousItems)
 			log('New items', newItems)
+			firstSeenItemIndex = undefined
+			lastSeenItemIndex = undefined
 			itemHeights = new Array(newItems.length)
 			itemStates = new Array(newItems.length)
 			if (newItems.length === 0) {
@@ -1404,7 +1444,9 @@ export default class VirtualScroller {
 		this.onBeforeShowItems(
 			newItems,
 			firstShownItemIndex,
-			lastShownItemIndex
+			lastShownItemIndex,
+			firstSeenItemIndex,
+			lastSeenItemIndex
 		)
 		// `preserveScrollPosition` property name is deprecated,
 		// use `preserveScrollPositionOnPrependItems` instead.
