@@ -14,6 +14,11 @@ React:
 * [Basic](https://catamphetamine.gitlab.io/virtual-scroller/)
 * [Dynamically loaded](https://catamphetamine.gitlab.io/virtual-scroller/?dynamic=✓)
 
+[Grid Layout](#grid-layout):
+
+* [Basic](https://catamphetamine.gitlab.io/virtual-scroller/index-grid.html)
+* [Dynamically loaded](https://catamphetamine.gitlab.io/virtual-scroller/index-grid.html?dynamic=✓)
+
 ## Rationale
 
 Rendering really long lists in HTML can be performance intensive which sometimes leads to slow page load times and wasting mobile users' battery. For example, consider a chat app rendering a list of a thousand of the most recent messages: when using React the full render cycle can take up to 100 milliseconds or more on a modern PC. If the chat message component is complex enough (rich text formatting, pictures, videos, attachments, buttons) then it could take up to a second or more (on a modern PC). Now imagine users viewing the website on their aged low-tier smartphones and it quickly results in annoying user experience resulting in them closing the website and the website losing its user base.
@@ -73,16 +78,25 @@ virtualScroller.stop()
 The main `state` properties are:
 
 * `items: any[]` — The list of items (can be updated via [`.setItems()`](#dynamically-loaded-lists)).
+
 * `firstShownItemIndex: number` — The index of the first item that should be rendered.
+
 * `lastShownItemIndex: number` — The index of the last item that should be rendered.
+
 * `beforeItemsHeight: number` — The `padding-top` which should be applied to the "container" element: it emulates all items before `firstShownItemIndex` as if they were rendered.
+
 * `afterItemsHeight: number` — The `padding-bottom` which should be applied to the "container" element: it emulates all items after `lastShownItemIndex` as if they were rendered.
 
 The following `state` properties are only used for saving and restoring `VirtualScroller` `state`, and normally shouldn't be accessed:
 
 * `itemStates: object?[]` — A list of item states.
+
 * `itemHeights: number?[]` — A list of measured item heights. If an item's height hasn't been measured yet then it's height is `undefined`.
-* `itemSpacing: number?` — Inter-item spacing. Is `undefined` until at least two items have been rendered.
+
+* `verticalSpacing: number?` — Vertical item spacing. Is `undefined` until at least two rows of items have been rendered.
+
+* `columnsCount: number?` — The count of items in a row. Is `undefined` if no `getColumnsCount()` parameter has been passed to `VirtualScroller`.
+
 * `scrollY: number?` — The current page scroll position (page vertical scroll offset). If initial `state` is passed to `VirtualScroller`, then the page will be scrolled to `state.scrollY` on `.render()`.
 
 ### Example
@@ -206,6 +220,8 @@ Available `VirtualScroller` `options`:
 * `shouldUpdateLayoutOnWindowResize(event: Event): boolean`  — By default, `VirtualScroller` always performs a re-layout on window `resize` event. The `resize` event is not only triggered when a user resizes the window itself: it's also [triggered](https://developer.mozilla.org/en-US/docs/Web/API/Window/fullScreen#Notes) when the user switches into (and out of) fullscreen mode. By default, `VirtualScroller` performs a re-layout on all window `resize` events, except for ones that don't result in actual window width or height change, and except for cases when, for example, a video somewhere in a list is maximized into fullscreen. There still can be other "custom" cases: for example, when an application uses a custom "slideshow" component (rendered outside of the list DOM element) that goes into fullscreen when a user clicks a picture or a video in the list. For such "custom" cases `shouldUpdateLayoutOnWindowResize(event)` option / property can be specified.
 
 * `measureItemsBatchSize: number` — (advanced) (experimental) Imagine a situation when a user doesn't gradually scroll through a huge list but instead hits an End key to scroll right to the end of such huge list: this will result in the whole list rendering at once (because an item needs to know the height of all previous items in order to render at correct scroll position) which could be CPU-intensive in some cases (for example, when using React due to its slow performance when initially rendering components on a page). To prevent freezing the UI in the process, a `measureItemsBatchSize` could be configured, that would limit the maximum count of items that're being rendered in a single pass for measuring their height: if `measureItemsBatchSize` is configured, then such items will be rendered and measured in batches. By default it's set to `100`. This is an experimental feature and could be removed in future non-major versions of this library. For example, the future React 17 will come with [Fiber](https://www.youtube.com/watch?v=ZCuYPiUIONs) rendering engine that is said to resolve such freezing issues internally. In that case, introducing this option may be reconsidered.
+
+* `getColumnsCount(container: ScrollableContainer): number` — (advanced) Provides support for ["grid"](#grid-layout) layout. The `container` argument provides a `.getWidth()` method.
 
 `VirtualScroller` class instance provides methods:
 
@@ -360,6 +376,7 @@ React `<VirtualScroller/>` component receives properties:
 * `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.setItems()` method.
 * `preserveScrollPositionOfTheBottomOfTheListOnMount: boolean` — (optional) The `preserveScrollPositionOfTheBottomOfTheListOnMount` option of `VirtualScroller`.
 * `measureItemsBatchSize: number` — (optional) The `measureItemsBatchSize` option of `VirtualScroller`.
+* `getColumnsCount(): number` — (optional) The `getColumnsCount()` option of `VirtualScroller`.
 <!-- * `onMount()` — (optional) Is called after `<VirtualScroller/>` component has been mounted and before `VirtualScroller.onMount()` is called. -->
 * `onItemInitialRender(item)` — (optional) The `onItemInitialRender` option of `VirtualScroller` class.
 <!-- * `shouldUpdateLayoutOnWindowResize(event)`  — (optional) The `shouldUpdateLayoutOnWindowResize` option of `VirtualScroller` class. -->
@@ -423,6 +440,42 @@ Another example. Suppose a user navigates to a page where they can filter a huge
 When new items are appended to the list, the page scroll position remains unchanged. Same's for prepending new items to the list: the scroll position of the page stays the same, resulting in the list "jumping" down when new items get prepended. To fix that, pass `preserveScrollPositionOnPrependItems: true` option to the `VirtualScroller`. When using `virtual-scroller/dom` component, pass that option when creating a new instance, and when using `virtual-scroller/react` React component, pass `preserveScrollPositionOnPrependItems` property.
 
 For implementing "infinite scroll" lists, a developer could also use [`on-scroll-to`](https://gitlab.com/catamphetamine/on-scroll-to) component.
+
+## Grid Layout
+
+To display items using a "grid" layout (i.e. multiple columns in a row), supply a `getColumnsCount(container: ScrollableContainer): number` parameter to `VirtualScroller`.
+
+For example, to show a three-column layout on screens wider than `1280px`:
+
+```js
+function getColumnsCount(container) {
+  // The `container` argument provides a `.getWidth()` method.
+  if (container.getWidth() > 1280) {
+    return 3
+  }
+  return 1
+}
+
+<VirtualScroller getColumnsCount={getColumnsCount} .../>
+```
+
+```css
+.container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.item {
+  flex-basis: 33.333333%;
+  box-sizing: border-box;
+}
+
+@media screen and (max-width: 1280px) {
+  .item {
+    flex-basis: 100%;
+  }
+}
+```
 
 ## Gotchas
 
@@ -528,7 +581,7 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 
 ## GitHub
 
-On March 9th, 2020, GitHub, Inc. silently [banned](https://medium.com/@catamphetamine/how-github-blocked-me-and-all-my-libraries-c32c61f061d3) my account (erasing all my repos, issues and comments) without any notice or explanation. Because of that, all source codes had to be promptly moved to [GitLab](https://gitlab.com/catamphetamine/virtual-scroller). GitHub repo is now deprecated, and the latest source codes can be found on GitLab, which is also the place to report any issues.
+On March 9th, 2020, GitHub, Inc. silently [banned](https://medium.com/@catamphetamine/how-github-blocked-me-and-all-my-libraries-c32c61f061d3) my account (erasing all my repos, issues and comments) without any notice or explanation. Because of that, all source codes had to be promptly moved to GitLab. The [GitHub repo](https://github.com/catamphetamine/virtual-scroller) is now only used as a backup (you can star the repo there too), and the primary repo is now the [GitLab one](https://gitlab.com/catamphetamine/virtual-scroller). Issues can be reported in any repo.
 
 ## License
 

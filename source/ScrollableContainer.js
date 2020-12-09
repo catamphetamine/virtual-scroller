@@ -28,6 +28,16 @@ export default class ScrollableContainer {
 		return this.element.offsetHeight
 	}
 
+	/**
+	 * Returns the height of the content in a scrollable container.
+	 * For example, a scrollable container can have a height of 500px,
+	 * but the content in it could have a height of 5000px,
+	 * so that a vertical scrollbar is rendered, and only one-tenth
+	 * of all the items is shown at any given moment.
+	 * This function is currently only used when using the
+	 * `preserveScrollPositionOfTheBottomOfTheListOnMount` feature.
+	 * @return {number}
+	 */
 	getContentHeight() {
 		return this.element.scrollHeight
 	}

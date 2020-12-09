@@ -35,6 +35,7 @@ export default class ReactVirtualScroller extends React.Component {
 		// `getScrollableContainer` property is deprecated.
 		// Use `scrollableContainer` instead.
 		getScrollableContainer: PropTypes.func,
+		getColumnsCount: PropTypes.func,
 		className: PropTypes.string,
 		onMount: PropTypes.func,
 		onItemInitialRender: PropTypes.func,
@@ -50,7 +51,8 @@ export default class ReactVirtualScroller extends React.Component {
 			beforeItemsHeight: PropTypes.number.isRequired,
 			afterItemsHeight: PropTypes.number.isRequired,
 			itemHeights: PropTypes.arrayOf(PropTypes.number).isRequired,
-			itemSpacing: PropTypes.number
+			columnsCount: PropTypes.number,
+			verticalSpacing: PropTypes.number
 		})
 	}
 
@@ -112,6 +114,7 @@ export default class ReactVirtualScroller extends React.Component {
 			// `getScrollableContainer` property is deprecated.
 			// Use `scrollableContainer` instead.
 			getScrollableContainer,
+			getColumnsCount,
 			bypass,
 			// bypassBatchSize
 		} = this.props
@@ -136,6 +139,7 @@ export default class ReactVirtualScroller extends React.Component {
 				// `getScrollableContainer` property is deprecated.
 				// Use `scrollableContainer` instead.
 				getScrollableContainer,
+				getColumnsCount,
 				tbody: AsComponent === 'tbody',
 				state: initialState,
 				customState: initialCustomState,
@@ -168,6 +172,8 @@ export default class ReactVirtualScroller extends React.Component {
 	// `onItemInitialRender` property changes at subsequent renders.
 	// For example, if it's passed as an "anonymous" function:
 	// `<VirtualScroller onItemInitialRender={() => ...}/>`.
+	// In such cases, if this "proxy" workaround hasn't been implemented,
+	// the `VirtualScroller` instance would have the reference to the old function.
 	onItemInitialRender = (...args) => {
 		const { onItemInitialRender } = this.props
 		if (onItemInitialRender) {
@@ -179,6 +185,8 @@ export default class ReactVirtualScroller extends React.Component {
 	// `onItemFirstRender` property changes at subsequent renders.
 	// For example, if it's passed as an "anonymous" function:
 	// `<VirtualScroller onItemFirstRender={() => ...}/>`.
+	// In such cases, if this "proxy" workaround hasn't been implemented,
+	// the `VirtualScroller` instance would have the reference to the old function.
 	// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 	onItemFirstRender = (...args) => {
 		const { onItemFirstRender } = this.props
@@ -191,6 +199,8 @@ export default class ReactVirtualScroller extends React.Component {
 	// `shouldUpdateLayoutOnWindowResize` property changes at subsequent renders.
 	// For example, if it's passed as an "anonymous" function:
 	// `<VirtualScroller shouldUpdateLayoutOnWindowResize={() => ...}/>`.
+	// In such cases, if this "proxy" workaround hasn't been implemented,
+	// the `VirtualScroller` instance would have the reference to the old function.
 	shouldUpdateLayoutOnWindowResize = (...args) => {
 		const { shouldUpdateLayoutOnWindowResize } = this.props
 		if (shouldUpdateLayoutOnWindowResize) {
@@ -369,6 +379,7 @@ export default class ReactVirtualScroller extends React.Component {
 			// `getScrollableContainer` property is deprecated.
 			// Use `scrollableContainer` instead.
 			getScrollableContainer,
+			getColumnsCount,
 			initialState,
 			initialCustomState,
 			onStateChange,
@@ -434,21 +445,30 @@ export default class ReactVirtualScroller extends React.Component {
 		}
 		this.previousItemsProperty = this.props.items
 		if (this.itemsPropertyWasChanged && newItems !== previousItems) {
-			const {
-				prependedItemsCount,
-				appendedItemsCount
-			} = getItemsDiff(previousItems, newItems)
-			if (prependedItemsCount === 0 && appendedItemsCount > 0) {
+			const itemsDiff = getItemsDiff(previousItems, newItems)
+			if (itemsDiff && itemsDiff.prependedItemsCount === 0 && itemsDiff.appendedItemsCount > 0) {
 				// If it's just items that have been appended
 				// then no need to re-generate the prefix
 				// and to fix scroll position and to clear caches.
 			} else {
+				// If the items update was incremental, then it's possible
+				// that some items were prepended, and so the scroll Y position
+				// should be restored after rendering those new items
+				// in order for the currently shown items to stay
+				// on the same position on screen.
+				// (only if explicitly opted into using this feature)
+				//
+				// If the items update wasn't incremental
+				// then there's no point in restoring scroll position.
+				//
 				// `preserveScrollPosition` property name is deprecated,
 				// use `preserveScrollPositionOnPrependItems` instead.
-				if (preserveScrollPositionOnPrependItems || preserveScrollPosition) {
+				//
+				if (itemsDiff && (preserveScrollPositionOnPrependItems || preserveScrollPosition)) {
 					this.virtualScroller.captureScroll(
 						previousItems,
-						newItems
+						newItems,
+						itemsDiff.prependedItemsCount
 					)
 				}
 				// Reset the unique `key` prefix for item component keys.

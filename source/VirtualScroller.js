@@ -51,6 +51,7 @@ export default class VirtualScroller {
 			// `getScrollableContainer` option is deprecated.
 			// Use `scrollableContainer` instead.
 			getScrollableContainer,
+			getColumnsCount,
 			tbody,
 			// bypassBatchSize
 		} = options
@@ -133,6 +134,7 @@ export default class VirtualScroller {
 
 		this._shouldUpdateLayoutOnWindowResize = shouldUpdateLayoutOnWindowResize
 		this.measureItemsBatchSize = measureItemsBatchSize === undefined ? 50 : measureItemsBatchSize
+		this._getColumnsCount = getColumnsCount
 
 		if (onItemInitialRender) {
 			this.onItemFirstRender = onItemInitialRender
@@ -243,10 +245,15 @@ export default class VirtualScroller {
 		let lastShownItemIndex
 		const items = this.initialItems
 		const itemsCount = items.length
+		const columnsCount = this._getColumnsCount ? this._getColumnsCount(this.scrollableContainer) : undefined
 		// If there're no items then `firstShownItemIndex` stays `undefined`.
 		if (itemsCount > 0) {
 			firstShownItemIndex = 0
-			lastShownItemIndex = this.getLastShownItemIndex(firstShownItemIndex, itemsCount)
+			lastShownItemIndex = this.getLastShownItemIndex(
+				firstShownItemIndex,
+				itemsCount,
+				columnsCount || 1
+			)
 		}
 		if (this.preserveScrollPositionOfTheBottomOfTheListOnMount) {
 			firstShownItemIndex = 0
@@ -262,7 +269,8 @@ export default class VirtualScroller {
 		)
 		return {
 			itemHeights: new Array(itemsCount),
-			itemSpacing: undefined,
+			columnsCount,
+			verticalSpacing: undefined,
 			beforeItemsHeight: 0,
 			afterItemsHeight: 0,
 			firstShownItemIndex,
@@ -280,32 +288,44 @@ export default class VirtualScroller {
 		return this.itemHeights && this.itemHeights.getAverage() || this.estimatedItemHeight || 0
 	}
 
-	getItemSpacing() {
-		return this.getState() && this.getState().itemSpacing || 0
+	getVerticalSpacing() {
+		return this.getState() && this.getState().verticalSpacing || 0
+	}
+
+	getColumnsCount() {
+		return this.getState() && this.getState().columnsCount || 1
 	}
 
 	getEstimatedItemsCount(height) {
+		return this.getEstimatedRowsCount(height) * this.getColumnsCount()
+	}
+
+	getEstimatedRowsCount(height) {
 		if (this.getEstimatedItemHeight()) {
-			return Math.ceil((height + this.getItemSpacing()) / (this.getEstimatedItemHeight() + this.getItemSpacing()))
+			return Math.ceil((height + this.getVerticalSpacing()) / (this.getEstimatedItemHeight() + this.getVerticalSpacing()))
 		} else {
 			return 1
 		}
 	}
 
-	getEstimatedItemsCountOnScreen() {
+	getEstimatedItemsCountOnScreen(columnsCount) {
+		return this.getEstimatedRowsCountOnScreen() * columnsCount
+	}
+
+	getEstimatedRowsCountOnScreen() {
 		if (this.scrollableContainer) {
-			return this.getEstimatedItemsCount(this.getMargin() * 2 + this.scrollableContainer.getHeight())
+			return this.getEstimatedRowsCount(this.getMargin() * 2 + this.scrollableContainer.getHeight())
 		} else {
 			return 1
 		}
 	}
 
-	getLastShownItemIndex(firstShownItemIndex, itemsCount) {
+	getLastShownItemIndex(firstShownItemIndex, itemsCount, columnsCount) {
 		if (this.bypass) {
 			return itemsCount - 1
 		}
 		return Math.min(
-			firstShownItemIndex + (this.getEstimatedItemsCountOnScreen() - 1),
+			firstShownItemIndex + (this.getEstimatedItemsCountOnScreen(columnsCount) - 1),
 			itemsCount - 1
 		)
 	}
@@ -429,15 +449,22 @@ export default class VirtualScroller {
 		if (this.preserveScrollPositionOfTheBottomOfTheListOnMount) {
 			// In this case, all items are shown, so there's no need to call
 			// `this.onUpdateShownItemIndexes()` after the initial render.
-			this.scrollTo(0, this.getScrollY() + (this.scrollableContainer.getHeight() - this.preserveScrollPositionOfTheBottomOfTheListOnMount.scrollableContainerContentHeight))
+			this.scrollTo(0, this.getScrollY() + (this.scrollableContainer.getContentHeight() - this.preserveScrollPositionOfTheBottomOfTheListOnMount.scrollableContainerContentHeight))
 		} else {
 			this.onUpdateShownItemIndexes({ reason: 'mount' })
 		}
 	}
 
 	onRendered() {
+		// Update item vertical spacing.
+		const { verticalSpacing } = this.getState()
+		if (verticalSpacing === undefined) {
+			this.updateVerticalSpacing()
+		}
 		// Update seen item heights.
 		this.updateItemHeights()
+		// Update `<tbody/>` `padding`.
+		// (`<tbody/>` is different in a way that it can't have `margin`, only `padding`).
 		if (this.tbody) {
 			this.updateTbodyPadding()
 		}
@@ -517,7 +544,11 @@ export default class VirtualScroller {
 				return false
 			}
 			if (this._shouldUpdateLayoutOnWindowResize) {
-				if (!this._shouldUpdateLayoutOnWindowResize(event)) {
+				// The `=== false` part is required here, because the React component
+				// passes a "proxy" `shouldUpdateLayoutOnWindowResize()` function
+				// that is always defined, but returns `undefined` in cases when
+				// the user hasn't passed an actual `shouldUpdateLayoutOnWindowResize()` parameter.
+				if (this._shouldUpdateLayoutOnWindowResize(event) === false) {
 					return false
 				}
 			}
@@ -531,8 +562,9 @@ export default class VirtualScroller {
 				return false
 			} else {
 				// Scrollable container height has changed,
-				// so recalculate shown item indexes.
-				return 'UPDATE_INDEXES'
+				// so just recalculate shown item indexes.
+				// No need to perform a re-layout from scratch.
+				return 'UPDATE_SHOWN_ITEM_INDEXES'
 			}
 		} else {
 			return 'UPDATE_LAYOUT'
@@ -551,14 +583,16 @@ export default class VirtualScroller {
 		}
 		const action = this.shouldUpdateLayoutOnScrollableContainerResize(event)
 		if (action === 'UPDATE_LAYOUT') {
-			// Reset item heights because if scrollable container's width (or height)
-			// has changed, the list width (or height) most likely also has changed,
+			// Reset item heights, because if scrollable container's width (or height)
+			// has changed, then the list width (or height) most likely also has changed,
 			// and also some CSS `@media()` rules might have been added or removed.
-			// Re-render the list entirely.
+			// So re-render the list entirely.
 			log('~ Scrollable container size changed, re-measure item heights. ~')
 			this.resized = true
-			this.setState(this.getInitialLayoutState())
-		} else if (action === 'UPDATE_INDEXES') {
+			const state = this.getInitialLayoutState()
+			log('Reset state to', state)
+			this.setState(state)
+		} else if (action === 'UPDATE_SHOWN_ITEM_INDEXES') {
 			// No need to perform a complete re-layout.
 			// Just update shown item indexes.
 			this.onUpdateShownItemIndexes({ reason: 'resize' })
@@ -602,14 +636,24 @@ export default class VirtualScroller {
 			this.preserveScrollPositionOnPrependItems = undefined
 			const { items: previousItems } = prevState
 			const { items: newItems } = newState
-			const { prependedItemsCount } = getItemsDiff(previousItems, newItems)
-			// Since some items were prepended, scroll Y position
-			// should be restored after rendering those new items.
-			this.captureScroll(
-				previousItems,
-				newItems,
-				prependedItemsCount
-			)
+			const itemsDiff = getItemsDiff(previousItems, newItems)
+			// If the items update was incremental, then it's possible
+			// that some items were prepended, and so the scroll Y position
+			// should be restored after rendering those new items
+			// in order for the currently shown items to stay
+			// on the same position on screen.
+			// (only if explicitly opted into using this feature)
+			//
+			// If the items update wasn't incremental
+			// then there's no point in restoring scroll position.
+			//
+			if (itemsDiff) {
+				this.captureScroll(
+					previousItems,
+					newItems,
+					itemsDiff.prependedItemsCount
+				)
+			}
 		}
 	}
 
@@ -648,12 +692,13 @@ export default class VirtualScroller {
 		const { items: previousItems } = prevState
 		const { items: newItems } = newState
 		if (newItems !== previousItems) {
-			const {
-				prependedItemsCount,
-				appendedItemsCount
-			} = getItemsDiff(previousItems, newItems)
-			const isIncrementalUpdate = prependedItemsCount > 0 || appendedItemsCount > 0
-			if (isIncrementalUpdate) {
+			const itemsDiff = getItemsDiff(previousItems, newItems)
+			// If it's an "incremental" update.
+			if (itemsDiff) {
+				const {
+					prependedItemsCount,
+					appendedItemsCount
+				} = itemsDiff
 				if (prependedItemsCount > 0) {
 					this.itemHeights.onPrepend(prependedItemsCount)
 					if (this.firstSeenItemIndex !== undefined) {
@@ -704,19 +749,49 @@ export default class VirtualScroller {
 		setTbodyPadding(this.getContainerElement(), beforeItemsHeight, afterItemsHeight)
 	}
 
+	updateVerticalSpacing() {
+		const container = this.getContainerElement()
+		if (container) {
+			if (container.childNodes.length > 1) {
+				let {
+					top: firstShownRowTopCoordinate,
+					height: firstShownRowHeight
+				} = container.childNodes[0].getBoundingClientRect()
+				let i = 1
+				while (i < container.childNodes.length) {
+					const {
+						top: itemTopCoordinate,
+						height: itemHeight
+					} = container.childNodes[i].getBoundingClientRect()
+					// If next row is detected.
+					if (itemTopCoordinate !== firstShownRowTopCoordinate) {
+						// Measure inter-row spacing.
+						const spacing = itemTopCoordinate - (firstShownRowTopCoordinate + firstShownRowHeight)
+						// Debugging.
+						if (isDebug()) {
+							log('Measure item vertical spacing', spacing)
+						}
+						return spacing
+					}
+					// A row height is the maximum of its item heights.
+					firstShownRowHeight = Math.max(firstShownRowHeight, itemHeight)
+					i++
+				}
+			}
+		}
+	}
+
 	updateItemHeights() {
 		const {
-			firstShownItemIndex: fromIndex,
-			lastShownItemIndex: toIndex
+			firstShownItemIndex,
+			lastShownItemIndex
 		} = this.getState()
-		const {
-			firstShownItemIndex
-		} = this.getState()
-		if (fromIndex !== undefined) {
+		if (firstShownItemIndex !== undefined) {
 			log('~ Measure item heights ~')
+			// Update all shown item heights.
 			this.itemHeights.update(
-				fromIndex,
-				toIndex,
+				firstShownItemIndex,
+				lastShownItemIndex,
 				firstShownItemIndex
 			)
 			if (isDebug()) {
@@ -763,79 +838,124 @@ export default class VirtualScroller {
 	 * @return {object} coordinates — An object of shape `{ top, bottom, height }`.
 	 */
 	getItemCoordinates(i) {
-		let top = this.getTopOffset()
-		let j = 0
-		while (j < i) {
-			top += this.getState().itemHeights[j]
-			top += this.getItemSpacing()
-			j++
+		const { itemHeights } = this.getState()
+		const columnsCount = this.getColumnsCount()
+		let rowTop = this.getTopOffset()
+		const itemRowIndex = Math.floor(i / columnsCount)
+		let rowIndex = 0
+		while (rowIndex < itemRowIndex) {
+			let rowHeight = 0
+			let columnIndex = 0
+			while (columnIndex < columnsCount) {
+				rowHeight = Math.max(rowHeight, itemHeights[rowIndex * columnsCount + columnIndex])
+				columnIndex++
+			}
+			rowTop += rowHeight
+			rowTop += this.getVerticalSpacing()
+			rowIndex++
 		}
 		return {
-			top,
-			bottom: top + this.getState().itemHeights[i],
-			height: this.getState().itemHeights[j]
+			top: rowTop,
+			bottom: rowTop + itemHeights[i],
+			height: itemHeights[i]
+		}
+	}
+
+	_getVisibleItemIndexes(visibleAreaTop, visibleAreaBottom, listTopOffset) {
+		let firstShownItemIndex
+		let lastShownItemIndex
+		let previousRowsHeight = 0
+		const itemsCount = this.getItemsCount()
+		const columnsCount = this.getColumnsCount()
+		const rowsCount = Math.ceil(itemsCount / columnsCount)
+		let rowIndex = 0
+		while (rowIndex < rowsCount) {
+			const hasMoreRows = itemsCount > (rowIndex + 1) * columnsCount
+			const verticalSpaceAfterCurrentRow = hasMoreRows ? this.getVerticalSpacing() : 0
+			let currentRowHeight = 0
+			let columnIndex = 0
+			let i
+			while (columnIndex < columnsCount
+				&& (i = rowIndex * columnsCount + columnIndex) < itemsCount) {
+				const itemHeight = this.getState().itemHeights[i]
+				// If an item that hasn't been shown (and measured) yet is encountered
+				// then show such item and then retry after it has been measured.
+				if (itemHeight === undefined) {
+					log(`Item index ${i} lies within the visible area or its "margins", but its height hasn't been measured yet. Mark the item as "shown", render the list, measure the item's height and redo the layout.`)
+					if (firstShownItemIndex === undefined) {
+						firstShownItemIndex = rowIndex * columnsCount
+					}
+					const heightLeft = visibleAreaBottom - (listTopOffset + previousRowsHeight)
+					lastShownItemIndex = Math.min(
+						(rowIndex + this.getEstimatedRowsCount(heightLeft)) * columnsCount - 1,
+						// Guard against index overflow.
+						itemsCount - 1
+					)
+					return {
+						firstNonMeasuredItemIndex: i,
+						firstShownItemIndex,
+						lastShownItemIndex
+					}
+				}
+				currentRowHeight = Math.max(currentRowHeight, itemHeight)
+				// If this is the first item visible
+				// then start showing items from this row.
+				if (firstShownItemIndex === undefined) {
+					if (listTopOffset + previousRowsHeight + currentRowHeight > visibleAreaTop) {
+						log('First visible row index', rowIndex)
+						firstShownItemIndex = rowIndex * columnsCount
+					}
+				}
+				// If this item is the last one visible in the viewport then exit.
+				if (listTopOffset + previousRowsHeight + currentRowHeight + verticalSpaceAfterCurrentRow > visibleAreaBottom) {
+					log('Last visible row index', rowIndex)
+					// The list height is estimated until all items have been seen,
+					// so it's possible that even when the list DOM element happens
+					// to be in the viewport in reality the list isn't visible
+					// in which case `firstShownItemIndex` will be `undefined`.
+					if (firstShownItemIndex !== undefined) {
+						lastShownItemIndex = Math.min(
+							// The index of the last item in the current row.
+							(rowIndex + 1) * columnsCount - 1,
+							// Guards against index overflow.
+							itemsCount - 1
+						)
+					}
+					return {
+						firstShownItemIndex,
+						lastShownItemIndex
+					}
+				}
+				columnIndex++
+			}
+			previousRowsHeight += currentRowHeight
+			// If there're more rows below the current row, then add vertical spacing.
+			previousRowsHeight += verticalSpaceAfterCurrentRow
+			rowIndex++
+		}
+		// If there're no more items then the last item is the last one to show.
+		if (firstShownItemIndex !== undefined && lastShownItemIndex === undefined) {
+			lastShownItemIndex = itemsCount - 1
+			log('Last item index (is fully visible)', lastShownItemIndex)
+		}
+		return {
+			firstShownItemIndex,
+			lastShownItemIndex
 		}
 	}
 
 	// Finds the items which are displayed in the viewport.
 	getVisibleItemIndexes(visibleAreaTop, visibleAreaBottom, listTopOffset) {
-		let firstShownItemIndex
-		let lastShownItemIndex
-		let itemsHeight = 0
-		let firstNonMeasuredItemIndex
-		let redoLayoutAfterRender = false
-		let i = 0
-		while (i < this.getItemsCount()) {
-			const height = this.itemHeights.get(i)
-			// If an item that hasn't been shown (and measured) yet is encountered
-			// then show such item and then retry after it has been measured.
-			if (height === undefined) {
-				log(`Item index ${i} lies within the visible area or its "margins", but its height hasn't been measured yet. Mark the item as "shown", render the list, measure the item's height and redo the layout.`)
-				firstNonMeasuredItemIndex = i
-				if (firstShownItemIndex === undefined) {
-					firstShownItemIndex = i
-				}
-				const heightLeft = visibleAreaBottom - (listTopOffset + itemsHeight)
-				lastShownItemIndex = Math.min(
-					i + (this.getEstimatedItemsCount(heightLeft) - 1),
-					// Guard against index overflow.
-					this.getItemsCount() - 1
-				)
-				redoLayoutAfterRender = true
-				break
-			}
-			itemsHeight += height
-			// If this is the first item visible
-			// then start showing items from it.
-			if (firstShownItemIndex === undefined) {
-				if (listTopOffset + itemsHeight > visibleAreaTop) {
-					log('First visible item index', i)
-					firstShownItemIndex = i
-				}
-			}
-			// Items can have spacing.
-			if (i < this.getItemsCount() - 1) {
-				itemsHeight += this.getItemSpacing()
-			}
-			// If this item is the last one visible in the viewport then exit.
-			if (listTopOffset + itemsHeight > visibleAreaBottom) {
-				log('Last visible item index', i)
-				// The list height is estimated until all items have been seen,
-				// so it's possible that even when the list DOM element happens
-				// to be in the viewport in reality the list isn't visible
-				// in which case `firstShownItemIndex` will be `undefined`.
-				if (firstShownItemIndex !== undefined) {
-					lastShownItemIndex = i
-				}
-				break
-			}
-			i++
-		}
-		// If there're no more items then the last item is the last one to show.
-		if (firstShownItemIndex !== undefined && lastShownItemIndex === undefined) {
-			lastShownItemIndex = this.getItemsCount() - 1
-			log('Last item index (is fully visible)', lastShownItemIndex)
-		}
+		let {
+			firstNonMeasuredItemIndex,
+			firstShownItemIndex,
+			lastShownItemIndex
+		} = this._getVisibleItemIndexes(
+			visibleAreaTop,
+			visibleAreaBottom,
+			listTopOffset
+		)
+		let redoLayoutAfterRender = firstNonMeasuredItemIndex !== undefined
 		// If scroll position is scheduled to be restored after render
 		// then the anchor item must be rendered, and all the prepended
 		// items before it, all in a single pass. This way, all the
@@ -864,7 +984,14 @@ export default class VirtualScroller {
 		// and it's not a `preserveScrollPositionOnPrependItems` case,
 		// then limit the amount of such items being measured in a single pass.
 		if (redoLayoutAfterRender && this.measureItemsBatchSize) {
-			lastShownItemIndex = Math.min(lastShownItemIndex, firstNonMeasuredItemIndex + this.measureItemsBatchSize - 1)
+			const columnsCount = this.getColumnsCount()
+			const maxAllowedLastShownItemIndex = firstNonMeasuredItemIndex + this.measureItemsBatchSize - 1
+			lastShownItemIndex = Math.min(
+				// Also guards against index overflow.
+				lastShownItemIndex,
+				// The index of the last item in the row.
+				Math.ceil(maxAllowedLastShownItemIndex / columnsCount) * columnsCount - 1
+			)
 		}
 		return {
 			firstShownItemIndex,
@@ -877,7 +1004,7 @@ export default class VirtualScroller {
 		return {
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 0,
-			redoLayoutAfterRender: this.itemHeights.get(0) === undefined
+			redoLayoutAfterRender: this.getState().itemHeights[0] === undefined
 		}
 	}
 
@@ -904,16 +1031,29 @@ export default class VirtualScroller {
 	 * Measures "before" items height.
 	 * @param  {number} firstShownItemIndex — New first shown item index.
 	 * @param  {number} lastShownItemIndex — New last shown item index.
+	 * @param  {number[]} itemHeights — All known item heights.
 	 * @return {number}
 	 */
-	getBeforeItemsHeight(firstShownItemIndex, lastShownItemIndex) {
+	getBeforeItemsHeight(firstShownItemIndex, lastShownItemIndex, itemHeights) {
+		const columnsCount = this.getColumnsCount()
+		const firstShownRowIndex = Math.floor(firstShownItemIndex / columnsCount)
 		let beforeItemsHeight = 0
 		// Add all "before" items height.
-		let i = 0
-		while (i < firstShownItemIndex) {
-			beforeItemsHeight += (this.itemHeights.get(i) || this.itemHeights.getAverage())
-			beforeItemsHeight += this.getItemSpacing()
-			i++
+		let rowIndex = 0
+		while (rowIndex < firstShownRowIndex) {
+			let rowHeight = 0
+			let columnIndex = 0
+			while (columnIndex < columnsCount) {
+				rowHeight = Math.max(
+					rowHeight,
+					itemHeights[rowIndex * columnsCount + columnIndex]
+						|| this.itemHeights.getAverage()
+				)
+				columnIndex++
+			}
+			beforeItemsHeight += rowHeight
+			beforeItemsHeight += this.getVerticalSpacing()
+			rowIndex++
 		}
 		return beforeItemsHeight
 	}
@@ -922,16 +1062,32 @@ export default class VirtualScroller {
 	 * Measures "after" items height.
 	 * @param  {number} firstShownItemIndex — New first shown item index.
 	 * @param  {number} lastShownItemIndex — New last shown item index.
+	 * @param  {number[]} itemHeights — All known item heights.
 	 * @return {number}
 	 */
-	getAfterItemsHeight(firstShownItemIndex, lastShownItemIndex) {
+	getAfterItemsHeight(firstShownItemIndex, lastShownItemIndex, itemHeights) {
+		const itemsCount = this.getItemsCount()
+		const columnsCount = this.getColumnsCount()
+		const rowsCount = Math.ceil(itemsCount / columnsCount)
+		const lastShownRowIndex = Math.floor(lastShownItemIndex / columnsCount)
 		let afterItemsHeight = 0
-		let i = lastShownItemIndex + 1
-		// Add all "after" items height.
-		while (i < this.getItemsCount()) {
-			afterItemsHeight += this.getItemSpacing()
-			afterItemsHeight += (this.itemHeights.get(i) || this.itemHeights.getAverage())
-			i++
+		let rowIndex = lastShownRowIndex + 1
+		while (rowIndex < rowsCount) {
+			let rowHeight = 0
+			let columnIndex = 0
+			let i
+			while (columnIndex < columnsCount
+				&& (i = rowIndex * columnsCount + columnIndex) < itemsCount) {
+				rowHeight = Math.max(
+					rowHeight,
+					itemHeights[i] || this.itemHeights.getAverage()
+				)
+				columnIndex++
+			}
+			// Add all "after" items height.
+			afterItemsHeight += this.getVerticalSpacing()
+			afterItemsHeight += rowHeight
+			rowIndex++
 		}
 		return afterItemsHeight
 	}
@@ -1108,10 +1264,19 @@ export default class VirtualScroller {
 			lastShownItemIndex,
 			redoLayoutAfterRender
 		} = this.getShownItemIndexes()
+		const { itemHeights } = this.getState()
 		// Measure "before" items height.
-		const beforeItemsHeight = this.getBeforeItemsHeight(firstShownItemIndex, lastShownItemIndex)
+		const beforeItemsHeight = this.getBeforeItemsHeight(
+			firstShownItemIndex,
+			lastShownItemIndex,
+			itemHeights
+		)
 		// Measure "after" items height.
-		const afterItemsHeight = this.getAfterItemsHeight(firstShownItemIndex, lastShownItemIndex)
+		const afterItemsHeight = this.getAfterItemsHeight(
+			firstShownItemIndex,
+			lastShownItemIndex,
+			itemHeights
+		)
 		// Update the heights of items to be hidden on next render.
 		// For example, a user could click a "Show more" button,
 		// or an "Expand YouTube video" button, which would result
@@ -1120,6 +1285,9 @@ export default class VirtualScroller {
 		this.updateWillBeHiddenItemHeightsAndState(firstShownItemIndex, lastShownItemIndex)
 		// Debugging.
 		log('~ Layout results ' + (this.bypass ? '(bypass) ' : '') + '~')
+		if (this._getColumnsCount) {
+			log('Columns count', this.getColumnsCount())
+		}
 		log('First shown item index', firstShownItemIndex)
 		log('Last shown item index', lastShownItemIndex)
 		log('Before items height', beforeItemsHeight)
@@ -1197,22 +1365,20 @@ export default class VirtualScroller {
 		}
 	}
 
-	captureScroll(previousItems, nextItems, firstPreviousItemIndex) {
+	/**
+	 * `<ReactVirtualScroller/>` calls this method.
+	 * @param  {any[]} previousItems
+	 * @param  {any[]} nextItems
+	 * @param  {number} prependedItemsCount
+	 */
+	captureScroll(previousItems, nextItems, prependedItemsCount) {
 		// If there were no items in the list
 		// then there's no point in restoring scroll position.
 		if (previousItems.length === 0) {
 			return
 		}
-		if (firstPreviousItemIndex === undefined) {
-			firstPreviousItemIndex = nextItems.indexOf(previousItems[0])
-		}
-		// If the items update wasn't incremental
-		// then there's no point in restoring scroll position.
-		if (firstPreviousItemIndex < 0) {
-			return
-		}
 		// If no items were prepended then no need to restore scroll position.
-		if (firstPreviousItemIndex === 0) {
+		if (prependedItemsCount === 0) {
 			return
 		}
 		// The first item DOM Element must be rendered in order to get its top position.
@@ -1236,7 +1402,7 @@ export default class VirtualScroller {
 		this.restoreScrollAfterPrepend = {
 			previousItems,
 			nextItems,
-			index: firstPreviousItemIndex,
+			index: prependedItemsCount,
 			visibleAreaTop: this.getItemElement(0).getBoundingClientRect().top
 		}
 	}
@@ -1370,20 +1536,20 @@ export default class VirtualScroller {
 			beforeItemsHeight,
 			afterItemsHeight,
 			itemStates,
-			itemHeights,
-			itemSpacing
+			itemHeights
 		} = this.getState()
 		let {
 			firstSeenItemIndex,
 			lastSeenItemIndex
 		} = this
 		log('~ Update items ~')
-		const {
-			prependedItemsCount,
-			appendedItemsCount
-		} = getItemsDiff(previousItems, newItems)
-		const isIncrementalUpdate = prependedItemsCount > 0 || appendedItemsCount > 0
-		if (isIncrementalUpdate) {
+		const itemsDiff = getItemsDiff(previousItems, newItems)
+		// If it's an "incremental" update.
+		if (itemsDiff) {
+			const {
+				prependedItemsCount,
+				appendedItemsCount
+			} = itemsDiff
 			if (prependedItemsCount > 0) {
 				log('Prepend', prependedItemsCount, 'items')
 				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
@@ -1404,8 +1570,33 @@ export default class VirtualScroller {
 				firstSeenItemIndex += prependedItemsCount
 				lastSeenItemIndex += prependedItemsCount
 			}
-			beforeItemsHeight += this.itemHeights.getAverage() * prependedItemsCount
-			afterItemsHeight += this.itemHeights.getAverage() * appendedItemsCount
+			const verticalSpacing = this.getVerticalSpacing()
+			const columnsCount = this.getColumnsCount()
+			if (prependedItemsCount % columnsCount === 0) {
+				// If the layout stays the same, then simply increase
+				// the top and bottom margins proportionally to the amount
+				// of the items added.
+				const prependedRowsCount = prependedItemsCount / columnsCount
+				const appendedRowsCount = Math.ceil(appendedItemsCount / columnsCount)
+				beforeItemsHeight += prependedRowsCount * (this.itemHeights.getAverage() + this.getVerticalSpacing())
+				afterItemsHeight += appendedRowsCount * (this.getVerticalSpacing() + this.itemHeights.getAverage())
+			} else {
+				// Rows will be rebalanced as a result of prepending the items,
+				// and the row heights can change as a result, so recalculate
+				// `beforeItemsHeight` and `afterItemsHeight` from scratch.
+				// `this.itemHeights[]` and `firstShownItemIndex`/`lastShownItemIndex`
+				// have already been updated at this point.
+				beforeItemsHeight = this.getBeforeItemsHeight(
+					firstShownItemIndex,
+					lastShownItemIndex,
+					itemHeights
+				)
+				afterItemsHeight = this.getAfterItemsHeight(
+					firstShownItemIndex,
+					lastShownItemIndex,
+					itemHeights
+				)
+			}
 		} else {
 			log('Items have changed, and it\'s not a simple append and/or prepend: rerender the entire list from scratch.')
 			log('Previous items', previousItems)
@@ -1419,7 +1610,11 @@ export default class VirtualScroller {
 				lastShownItemIndex = undefined
 			} else {
 				firstShownItemIndex = 0
-				lastShownItemIndex = this.getLastShownItemIndex(firstShownItemIndex, newItems.length)
+				lastShownItemIndex = this.getLastShownItemIndex(
+					firstShownItemIndex,
+					newItems.length,
+					this.getColumnsCount()
+				)
 			}
 			beforeItemsHeight = 0
 			afterItemsHeight = 0
@@ -1489,14 +1684,14 @@ export default class VirtualScroller {
 	// 		let i = this.getState().firstShownItemIndex
 	// 		while (i <= this.getState().lastShownItemIndex && i < firstShownItemIndex) {
 	// 			beforeItemsHeight += (this.itemHeights.get(i) || this.itemHeights.getAverage())
-	// 			beforeItemsHeight += this.getItemSpacing()
+	// 			beforeItemsHeight += this.getVerticalSpacing()
 	// 			i++
 	// 		}
 	// 		// Subtract all "before" will-be-shown items' height.
 	// 		i = firstShownItemIndex
 	// 		while (i <= lastShownItemIndex && i < this.getState().firstShownItemIndex) {
 	// 			beforeItemsHeight -= (this.itemHeights.get(i) || this.itemHeights.getAverage())
-	// 			beforeItemsHeight -= this.getItemSpacing()
+	// 			beforeItemsHeight -= this.getVerticalSpacing()
 	// 			i++
 	// 		}
 	// 		return beforeItemsHeight
@@ -1529,14 +1724,14 @@ export default class VirtualScroller {
 	// 		let i = this.getState().lastShownItemIndex
 	// 		while (i >= this.getState().firstShownItemIndex && i > lastShownItemIndex) {
 	// 			afterItemsHeight += (this.itemHeights.get(i) || this.itemHeights.getAverage())
-	// 			afterItemsHeight += this.getItemSpacing()
+	// 			afterItemsHeight += this.getVerticalSpacing()
 	// 			i--
 	// 		}
 	// 		// Subtract all "after" will-be-shown items' height.
 	// 		i = lastShownItemIndex
 	// 		while (i >= firstShownItemIndex && i > this.getState().lastShownItemIndex) {
 	// 			afterItemsHeight -= (this.itemHeights.get(i) || this.itemHeights.getAverage())
-	// 			afterItemsHeight -= this.getItemSpacing()
+	// 			afterItemsHeight -= this.getVerticalSpacing()
 	// 			i--
 	// 		}
 	// 		return afterItemsHeight
@@ -1589,6 +1784,12 @@ function getRemainderRest(n, divider) {
 	return 0
 }
 
+/**
+ * Checks whether it's an "incremental" items update, and returns the "diff".
+ * @param  {any[]} previousItems
+ * @param  {any[]} newItems
+ * @return {object} [diff]
+ */
 export function getItemsDiff(previousItems, newItems) {
 	let firstPreviousItemIndex = -1
 	let lastPreviousItemIndex = -1
@@ -1606,10 +1807,6 @@ export function getItemsDiff(previousItems, newItems) {
 			prependedItemsCount: firstPreviousItemIndex,
 			appendedItemsCount: newItems.length - (lastPreviousItemIndex + 1)
 		}
-	}
-	return {
-		prependedItemsCount: -1,
-		appendedItemsCount: -1
 	}
 }
 

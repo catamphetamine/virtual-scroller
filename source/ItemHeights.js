@@ -51,12 +51,12 @@ export default class ItemHeights {
 
 	// Seems to be no longer used.
 	// getItemHeight(i, firstShownItemIndex) {
-	// 	if (this.get(i)) {
-	// 		return this.get(i)
+	// 	if (this._get(i)) {
+	// 		return this._get(i)
 	// 	}
 	// 	const itemHeight = this._getItemHeight(i, firstShownItemIndex)
 	// 	if (itemHeight) {
-	// 		this.set(i, itemHeight)
+	// 		this._set(i, itemHeight)
 	// 		return itemHeight
 	// 	}
 	// 	return this.getAverage()
@@ -74,24 +74,6 @@ export default class ItemHeights {
 		}
 	}
 
-	getItemSpacing() {
-		const container = this.getContainerElement()
-		if (container) {
-			if (container.childNodes.length > 1) {
-				const firstItem = container.childNodes[0]
-				const secondItem = container.childNodes[1]
-				const firstItemRect = firstItem.getBoundingClientRect()
-				const secondItemRect = secondItem.getBoundingClientRect()
-				const spacing = secondItemRect.top - (firstItemRect.top + firstItemRect.height)
-				// Debugging.
-				if (window.VirtualScrollerDebug) {
-					log('Measure item spacing', spacing)
-				}
-				return spacing
-			}
-		}
-	}
-
 	/**
 	 * Updates item heights and item spacing.
 	 * @param  {number} fromIndex
@@ -99,9 +81,6 @@ export default class ItemHeights {
 	 * @param  {number} firstShownItemIndex
 	 */
 	update(fromIndex, toIndex, firstShownItemIndex) {
-		if (this.getState().itemSpacing === undefined) {
-			this.getState().itemSpacing = this.getItemSpacing()
-		}
 		// Reset `this.measuredItemsHeight` if it's not a continuous scroll.
 		if (this.firstMeasuredItemIndex !== undefined) {
 			if (fromIndex > this.lastMeasuredItemIndex + 1 || toIndex < this.firstMeasuredItemIndex - 1) {
@@ -125,10 +104,10 @@ export default class ItemHeights {
 			// For example, a YouTube video might have been expanded
 			// and then the item is hidden and it's state is reset
 			// and when it's shown again the YouTube video is not expanded.
-			// if (this.get(i) === undefined) {
+			// if (this._get(i) === undefined) {
 				const height = this._getItemHeight(i, firstShownItemIndex)
 				if (height !== undefined) {
-					this.set(i, height)
+					this._set(i, height)
 					// Update new items height (before).
 					if (previousFirstMeasuredItemIndex === undefined || i < previousFirstMeasuredItemIndex) {
 						this.measuredItemsHeight += height
@@ -163,7 +142,7 @@ export default class ItemHeights {
 	 * @param  {number} firstShownItemIndex
 	 */
 	updateItemHeight(i, firstShownItemIndex) {
-		const previousHeight = this.get(i)
+		const previousHeight = this._get(i)
 		const height = this._getItemHeight(i, firstShownItemIndex)
 		// The items might not have rendered at all,
 		// for example, when using React, because
@@ -174,7 +153,7 @@ export default class ItemHeights {
 		if (previousHeight === undefined || height === undefined) {
 			return
 		}
-		this.set(i, height)
+		this._set(i, height)
 		this.measuredItemsHeight += height - previousHeight
 	}
 
@@ -225,11 +204,11 @@ export default class ItemHeights {
 		return 0
 	}
 
-	get(i) {
+	_get(i) {
 		return this.getState().itemHeights[i]
 	}
 
-	set(i, height) {
+	_set(i, height) {
 		this.getState().itemHeights[i] = height
 	}
 

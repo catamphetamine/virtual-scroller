@@ -1,5 +1,19 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.6.1 / 07.12.2020
+==================
+
+* Fixed `VirtualScroller` re-rendering itself from scratch when calling `.setItems()` with no new items.
+
+1.6.0 / 05.12.2020
+==================
+
+* Added support for [multiple columns](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/6).
+
+* Fixed `shouldUpdateLayoutOnWindowResize()` bug when the `VirtualScroller` didn't rerender on window resize.
+
+* Fixed `preserveScrollPositionOfTheBottomOfTheListOnMount` bug when it incorrectly calculated the new scroll position.
+
 1.5.1 / 13.09.2020
 ==================
 
