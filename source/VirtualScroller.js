@@ -457,9 +457,15 @@ export default class VirtualScroller {
 
 	onRendered() {
 		// Update item vertical spacing.
-		const { verticalSpacing } = this.getState()
-		if (verticalSpacing === undefined) {
-			this.updateVerticalSpacing()
+		if (this.getState().verticalSpacing === undefined) {
+			log('~ Measure item vertical spacing ~')
+			const verticalSpacing = this.measureVerticalSpacing()
+			if (verticalSpacing === undefined) {
+				log('Not enough items rendered')
+			} else {
+				log('Item vertical spacing', verticalSpacing)
+				this.setState({ verticalSpacing })
+			}
 		}
 		// Update seen item heights.
 		this.updateItemHeights()
@@ -749,7 +755,7 @@ export default class VirtualScroller {
 		setTbodyPadding(this.getContainerElement(), beforeItemsHeight, afterItemsHeight)
 	}
 
-	updateVerticalSpacing() {
+	measureVerticalSpacing() {
 		const container = this.getContainerElement()
 		if (container) {
 			if (container.childNodes.length > 1) {
@@ -766,12 +772,7 @@ export default class VirtualScroller {
 					// If next row is detected.
 					if (itemTopCoordinate !== firstShownRowTopCoordinate) {
 						// Measure inter-row spacing.
-						const spacing = itemTopCoordinate - (firstShownRowTopCoordinate + firstShownRowHeight)
-						// Debugging.
-						if (isDebug()) {
-							log('Measure item vertical spacing', spacing)
-						}
-						return spacing
+						return itemTopCoordinate - (firstShownRowTopCoordinate + firstShownRowHeight)
 					}
 					// A row height is the maximum of its item heights.
 					firstShownRowHeight = Math.max(firstShownRowHeight, itemHeight)
