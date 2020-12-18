@@ -52,6 +52,7 @@ export default class VirtualScroller {
 			// Use `scrollableContainer` instead.
 			getScrollableContainer,
 			getColumnsCount,
+			getItemId,
 			tbody,
 			// bypassBatchSize
 		} = options
@@ -124,6 +125,12 @@ export default class VirtualScroller {
 		this.bypass = bypass
 		// this.bypassBatchSize = bypassBatchSize || 10
 
+		if (getItemId) {
+			this.isItemEqual = (a, b) => getItemId(a) === getItemId(b)
+		} else {
+			this.isItemEqual = (a, b) => a === b
+		}
+
 		this.initialItems = items
 		// this.margin = margin
 
@@ -171,6 +178,12 @@ export default class VirtualScroller {
 			this.getState = () => this.state
 			this.setState = (state) => {
 				const prevState = this.getState()
+				// Because this variant of `.setState()` is "synchronous" (immediate),
+				// it can be written like `...prevState`, and no state updates would be lost.
+				// But if it was "asynchronous" (not immediate), then `...prevState`
+				// wouldn't work in all cases, because it could be stale in cases
+				// when more than a single `setState()` call is made before
+				// the state actually updates, making `prevState` stale.
 				const newState = {
 					...prevState,
 					...state
@@ -642,7 +655,7 @@ export default class VirtualScroller {
 			this.preserveScrollPositionOnPrependItems = undefined
 			const { items: previousItems } = prevState
 			const { items: newItems } = newState
-			const itemsDiff = getItemsDiff(previousItems, newItems)
+			const itemsDiff = this.getItemsDiff(previousItems, newItems)
 			// If the items update was incremental, then it's possible
 			// that some items were prepended, and so the scroll Y position
 			// should be restored after rendering those new items
@@ -698,7 +711,7 @@ export default class VirtualScroller {
 		const { items: previousItems } = prevState
 		const { items: newItems } = newState
 		if (newItems !== previousItems) {
-			const itemsDiff = getItemsDiff(previousItems, newItems)
+			const itemsDiff = this.getItemsDiff(previousItems, newItems)
 			// If it's an "incremental" update.
 			if (itemsDiff) {
 				const {
@@ -1544,7 +1557,7 @@ export default class VirtualScroller {
 			lastSeenItemIndex
 		} = this
 		log('~ Update items ~')
-		const itemsDiff = getItemsDiff(previousItems, newItems)
+		const itemsDiff = this.getItemsDiff(previousItems, newItems)
 		// If it's an "incremental" update.
 		if (itemsDiff) {
 			const {
@@ -1658,6 +1671,10 @@ export default class VirtualScroller {
 			beforeItemsHeight,
 			afterItemsHeight
 		})
+	}
+
+	getItemsDiff(previousItems, newItems) {
+		return getItemsDiff(previousItems, newItems, this.isItemEqual)
 	}
 
 	getItemElement(i) {
@@ -1791,13 +1808,13 @@ function getRemainderRest(n, divider) {
  * @param  {any[]} newItems
  * @return {object} [diff]
  */
-export function getItemsDiff(previousItems, newItems) {
+function getItemsDiff(previousItems, newItems, isEqual) {
 	let firstPreviousItemIndex = -1
 	let lastPreviousItemIndex = -1
 	if (previousItems.length > 0) {
-		firstPreviousItemIndex = newItems.indexOf(previousItems[0])
+		firstPreviousItemIndex = findInArray(newItems, previousItems[0], isEqual)
 		if (firstPreviousItemIndex >= 0) {
-			if (arePreviousItemsPreserved(previousItems, newItems, firstPreviousItemIndex)) {
+			if (arePreviousItemsPreserved(previousItems, newItems, firstPreviousItemIndex, isEqual)) {
 				lastPreviousItemIndex = firstPreviousItemIndex + previousItems.length - 1
 			}
 		}
@@ -1811,17 +1828,28 @@ export function getItemsDiff(previousItems, newItems) {
 	}
 }
 
-function arePreviousItemsPreserved(previousItems, newItems, offset) {
+function arePreviousItemsPreserved(previousItems, newItems, offset, isEqual) {
 	// Check each item of the `previousItems` to determine
 	// whether it's an "incremental" items update.
 	// (an update when items are prepended or appended)
 	let i = 0
 	while (i < previousItems.length) {
 		if (newItems.length <= offset + i ||
-			newItems[offset + i] !== previousItems[i]) {
+			!isEqual(newItems[offset + i], previousItems[i])) {
 			return false
 		}
 		i++
 	}
 	return true
+}
+
+function findInArray(array, element, isEqual) {
+	let i = 0
+	while (i < array.length) {
+		if (isEqual(array[i], element)) {
+			return i
+		}
+		i++
+	}
+	return -1
 }

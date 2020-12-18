@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
-import VirtualScroller, { getItemsDiff } from './VirtualScroller'
+import VirtualScroller from './VirtualScroller'
 import { px } from './utility'
 
 // `PropTypes.elementType` is available in some version of `prop-types`.
@@ -36,6 +36,7 @@ export default class ReactVirtualScroller extends React.Component {
 		// Use `scrollableContainer` instead.
 		getScrollableContainer: PropTypes.func,
 		getColumnsCount: PropTypes.func,
+		getItemId: PropTypes.func,
 		className: PropTypes.string,
 		onMount: PropTypes.func,
 		onItemInitialRender: PropTypes.func,
@@ -84,7 +85,7 @@ export default class ReactVirtualScroller extends React.Component {
 	// List items are rendered with `key`s
 	// so that React doesn't reuse `itemComponent`s
 	// in cases when `items` are changed.
-	uniquePrefixes = []
+	itemKeyPrefixes = []
 
 	constructor(props) {
 		super(props)
@@ -92,7 +93,7 @@ export default class ReactVirtualScroller extends React.Component {
 		// `previousItems` with `newItems` inside `render()`.
 		this.previousItemsProperty = props.items
 		// Generate unique `key` prefix for list item components.
-		this.generateUniquePrefix()
+		this.generateItemKeyPrefix()
 		// Create `VirtualScroller` instance.
 		this.createVirtualScroller()
 	}
@@ -115,6 +116,7 @@ export default class ReactVirtualScroller extends React.Component {
 			// Use `scrollableContainer` instead.
 			getScrollableContainer,
 			getColumnsCount,
+			getItemId,
 			bypass,
 			// bypassBatchSize
 		} = this.props
@@ -140,6 +142,7 @@ export default class ReactVirtualScroller extends React.Component {
 				// Use `scrollableContainer` instead.
 				getScrollableContainer,
 				getColumnsCount,
+				getItemId,
 				tbody: AsComponent === 'tbody',
 				state: initialState,
 				customState: initialCustomState,
@@ -150,6 +153,14 @@ export default class ReactVirtualScroller extends React.Component {
 					this.didUpdateState = didUpdateState
 					if (this.state) {
 						// Update existing state.
+						// In case of hypothetically rewriting this in React hooks,
+						// it wouldn't simply be `setState({ ...prevState, ...newState })`.
+						// The reason is that `setState()` would be "asynchronous" (not immediate),
+						// and `...prevState` would be stale in cases when more than a single
+						// `setState()` call is made before the state actually updates,
+						// making `prevState` stale, and, as a consequence, losing some
+						// of the state updates.
+						// But as long as it uses `this.setState()`, it's fine.
 						this.setState(newState)
 					} else {
 						// Set initial state.
@@ -214,6 +225,20 @@ export default class ReactVirtualScroller extends React.Component {
 		// So only uses `ref`s for `React.Component`s.
 		const { itemComponent } = this.props
 		return isComponentClass(itemComponent)
+	}
+
+	/**
+	 * Returns a `key` for an `item`'s element.
+	 * @param  {object} item
+	 * @param  {number} i
+	 * @return {any}
+	 */
+	getItemKey(item, i) {
+		const { getItemId } = this.props
+		if (getItemId) {
+			return getItemId(item)
+		}
+		return `${this.itemKeyPrefix}:${i}`
 	}
 
 	/**
@@ -294,13 +319,13 @@ export default class ReactVirtualScroller extends React.Component {
 		return this.onItemHeightChange[i]
 	}
 
-	generateUniquePrefix() {
+	generateItemKeyPrefix() {
 		const prefix = String(Math.random()).slice(2)
-		if (this.uniquePrefixes.indexOf(prefix) >= 0) {
-			return this.generateUniquePrefix()
+		if (this.itemKeyPrefixes.indexOf(prefix) >= 0) {
+			return this.generateItemKeyPrefix()
 		}
-		this.uniquePrefixes.push(prefix)
-		this.uniquePrefix = prefix
+		this.itemKeyPrefixes.push(prefix)
+		this.itemKeyPrefix = prefix
 	}
 
 	componentDidMount() {
@@ -386,6 +411,7 @@ export default class ReactVirtualScroller extends React.Component {
 			onItemInitialRender,
 			// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 			onItemFirstRender,
+			getItemId,
 			onMount,
 			className,
 			...rest
@@ -445,7 +471,7 @@ export default class ReactVirtualScroller extends React.Component {
 		}
 		this.previousItemsProperty = this.props.items
 		if (this.itemsPropertyWasChanged && newItems !== previousItems) {
-			const itemsDiff = getItemsDiff(previousItems, newItems)
+			const itemsDiff = this.virtualScroller.getItemsDiff(previousItems, newItems)
 			if (itemsDiff && itemsDiff.prependedItemsCount === 0 && itemsDiff.appendedItemsCount > 0) {
 				// If it's just items that have been appended
 				// then no need to re-generate the prefix
@@ -472,10 +498,9 @@ export default class ReactVirtualScroller extends React.Component {
 					)
 				}
 				// Reset the unique `key` prefix for item component keys.
-				this.generateUniquePrefix()
-				// Reset handler function caches.
-				this.onItemStateChange = new Array(newItems.length)
-				this.onItemHeightChange = new Array(newItems.length)
+				if (!getItemId) {
+					this.generateItemKeyPrefix()
+				}
 				// Reset item refs.
 				this.itemRefs = new Array(newItems.length)
 			}
@@ -496,7 +521,7 @@ export default class ReactVirtualScroller extends React.Component {
 							<Component
 								{...itemComponentProps}
 								ref={this.shouldUseRefs() ? this.getItemRef(i) : undefined}
-								key={`${this.uniquePrefix}:${i}`}
+								key={this.getItemKey(item, i)}
 								state={itemStates && itemStates[i]}
 								onStateChange={this.getOnItemStateChange(i)}
 								onHeightChange={this.getOnItemHeightChange(i)}>
