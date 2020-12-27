@@ -1,5 +1,17 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.7.1 / 27.12.2020
+==================
+
+* React `<VirtualScroller/>` `.renderItem(i)` now supports passing item object itself as an argument.
+
+1.7.0 / 25.12.2020
+==================
+
+* Refactored code a bit, wrote some comments.
+
+* Fixed a small layout calculation bug when there're several `onItemHeightChange(i)` calls made at the same time.
+
 1.6.6 / 18.12.2020
 ==================
 

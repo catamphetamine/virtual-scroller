@@ -1,6 +1,6 @@
 import { px } from './utility'
 
-const NOT_SUPPORTED_MESSAGE = '[virtual-scroller] It looks like you\'re using Internet Explorer which doesn\'t support CSS variables required for a <tbody/> container. VirtualScroller has been switched into "bypass" mode (render all items). See: https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1'
+export const BROWSER_NOT_SUPPORTED_ERROR = 'It looks like you\'re using Internet Explorer which doesn\'t support CSS variables required for a <tbody/> container. VirtualScroller has been switched into "bypass" mode (render all items). See: https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1'
 
 export function supportsTbody() {
 	// Detect Internet Explorer.
@@ -13,20 +13,6 @@ export function supportsTbody() {
 		return false
 	}
 	return true
-}
-
-export function reportTbodyIssue() {
-	if (typeof window !== 'undefined') {
-		// In a web browser.
-		setTimeout(() => {
-			// Throw an error in a timeout so that it doesn't interrupt the application's flow.
-			// At the same time, the error could be spotted in the console or in error monitoring software.
-			throw new Error(NOT_SUPPORTED_MESSAGE)
-		}, 0)
-	} else {
-		// On a server.
-		console.error(NOT_SUPPORTED_MESSAGE)
-	}
 }
 
 export function addTbodyStyles(tbody) {

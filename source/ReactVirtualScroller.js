@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 
 import VirtualScroller from './VirtualScroller'
 import { px } from './utility'
+import { reportError } from './log'
 
 // `PropTypes.elementType` is available in some version of `prop-types`.
 // https://github.com/facebook/prop-types/issues/200
@@ -229,8 +230,8 @@ export default class ReactVirtualScroller extends React.Component {
 
 	/**
 	 * Returns a `key` for an `item`'s element.
-	 * @param  {object} item
-	 * @param  {number} i
+	 * @param  {object} item — The item.
+	 * @param  {number} i — Item's index in `items` list.
 	 * @return {any}
 	 */
 	getItemKey(item, i) {
@@ -263,8 +264,12 @@ export default class ReactVirtualScroller extends React.Component {
 	 * @param {number} i
 	 */
 	renderItem(i) {
+		i = this.getItemIndex(i)
+		if (i === undefined) {
+			return reportError(`Item ${JSON.stringify(i)} not found when calling ".renderItem()"`)
+		}
 		if (!this.shouldUseRefs()) {
-			return console.error('[virtual-scroller] `.renderItem(i)` has been called but the `component` doesn\'t allow `ref`s. Only `component`s that\'re `React.Component`s support this feature.')
+			return reportError('`.renderItem(i)` has been called but the `component` doesn\'t allow `ref`s. Only `component`s that\'re `React.Component`s support this feature.')
 		}
 		// The item may be non-rendered when `.renderItem(i)` is called on it.
 		// For example, when there's a "parent comment" having several "replies"
@@ -291,6 +296,29 @@ export default class ReactVirtualScroller extends React.Component {
 					}
 				}
 			})
+		}
+	}
+
+	getItemIndex(i) {
+		if (typeof i === 'number') {
+			return i
+		}
+		if (typeof i === 'object' && i !== null) {
+			const { items, getItemId } = this.props
+			const item = i
+			i = 0
+			while (i < items.length) {
+				if (getItemId) {
+					if (getItemId(item) === getItemId(items[i])) {
+						return i
+					}
+				} else {
+					if (item === items[i]) {
+						return i
+					}
+				}
+				i++
+			}
 		}
 	}
 
