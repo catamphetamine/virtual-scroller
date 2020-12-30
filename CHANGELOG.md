@@ -1,5 +1,12 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.7.3 / 30.12.2020
+==================
+
+* Removed `shouldUpdateLayoutOnWindowResize` function.
+
+* Refactored DOM stuff into `ScrollableContainer.js` and `Screen.js`.
+
 1.7.1 / 27.12.2020
 ==================
 

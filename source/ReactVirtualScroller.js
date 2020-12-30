@@ -30,7 +30,6 @@ export default class ReactVirtualScroller extends React.Component {
 		// `preserveScrollPositionAtBottomOnMount` property name is deprecated,
 		// use `preserveScrollPositionOfTheBottomOfTheListOnMount` property instead.
 		preserveScrollPositionAtBottomOnMount: PropTypes.bool,
-		shouldUpdateLayoutOnWindowResize: PropTypes.func,
 		measureItemsBatchSize: PropTypes.number,
 		scrollableContainer: PropTypes.any,
 		// `getScrollableContainer` property is deprecated.
@@ -126,6 +125,7 @@ export default class ReactVirtualScroller extends React.Component {
 			() => this.container.current,
 			items,
 			{
+				_useTimeoutInRenderLoop: true,
 				estimatedItemHeight,
 				bypass,
 				// bypassBatchSize,
@@ -136,7 +136,7 @@ export default class ReactVirtualScroller extends React.Component {
 				// `preserveScrollPositionAtBottomOnMount` property name is deprecated,
 				// use `preserveScrollPositionOfTheBottomOfTheListOnMount` property instead.
 				preserveScrollPositionAtBottomOnMount,
-				shouldUpdateLayoutOnWindowResize: this.shouldUpdateLayoutOnWindowResize,
+				shouldUpdateLayoutOnScreenResize: this.shouldUpdateLayoutOnScreenResize,
 				measureItemsBatchSize,
 				scrollableContainer,
 				// `getScrollableContainer` property is deprecated.
@@ -204,19 +204,6 @@ export default class ReactVirtualScroller extends React.Component {
 		const { onItemFirstRender } = this.props
 		if (onItemFirstRender) {
 			onItemFirstRender(...args)
-		}
-	}
-
-	// This proxy is required for cases when
-	// `shouldUpdateLayoutOnWindowResize` property changes at subsequent renders.
-	// For example, if it's passed as an "anonymous" function:
-	// `<VirtualScroller shouldUpdateLayoutOnWindowResize={() => ...}/>`.
-	// In such cases, if this "proxy" workaround hasn't been implemented,
-	// the `VirtualScroller` instance would have the reference to the old function.
-	shouldUpdateLayoutOnWindowResize = (...args) => {
-		const { shouldUpdateLayoutOnWindowResize } = this.props
-		if (shouldUpdateLayoutOnWindowResize) {
-			return shouldUpdateLayoutOnWindowResize(...args)
 		}
 	}
 
@@ -426,7 +413,6 @@ export default class ReactVirtualScroller extends React.Component {
 			// `preserveScrollPositionAtBottomOnMount` property name is deprecated,
 			// use `preserveScrollPositionOfTheBottomOfTheListOnMount` property instead.
 			preserveScrollPositionAtBottomOnMount,
-			shouldUpdateLayoutOnWindowResize,
 			measureItemsBatchSize,
 			scrollableContainer,
 			// `getScrollableContainer` property is deprecated.
@@ -476,17 +462,22 @@ export default class ReactVirtualScroller extends React.Component {
 		// )
 		//
 		// Consider a user clicks "Show previous" to show the items from the start.
-		// By the time `componentDidUpdate()` is called on `<VirtualScroller/>`
+		// By the time `componentDidUpdate()` is called on `<VirtualScroller/>`,
 		// the "Show previous" button has already been hidden
+		// (because there're no more "previous" items)
 		// which results in the scroll Y position jumping forward
-		// by the height of the "Show previous" button.
-		// This is because `<VirtualScroller/>` restores scroll Y position
-		// when items are prepended via `.setItems()` and it does that
-		// when the "Show previous" button has already been hidden
-		// so that's the reason for the scroll Y jump.
+		// by the height of that "Show previous" button.
+		// This is because `<VirtualScroller/>` captures scroll Y
+		// position when items are prepended via `.setItems()`
+		// when the "Show previous" button is still being shown,
+		// and then restores scroll Y position in `.didUpdateState()`
+		// when the "Show previous" button has already been hidden:
+		// that's the reason for the scroll Y "jump".
 		//
-		// To prevent that, scroll Y position is stored at `render()` time
-		// rather than later in `componentDidUpdate()`.
+		// To prevent that, scroll Y position is captured at `render()`
+		// time rather than later in `componentDidUpdate()`: this way,
+		// scroll Y position is captured while the "Show previous" button
+		// is still being shown.
 		//
 		const newItems = this.props.items
 		const previousItems = items // this.virtualScroller.getState().items

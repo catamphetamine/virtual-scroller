@@ -1,7 +1,8 @@
 import log, { isDebug, reportError } from './log'
 
 export default class ItemHeights {
-	constructor(getContainerElement, getState) {
+	constructor(screen, getContainerElement, getState) {
+		this.screen = screen
 		this.getContainerElement = getContainerElement
 		this.getState = getState
 		this.initialize()
@@ -71,11 +72,9 @@ export default class ItemHeights {
 	_measureItemHeight(i, firstShownItemIndex) {
 		const container = this.getContainerElement()
 		if (container) {
-			const nodeIndex = i - firstShownItemIndex
-			if (nodeIndex >= 0 && nodeIndex < container.childNodes.length) {
-				// `offsetHeight` is not precise enough (doesn't return fractional pixels).
-				// let height = container.childNodes[nodeIndex].offsetHeight
-				return container.childNodes[nodeIndex].getBoundingClientRect().height
+			const elementIndex = i - firstShownItemIndex
+			if (elementIndex >= 0 && elementIndex < this.screen.getChildElementsCount(container)) {
+				return this.screen.getChildElementHeight(container, elementIndex)
 			}
 		}
 	}
