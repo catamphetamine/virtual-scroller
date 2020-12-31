@@ -1,4 +1,4 @@
 'use strict'
 
-exports = module.exports = require('../commonjs/DOMVirtualScroller').default
-exports['default'] = require('../commonjs/DOMVirtualScroller').default
+exports = module.exports = require('../commonjs/DOM/VirtualScroller').default
+exports['default'] = require('../commonjs/DOM/VirtualScroller').default

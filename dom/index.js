@@ -1,1 +1,1 @@
-export { default } from '../modules/DOMVirtualScroller'
+export { default } from '../modules/DOM/VirtualScroller'

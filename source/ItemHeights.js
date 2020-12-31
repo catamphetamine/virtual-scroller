@@ -1,18 +1,12 @@
-import log, { isDebug, reportError } from './log'
+import log, { isDebug, reportError } from './utility/debug'
 
 export default class ItemHeights {
-	constructor(screen, getContainerElement, getState) {
+	constructor(screen, getContainerElement, getItemHeight, setItemHeight) {
 		this.screen = screen
 		this.getContainerElement = getContainerElement
-		this.getState = getState
-		this.initialize()
-	}
-
-	initialize() {
+		this._get = getItemHeight
+		this._set = setItemHeight
 		this.reset()
-		if (this.getState()) {
-			this.initializeFromState(this.getState())
-		}
 	}
 
 	reset() {
@@ -38,7 +32,7 @@ export default class ItemHeights {
 	 * the "average" item height is simply `this.measuredItemsHeight` divided by
 	 * `this.lastMeasuredItemIndex` minus `this.firstMeasuredItemIndex` plus 1.
 	 */
-	initializeFromState({ itemHeights }) {
+	initialize(itemHeights) {
 		let i = 0
 		while (i < itemHeights.length) {
 			if (itemHeights[i] === undefined) {
@@ -86,6 +80,10 @@ export default class ItemHeights {
 	 * @return {number[]} The indexes of the items that have not previously been measured and have been measured now.
 	 */
 	measureNonPreviouslyMeasuredItemHeights(firstShownItemIndex, lastShownItemIndex) {
+		// If no items are rendered, don't measure anything.
+		if (firstShownItemIndex === undefined) {
+			return
+		}
 		// Reset `this.measuredItemsHeight` if it's not a "continuous" measured items list:
 		// if a group of items has been measured previously, and now it has rendered a completely
 		// different group of items, and there's a non-measured "gap" between those two groups,
@@ -261,14 +259,6 @@ export default class ItemHeights {
 			return 0
 		}
 		return this.measuredItemsHeight / (this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1)
-	}
-
-	_get(i) {
-		return this.getState().itemHeights[i]
-	}
-
-	_set(i, height) {
-		this.getState().itemHeights[i] = height
 	}
 
 	onPrepend(count) {

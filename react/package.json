@@ -1,7 +1,6 @@
 {
   "private": true,
-  "name": "virtual-scroller-react",
-  "version": "1.0.0",
+  "name": "virtual-scroller/react",
   "main": "index.commonjs.js",
   "module": "index.js",
   "sideEffects": [

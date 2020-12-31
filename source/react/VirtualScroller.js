@@ -1,9 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
-import VirtualScroller from './VirtualScroller'
-import { px } from './utility'
-import { reportError } from './log'
+import VirtualScrollerCore from '../VirtualScroller'
+
+import { reportError } from '../utility/debug'
+import px from '../utility/px'
 
 // `PropTypes.elementType` is available in some version of `prop-types`.
 // https://github.com/facebook/prop-types/issues/200
@@ -13,7 +14,7 @@ const elementType = PropTypes.elementType || PropTypes.oneOfType([
 	PropTypes.object
 ])
 
-export default class ReactVirtualScroller extends React.Component {
+export default class VirtualScroller extends React.Component {
 	static propTypes = {
 		as: elementType,
 		items: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -42,6 +43,8 @@ export default class ReactVirtualScroller extends React.Component {
 		onItemInitialRender: PropTypes.func,
 		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 		onItemFirstRender: PropTypes.func,
+		initialScrollPosition: PropTypes.number,
+		onScrollPositionChange: PropTypes.func,
 		onStateChange: PropTypes.func,
 		initialCustomState: PropTypes.object,
 		initialState: PropTypes.shape({
@@ -110,6 +113,8 @@ export default class ReactVirtualScroller extends React.Component {
 			// `preserveScrollPositionAtBottomOnMount` property name is deprecated,
 			// use `preserveScrollPositionOfTheBottomOfTheListOnMount` property instead.
 			preserveScrollPositionAtBottomOnMount,
+			initialScrollPosition,
+			onScrollPositionChange,
 			measureItemsBatchSize,
 			scrollableContainer,
 			// `getScrollableContainer` property is deprecated.
@@ -121,7 +126,7 @@ export default class ReactVirtualScroller extends React.Component {
 			// bypassBatchSize
 		} = this.props
 		// Create `virtual-scroller` instance.
-		this.virtualScroller = new VirtualScroller(
+		this.virtualScroller = new VirtualScrollerCore(
 			() => this.container.current,
 			items,
 			{
@@ -136,6 +141,8 @@ export default class ReactVirtualScroller extends React.Component {
 				// `preserveScrollPositionAtBottomOnMount` property name is deprecated,
 				// use `preserveScrollPositionOfTheBottomOfTheListOnMount` property instead.
 				preserveScrollPositionAtBottomOnMount,
+				initialScrollPosition,
+				onScrollPositionChange,
 				shouldUpdateLayoutOnScreenResize: this.shouldUpdateLayoutOnScreenResize,
 				measureItemsBatchSize,
 				scrollableContainer,
@@ -154,6 +161,7 @@ export default class ReactVirtualScroller extends React.Component {
 					this.didUpdateState = didUpdateState
 					if (this.state) {
 						// Update existing state.
+						//
 						// In case of hypothetically rewriting this in React hooks,
 						// it wouldn't simply be `setState({ ...prevState, ...newState })`.
 						// The reason is that `setState()` would be "asynchronous" (not immediate),
@@ -161,7 +169,39 @@ export default class ReactVirtualScroller extends React.Component {
 						// `setState()` call is made before the state actually updates,
 						// making `prevState` stale, and, as a consequence, losing some
 						// of the state updates.
-						// But as long as it uses `this.setState()`, it's fine.
+						// For example, the first `setState()` call updates shown item indexes,
+						// and the second `setState()` call updates `verticalSpacing`:
+						// if it was simply `setState({ ...prevState, ...newState })`,
+						// then the second state update could overwrite the first state update,
+						// resulting in incorrect items being shown/hidden.
+						//
+						// I guess, in hooks, it could be something like:
+						//
+						// const [firstShownItemIndex, setFirstShownItemIndex] = useState()
+						// ...
+						// const setState = useCallback((newState) => {
+						// 	for (const key in newState) {
+						// 		switch (key) {
+						// 			case 'firstShownItemIndex':
+						// 				setFirstShownItemIndex(newState[key])
+						// 				break
+						// 			...
+						// 		}
+						// 	}
+						// 	setFirstShownItemIndex
+						// }, [])
+						// const virtualScroller = new VirtualScrollerCore({
+						// 	setState,
+						// 	...
+						// })
+						// // `getState()` function would be updated on every render.
+						// virtualScroller.getState = () => ({
+						// 	firstShownItemIndex,
+						// 	...
+						// })
+						//
+						// But as long as it uses the classic `this.setState()`,
+						// it's fine and simple.
 						this.setState(newState)
 					} else {
 						// Set initial state.
@@ -234,9 +274,11 @@ export default class ReactVirtualScroller extends React.Component {
 	 * @param  {number} i
 	 * @return {object}
 	 */
+	/*
 	getItemCoordinates(i) {
 		return this.virtualScroller.getItemCoordinates(i)
 	}
+	*/
 
 	/**
 	 * `updateItem(i)` has been renamed to `renderItem(i)`.
@@ -413,6 +455,8 @@ export default class ReactVirtualScroller extends React.Component {
 			// `preserveScrollPositionAtBottomOnMount` property name is deprecated,
 			// use `preserveScrollPositionOfTheBottomOfTheListOnMount` property instead.
 			preserveScrollPositionAtBottomOnMount,
+			initialScrollPosition,
+			onScrollPositionChange,
 			measureItemsBatchSize,
 			scrollableContainer,
 			// `getScrollableContainer` property is deprecated.
@@ -509,12 +553,19 @@ export default class ReactVirtualScroller extends React.Component {
 				// `preserveScrollPosition` property name is deprecated,
 				// use `preserveScrollPositionOnPrependItems` instead.
 				//
-				if (itemsDiff && (preserveScrollPositionOnPrependItems || preserveScrollPosition)) {
-					this.virtualScroller.captureScroll(
-						previousItems,
-						newItems,
-						itemsDiff.prependedItemsCount
-					)
+				if (itemsDiff) {
+					const { prependedItemsCount } = itemsDiff
+					if (prependedItemsCount > 0) {
+						if (preserveScrollPositionOnPrependItems || preserveScrollPosition) {
+							if (firstShownItemIndex === 0) {
+								this.virtualScroller.restoreScroll.captureScroll({
+									previousItems,
+									newItems,
+									prependedItemsCount
+								})
+							}
+						}
+					}
 				}
 				// Reset the unique `key` prefix for item component keys.
 				if (!getItemId) {

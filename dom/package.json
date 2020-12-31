@@ -1,7 +1,6 @@
 {
   "private": true,
-  "name": "virtual-scroller-dom",
-  "version": "1.0.0",
+  "name": "virtual-scroller/dom",
   "main": "index.commonjs.js",
   "module": "index.js",
   "sideEffects": [

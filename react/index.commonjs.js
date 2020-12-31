@@ -1,4 +1,4 @@
 'use strict'
 
-exports = module.exports = require('../commonjs/ReactVirtualScroller').default
-exports['default'] = require('../commonjs/ReactVirtualScroller').default
+exports = module.exports = require('../commonjs/react/VirtualScroller').default
+exports['default'] = require('../commonjs/react/VirtualScroller').default

@@ -1,8 +1,9 @@
-import VirtualScroller from './VirtualScroller'
-import log from './log'
-import { px } from './utility'
+import VirtualScrollerCore from '../VirtualScroller'
 
-export default class DOMVirtualScroller {
+import log from '../utility/debug'
+import px from '../utility/px'
+
+export default class VirtualScroller {
   constructor(element, items, renderItem, options = {}) {
     this.container = element
     this.renderItem = renderItem
@@ -13,7 +14,7 @@ export default class DOMVirtualScroller {
     } = options
     this.onItemUnmount = onItemUnmount
     this.tbody = this.container.tagName === 'TBODY'
-    this.virtualScroller = new VirtualScroller(
+    this.virtualScroller = new VirtualScrollerCore(
       () => this.container,
       items,
       {
@@ -141,7 +142,9 @@ export default class DOMVirtualScroller {
     this.virtualScroller.setItems(newItems, options)
   }
 
+  /*
   getItemCoordinates(i) {
     return this.virtualScroller.getItemCoordinates(i)
   }
+  */
 }

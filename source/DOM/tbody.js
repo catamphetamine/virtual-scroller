@@ -1,4 +1,7 @@
-import { px } from './utility'
+// A workaround for `<tbody/>` not being able to have `padding`.
+// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
+
+import px from '../utility/px'
 
 export const BROWSER_NOT_SUPPORTED_ERROR = 'It looks like you\'re using Internet Explorer which doesn\'t support CSS variables required for a <tbody/> container. VirtualScroller has been switched into "bypass" mode (render all items). See: https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1'
 
