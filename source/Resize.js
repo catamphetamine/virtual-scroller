@@ -1,19 +1,28 @@
-import { LAYOUT_REASON } from './Layout'
 import debounce from './utility/debounce'
+import log from './utility/debug'
 
 export default class Resize {
 	constructor({
 		bypass,
 		scrollableContainer,
-		getContainerElement,
-		updateLayout,
-		resetStateAndLayout
+		onStart,
+		onStop,
+		onHeightChange,
+		onWidthChange,
+		onNoChange
 	}) {
 		this.bypass = bypass
 		this.scrollableContainer = scrollableContainer
-		this.getContainerElement = getContainerElement
-		this.updateLayout = updateLayout
-		this.resetStateAndLayout = resetStateAndLayout
+
+		this.onHeightChange = onHeightChange
+		this.onWidthChange = onWidthChange
+		this.onNoChange = onNoChange
+
+		this.onResize = debounce(
+			this._onResize,
+			SCROLLABLE_CONTAINER_RESIZE_DEBOUNCE_INTERVAL,
+			{ onStart, onStop }
+		)
 	}
 
 	listen() {
@@ -23,22 +32,21 @@ export default class Resize {
 		this.isRendered = true
 		this.scrollableContainerWidth = this.scrollableContainer.getWidth()
 		this.scrollableContainerHeight = this.scrollableContainer.getHeight()
-		this.scrollableContainerUnlistenResize = this.scrollableContainer.onResize(this.onResize, {
-			container: this.getContainerElement()
-		})
+		this.scrollableContainerUnlistenResize = this.scrollableContainer.onResize(this.onResize)
 	}
 
 	stop() {
 		this.isRendered = false
 		if (this.scrollableContainerUnlistenResize) {
 			this.scrollableContainerUnlistenResize()
+			this.scrollableContainerUnlistenResize = undefined
 		}
 	}
 
 	/**
 	 * On scrollable container resize.
 	 */
-	onResize = debounce(() => {
+	_onResize = () => {
 		// If `VirtualScroller` has been unmounted
 		// while `debounce()`'s `setTimeout()` was waiting, then exit.
 		if (!this.isRendered) {
@@ -52,21 +60,21 @@ export default class Resize {
 			if (this.scrollableContainerHeight === prevScrollableContainerHeight) {
 				// The dimensions of the container didn't change,
 				// so there's no need to re-layout anything.
-				return
+				this.onNoChange()
 			} else {
 				// Scrollable container height has changed,
 				// so just recalculate shown item indexes.
 				// No need to perform a re-layout from scratch.
-				this.updateLayout({ reason: LAYOUT_REASON.RESIZE })
+				this.onHeightChange(prevScrollableContainerHeight, this.scrollableContainerHeight)
 			}
 		} else {
 			// Reset item heights, because if scrollable container's width (or height)
 			// has changed, then the list width (or height) most likely also has changed,
 			// and also some CSS `@media()` rules might have been added or removed.
 			// So re-render the list entirely.
-			this.resetStateAndLayout()
+			this.onWidthChange(prevScrollableContainerWidth, this.scrollableContainerWidth)
 		}
-	}, SCROLLABLE_CONTAINER_RESIZE_DEBOUNCE_INTERVAL)
+	}
 }
 
 const SCROLLABLE_CONTAINER_RESIZE_DEBOUNCE_INTERVAL = 250

@@ -1,5 +1,33 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.8.0 / 26.11.2021
+==================
+
+* Refactored the code. Some parts got rewritten.
+
+* Added tests.
+
+* Added TypeScript "typings" (didn't check).
+
+* Fixed the list [being reset](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/15) on resize.
+
+* Removed `preserveScrollPositionOfTheBottomOfTheListOnMount` option because it's not used.
+
+1.7.9 / 30.04.2021
+==================
+
+* Fixed the [fix](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/10) of `.scrollTo()` in IE 11.
+
+1.7.8 / 29.04.2021
+==================
+
+* Fixed `.scrollTo()` in IE 11. The fix was [suggested](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/10) by Patrik Prevužňák.
+
+1.7.7 / 13.04.2021
+==================
+
+* Fixed [`ReferenceError: firstShownItemIndex is not defined`](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/9) in cases when `items` list has changed and the prepended items count is not a multiple of the columns count.
+
 1.7.4 / 31.12.2020
 ==================
 
@@ -7,7 +35,7 @@
 
 * Removed `getItemCoordinates(i)` function.
 
-* Added `renderingEngine` option.
+* Added `engine` option.
 
 * Refactored.
 

@@ -7,5 +7,5 @@
  */
 export default function px(number) {
 	// Fractional pixels are used on "retina" screens.
-  return number.toFixed(2) + 'px'
+  return (number % 1 === 0 ? number : number.toFixed(2)) + 'px'
 }

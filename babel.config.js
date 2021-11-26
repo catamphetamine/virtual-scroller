@@ -1,4 +1,4 @@
-{
+module.exports = {
 	"presets": [
 		"@babel/preset-env",
 		"@babel/preset-react"
@@ -14,6 +14,11 @@
 		"es6": {
 			"presets": [
 				["@babel/preset-env", { modules: false }]
+			]
+		},
+		"test": {
+			"plugins": [
+				"babel-plugin-istanbul"
 			]
 		}
 	}

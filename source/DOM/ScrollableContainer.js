@@ -2,9 +2,11 @@ export default class ScrollableContainer {
 	/**
 	 * Constructs a new "scrollable container" from an element.
 	 * @param {Element} scrollableContainer
+	 * @param {func} getItemsContainerElement — Returns items "container" element.
 	 */
-	constructor(element) {
+	constructor(element, getItemsContainerElement) {
 		this.element = element
+		this.getItemsContainerElement = getItemsContainerElement
 	}
 
 	/**
@@ -20,7 +22,14 @@ export default class ScrollableContainer {
 	 * @param {number} scrollY
 	 */
 	scrollToY(scrollY) {
-		this.element.scrollTo(0, scrollY)
+		// IE 11 doesn't seem to have a `.scrollTo()` method.
+		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/10
+		// https://stackoverflow.com/questions/39908825/window-scrollto-is-not-working-in-internet-explorer-11
+		if (this.element.scrollTo) {
+			this.element.scrollTo(0, scrollY)
+		} else {
+			this.element.scrollTop = scrollY
+		}
 	}
 
 	/**
@@ -45,30 +54,15 @@ export default class ScrollableContainer {
 	}
 
 	/**
-	 * Returns the height of the content in a scrollable container.
-	 * For example, a scrollable container can have a height of 500px,
-	 * but the content in it could have a height of 5000px,
-	 * in which case a vertical scrollbar is rendered, and only
-	 * one-tenth of all the items are shown at any given moment.
-	 * This function is currently only used when using the
-	 * `preserveScrollPositionOfTheBottomOfTheListOnMount` feature.
-	 * @return {number}
-	 */
-	getContentHeight() {
-		return this.element.scrollHeight
-	}
-
-	/**
-	 * Returns a "top offset" of an element
+	 * Returns a "top offset" of an items container element
 	 * relative to the "scrollable container"'s top edge.
-	 * @param {Element} element
 	 * @return {number}
 	 */
-	getTopOffset(element) {
+	getItemsContainerTopOffset() {
 		const scrollableContainerTop = this.element.getBoundingClientRect().top
 		const scrollableContainerBorderTopWidth = this.element.clientTop
-		const top = element.getBoundingClientRect().top
-		return (top - scrollableContainerTop) + this.getScrollY() - scrollableContainerBorderTopWidth
+		const itemsContainerTop = this.getItemsContainerElement().getBoundingClientRect().top
+		return (itemsContainerTop - scrollableContainerTop) + this.getScrollY() - scrollableContainerBorderTopWidth
 	}
 
 	// isVisible() {
@@ -81,7 +75,7 @@ export default class ScrollableContainer {
 	 * @param {onScroll} Should be called whenever the scroll position inside the "scrollable container" (potentially) changes.
 	 * @return {function} Returns a function that stops listening.
 	 */
-	addScrollListener(onScroll) {
+	onScroll(onScroll) {
 		this.element.addEventListener('scroll', onScroll)
 		return () => this.element.removeEventListener('scroll', onScroll)
 	}
@@ -89,13 +83,10 @@ export default class ScrollableContainer {
 	/**
 	 * Adds a "resize" event listener to the "scrollable container".
 	 * @param {onResize} Should be called whenever the "scrollable container"'s width or height (potentially) changes.
-	 * @param  {Element} options.container — The result of the `getContainerElement()` function that was passed in `VirtualScroller` constructor. For example, DOM renderer uses it to filter-out unrelated "resize" events.
-	 * @return {function} Returns a function that stops listening.
+   * @return {function} Returns a function that stops listening.
 	 */
-	onResize(onResize, { container }) {
-		// Could somehow track DOM Element size.
-		// For now, `scrollableContainer` is supposed to have constant width and height.
-		// (unless window is resized).
+	onResize(onResize) {
+		// Watches "scrollable container"'s dimensions via a `ResizeObserver`.
 		// https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver
 		// https://web.dev/resize-observer/
 		let unobserve
@@ -122,7 +113,9 @@ export default class ScrollableContainer {
 		// hasn't changed since the previous time `onResize()` has been called,
 		// then `onResize()` doesn't do anything, so, I guess, there shouldn't be
 		// any "performance implications" of running the listener twice in such case.
-		const unlistenGlobalResize = addGlobalResizeListener(onResize, { container })
+		const unlistenGlobalResize = addGlobalResizeListener(onResize, {
+			itemsContainerElement: this.getItemsContainerElement()
+		})
 		return () => {
 			if (unobserve) {
 				unobserve()
@@ -133,8 +126,12 @@ export default class ScrollableContainer {
 }
 
 export class ScrollableWindowContainer extends ScrollableContainer {
-	constructor() {
-		super(window)
+	/**
+	 * Constructs a new window "scrollable container".
+	 * @param {func} getItemsContainerElement — Returns items "container" element.
+	 */
+	constructor(getItemsContainerElement) {
+		super(window, getItemsContainerElement)
 	}
 
 	/**
@@ -182,38 +179,24 @@ export class ScrollableWindowContainer extends ScrollableContainer {
 	}
 
 	/**
-	 * Returns the height of the content in a scrollable container.
-	 * For example, a scrollable container can have a height of 500px,
-	 * but the content in it could have a height of 5000px,
-	 * in which case a vertical scrollbar is rendered, and only
-	 * one-tenth of all the items are shown at any given moment.
-	 * This function is currently only used when using the
-	 * `preserveScrollPositionOfTheBottomOfTheListOnMount` feature.
-	 * @return {number}
-	 */
-	getContentHeight() {
-		return document.documentElement.scrollHeight
-	}
-
-	/**
-	 * Returns a "top offset" of an element
+	 * Returns a "top offset" of an items container element
 	 * relative to the "scrollable container"'s top edge.
-	 * @param {Element} element
 	 * @return {number}
 	 */
-	getTopOffset(element) {
+	getItemsContainerTopOffset() {
 		const borderTopWidth = document.clientTop || document.body.clientTop || 0
-		return element.getBoundingClientRect().top + this.getScrollY() - borderTopWidth
+		return this.getItemsContainerElement().getBoundingClientRect().top + this.getScrollY() - borderTopWidth
 	}
 
 	/**
 	 * Adds a "resize" event listener to the "scrollable container".
 	 * @param {onScroll} Should be called whenever the "scrollable container"'s width or height (potentially) changes.
-	 * @param  {Element} options.container — The result of the `getContainerElement()` function that was passed in `VirtualScroller` constructor. For example, DOM renderer uses it to filter-out unrelated "resize" events.
 	 * @return {function} Returns a function that stops listening.
 	 */
-	onResize(onResize, { container }) {
-		return addGlobalResizeListener(onResize, { container })
+	onResize(onResize) {
+		return addGlobalResizeListener(onResize, {
+			itemsContainerElement: this.getItemsContainerElement()
+		})
 	}
 
 	// isVisible() {
@@ -223,11 +206,11 @@ export class ScrollableWindowContainer extends ScrollableContainer {
 
 /**
  * Adds a "resize" event listener to the `window`.
- * @param {onResize} Should be called whenever the "container"'s width or height (potentially) changes.
- * @param  {Element} options.container — The "container".
+ * @param {onResize} Should be called whenever the "scrollable container"'s width or height (potentially) changes.
+ * @param  {Element} options.itemsContainerElement — The items "container" element, which is not the same as the "scrollable container" element. For example, "scrollable container" could be resized while the list element retaining its size. One such example is a user entering fullscreen mode on an HTML5 `<video/>` element: in that case, a "resize" event is triggered on a window, and window dimensions change to the user's screen size, but such "resize" event can be ignored because the list isn't visible until the user exits fullscreen mode.
  * @return {function} Returns a function that stops listening.
  */
-function addGlobalResizeListener(onResize, { container }) {
+function addGlobalResizeListener(onResize, { itemsContainerElement }) {
 	const onResizeListener = () => {
 		// By default, `VirtualScroller` always performs a re-layout
 		// on window `resize` event. But browsers (Chrome, Firefox)
@@ -258,7 +241,7 @@ function addGlobalResizeListener(onResize, { container }) {
 			// the layout wouldn't be affected too, so such `resize` event should also be
 			// ignored: when `document.fullscreenElement` is inside the `container`.
 			//
-			if (document.fullscreenElement.contains(container)) {
+			if (document.fullscreenElement.contains(itemsContainerElement)) {
 				// The element is either the `container`'s ancestor,
 				// Or is the `container` itself.
 				// (`a.contains(b)` includes the `a === b` case).

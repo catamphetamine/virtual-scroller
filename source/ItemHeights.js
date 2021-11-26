@@ -1,9 +1,8 @@
-import log, { isDebug, reportError } from './utility/debug'
+import log, { warn, isDebug, reportError } from './utility/debug'
 
 export default class ItemHeights {
-	constructor(screen, getContainerElement, getItemHeight, setItemHeight) {
-		this.screen = screen
-		this.getContainerElement = getContainerElement
+	constructor(container, getItemHeight, setItemHeight) {
+		this.container = container
 		this._get = getItemHeight
 		this._set = setItemHeight
 		this.reset()
@@ -64,22 +63,29 @@ export default class ItemHeights {
 	// }
 
 	_measureItemHeight(i, firstShownItemIndex) {
-		const container = this.getContainerElement()
-		if (container) {
-			const elementIndex = i - firstShownItemIndex
-			if (elementIndex >= 0 && elementIndex < this.screen.getChildElementsCount(container)) {
-				return this.screen.getChildElementHeight(container, elementIndex)
-			}
-		}
+		return this.container.getNthRenderedItemHeight(i - firstShownItemIndex)
 	}
 
 	/**
-	 * Measures the items that haven't been previously measured.
+	 * Measures item heights:
+	 *
+	 * * For the items that haven't been previously measured,
+	 *   measures them for the first time.
+	 *
+	 * * For the items that have been previoulsy measured,
+	 *   validate that their previously measured height
+	 *   is still equal to their current height.
+	 *   The unequalness may not necessarily be caused by
+	 *   incorrect use of `virtual-scroller`: there are
+	 *   also some valid use cases when such unequalness
+	 *   could happen (see the comments in the code).
+	 *
 	 * @param {number} firstShownItemIndex
 	 * @param {number} lastShownItemIndex
 	 * @return {number[]} The indexes of the items that have not previously been measured and have been measured now.
 	 */
-	measureNonPreviouslyMeasuredItemHeights(firstShownItemIndex, lastShownItemIndex) {
+	measureItemHeights(firstShownItemIndex, lastShownItemIndex) {
+		log('~ Measure item heights ~')
 		// If no items are rendered, don't measure anything.
 		if (firstShownItemIndex === undefined) {
 			return
@@ -90,8 +96,10 @@ export default class ItemHeights {
 		// then reset `this.measuredItemsHeight` and "first measured"/"last measured" item indexes.
 		// For example, this could happen when `.setItems()` prepends a lot of new items.
 		if (this.firstMeasuredItemIndex !== undefined) {
-			if (firstShownItemIndex > this.lastMeasuredItemIndex + 1 ||
-					lastShownItemIndex < this.firstMeasuredItemIndex - 1) {
+			if (
+				firstShownItemIndex > this.lastMeasuredItemIndex + 1 ||
+				lastShownItemIndex < this.firstMeasuredItemIndex - 1
+			) {
 				// Reset.
 				log('Non-measured items gap detected. Reset first and last measured item indexes.')
 				this.reset()
@@ -114,9 +122,8 @@ export default class ItemHeights {
 			// // then the user might have clicked that "Show more" button.
 			if (this._get(i) === undefined) {
 				nonPreviouslyMeasuredItemIndexes.push(i)
-				log('Item', i, 'hasn\'t been previously measured')
 				const height = this._measureItemHeight(i, firstShownItemIndex)
-				log('Height', height)
+				log('Item index', i, 'height', height)
 				this._set(i, height)
 				// Update average item height calculation variables
 				// related to the previously measured items
@@ -152,34 +159,14 @@ export default class ItemHeights {
 					this.lastMeasuredItemIndex = i
 				}
 			} else {
-				// // Validate the item's height right after showing it after being hidden,
-				// // because, if the stored item's state isn't applied properly, the item's
-				// // height might be incorrect when it's rendered with that state not applied,
-				// // and so a developer could know that there's a bug in their code.
-				//
-				// Actually, don't perform a strict previously measured item height validation
-				// here, because there could be valid cases when the item's height has changed
-				// by this time before the `.onItemHeightChange(i)` call has been executed.
-				// For example, suppose there's a list of several items on a page,
-				// and those items are in "minimized" state (having height 100px).
-				// Then, a user clicks an "Expand all items" button, and all items
-				// in the list are expanded (expanded item height is gonna be 700px).
-				// `VirtualScroller` demands that `.onItemHeightChange(i)` is called
-				// in such cases, and the developer has properly added the code to do that.
-				// So, if there were 10 "minimized" items visible on a page, then there
-				// will be 10 individual `.onItemHeightChange(i)` calls. No issues so far.
-				// But, as the first `.onItemHeightChange(i)` call executes, it immediately
-				// ("synchronously") triggers a re-layout, and immediately after that re-layout
-				// `itemHeights.measureNonPreviouslyMeasuredItemHeights()` function is called,
-				// that detects the height mismatch for all the rest of the items.
-				// So, even though the developer has written their code properly, there're
-				// still situations when the item's height could have changed by this time,
-				// and the `.onItemHeightChange(i)` call hasn't been executed for this item yet.
-				//
+				// Validate the item's height right after showing it after being hidden,
+				// because, if the stored item's state isn't applied properly, the item's
+				// height might be incorrect when it's rendered with that state not applied,
+				// and so a developer could know that there's a bug in their code.
 				const previousHeight = this._get(i)
 				const height = this._measureItemHeight(i, firstShownItemIndex)
 				if (previousHeight !== height) {
-					log('Item', i, 'height has changed from', previousHeight, 'to', height, 'while it was shown, and ".onItemHeightChange(i)" hasn\'t been called yet. This is not necessarily a bug, and could happen, for example, when there\'re several `onItemHeightChange(i)` calls issued at the same time.')
+					warn('Item index', i, 'height was', previousHeight, 'before it was hidden, but, after showing it again, its height is', height, '. Perhaps you forgot to persist the item\'s state by calling `onItemStateChange(i, newState)` when it changed, and that state got lost when the item element was unmounted, which resulted in a different height when the item was shown again, but with the missing state.')
 				}
 			}
 			i++

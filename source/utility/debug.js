@@ -4,6 +4,15 @@ export default function log(...args) {
 	}
 }
 
+export function warn(...args) {
+	if (isWarn()) {
+		if (warningsAreErrors()) {
+			return reportError.apply(this, args)
+		}
+		console.warn(...['[virtual-scroller]'].concat(args))
+	}
+}
+
 export function reportError(...args) {
 	if (typeof window !== 'undefined') {
 		// In a web browser.
@@ -26,5 +35,34 @@ export function reportError(...args) {
 }
 
 export function isDebug() {
-	return typeof window !== 'undefined' && window.VirtualScrollerDebug
+	const debug = getDebug()
+	if (debug !== undefined) {
+		return debug === true || debug === 'debug'
+	}
+}
+
+export function isWarn() {
+	// const debug = getDebug()
+	// return debug === undefined
+	// 	|| debug === true
+	// 	|| debug === 'debug'
+	// 	|| debug === 'warn'
+	//
+	return true
+}
+
+function getDebug() {
+	return getGlobalVariable('VirtualScrollerDebug')
+}
+
+function warningsAreErrors() {
+	return getGlobalVariable('VirtualScrollerWarningsAreErrors')
+}
+
+function getGlobalVariable(name) {
+	if (typeof window !== 'undefined') {
+		return window[name]
+	} else if (typeof global !== 'undefined') {
+		return global[name]
+	}
 }

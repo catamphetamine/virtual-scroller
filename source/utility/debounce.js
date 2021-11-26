@@ -8,12 +8,29 @@ import { setTimeout, clearTimeout } from 'request-animation-frame-timeout'
  * Same as `lodash`'s `debounce()` for functions with no arguments.
  * @param  {function} func
  * @param  {number} interval
+ * @param  {function} [options.onStart]
+ * @param  {function} [options.onStop]
  * @return {function}
  */
-export default function debounce(func, interval) {
+export default function debounce(func, interval, { onStart, onStop } = {}) {
 	let timeout
 	return function(...args) {
-		clearTimeout(timeout)
-		timeout = setTimeout(() => func.apply(this, args), interval)
+		return new Promise((resolve) => {
+			if (timeout) {
+				clearTimeout(timeout)
+			} else {
+				if (onStart) {
+					onStart()
+				}
+			}
+			timeout = setTimeout(() => {
+				timeout = undefined
+				if (onStop) {
+					onStop()
+				}
+				func.apply(this, args)
+				resolve()
+			}, interval)
+		})
 	}
 }

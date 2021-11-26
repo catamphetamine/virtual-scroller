@@ -87,8 +87,6 @@ The following `state` properties are only used for saving and restoring `Virtual
 * `verticalSpacing: number?` — Vertical item spacing. Is `undefined` until it has been measured. Is only measured once, when at least two rows of items have been rendered.
 
 * `columnsCount: number?` — The count of items in a row. Is `undefined` if no `getColumnsCount()` parameter has been passed to `VirtualScroller`.
-
-* `scrollY: number?` — The current page scroll position (page vertical scroll offset). If initial `state` is passed to `VirtualScroller`, then the page will be scrolled to `state.scrollY` on `.render()`.
 </details>
 
 #### Example
@@ -101,7 +99,20 @@ The following `state` properties are only used for saving and restoring `Virtual
 ```js
 import VirtualScroller from 'virtual-scroller'
 
-const virtualScroller = new VirtualScroller(getContainerElement, items, options)
+const items = [...]
+
+const getItemsContainerElement = () => ...
+
+const virtualScroller = new VirtualScroller(getItemsContainerElement, items, {
+  onStateChange(state) {
+    // Re-render the list based on its state:
+    // * items
+    // * firstShownItemIndex
+    // * lastShownItemIndex
+    // * beforeItemsHeight
+    // * afterItemsHeight
+  }
+})
 
 // Start listening to scroll events.
 virtualScroller.listen()
@@ -110,9 +121,9 @@ virtualScroller.listen()
 virtualScroller.stop()
 ```
 
-* `getContainerElement()` function returns the list "element" that is gonna contain all list item "elements".
+* `getItemsContainerElement()` function returns the list "element" that is gonna contain all list item "elements".
 * `items` is the list of items.
-* `options` is the list of options.
+* `onStateChange(state)` is one of the available list `options`.
 </details>
 
 #####
@@ -217,11 +228,9 @@ virtualScroller.listen()
 
 #####
 
-* `estimatedItemHeight: number` — Is used for the initial render of the list: determines how many list items are rendered initially to cover the screen height plus some extra vertical margin for future scrolling. If not set then the list first renders just the first item, measures it, and then assumes it to be the `estimatedItemHeight` from which it calculates how many items to show on the second render pass to fill the screen height plus some extra vertical margin for future scrolling. Therefore, this setting is only for the initial render minor optimization and is not required.
+* `estimatedItemHeight: number` — Is used for the initial render of the list: determines how many list items are rendered initially to cover the screen height plus some extra vertical margin (called "prerender margin") for future scrolling. If not set then the list first renders just the first item, measures it, and then assumes it to be the `estimatedItemHeight` from which it calculates how many items to show on the second render pass to fill the screen height plus the "prerender margin". Therefore, this setting is only for the initial render minor optimization and is not required.
 
-<!--
-* `margin` — Renders items which are outside of the screen by the amount of this "margin". Is the screen height by default: seems to be the optimal value for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling.
--->
+* `prerenderMargin` — The list component renders not only the items that're currently visible but also the items that lie within some extra vertical margin (called "prerender margin") on top and bottom for future scrolling: this way, there'll be significantly less layout recalculations as the user scrolls, because now it doesn't have to recalculate layout on each scroll event. By default, the "prerender margin" is equal to the screen height: this seems to be the optimal value for "Page Up" / "Page Down" navigation and optimized mouse wheel scrolling. This parameter is currently ignored because the default value seems to fit all possible use cases.
 
 * `state: object` — The initial state for `VirtualScroller`. Can be used, for example, to quicky restore the list when it's re-rendered on "Back" navigation.
 
@@ -229,19 +238,21 @@ virtualScroller.listen()
 
 * `getState(): object` — (advanced) By default, `VirtualScroller` manages `state` internally by storing it in an instance variable. For more control, the `state` could be managed externally, in which case a developer should supply `getState`/`setState` options, in which case `getState` should return the externally stored `VirtualScroller` `state`. React `VirtualScroller` component implementation uses this option.
 
-* `setState(newState: object, { willUpdateState, didUpdateState })` — (advanced) By default, `VirtualScroller` manages `state` internally by storing it in an instance variable. For more control, the `state` could be managed externally, in which case a developer should supply `getState`/`setState` options, in which case `setState` should update the externally stored `VirtualScroller` `state` (including setting the initial `state`). `setState` must also call two functions: `willUpdateState(newState, prevState)` right before the state is updated and `didUpdateState(prevState)` right after the state is updated. The list should be re-rendered as part of either `setState` or `onStateChange`. React `VirtualScroller` component implementation uses this option.
+* `setState(stateUpdate: object, { willUpdateState, didUpdateState })` — (advanced) By default, `VirtualScroller` manages `state` internally by storing it in an instance variable. For more control, the `state` could be managed externally, in which case a developer should supply `getState`/`setState` options, in which case `setState` should update the externally stored `VirtualScroller` `state` (including setting the initial `state`), and it should do that by merging the previous `state` with the `stateUpdate` argument. `setState` must also call two functions: `willUpdateState(newState, prevState)` right before the state is updated and `didUpdateState(prevState)` right after the state is updated. The list should be re-rendered as part of either `setState` or `onStateChange`. `setState` could be ["asynchronous"](https://reactjs.org/docs/state-and-lifecycle.html#state-updates-may-be-asynchronous), that is when state updates aren't applied immediately and are instead queued and then applied in a single state update for performance. React `VirtualScroller` component implementation uses this option.
 
-* `onStateChange(newState: object, prevState: object?)` — Is called whenever `VirtualScroller` `state` is updated (including setting the initial `state`). A developer must either supply `getState`/`setState` options or `onStateChange` option (or both). The list should be re-rendered as part of either `setState` or `onStateChange`.
+* `onStateChange(newState: object, prevState: object?)` — Is called whenever `VirtualScroller` `state` is updated (including setting the initial `state`). Is not called when individual item heights (including "before resize" ones) or states are updated: instead, individual item heights or states are updated in-place — `state.itemHeights[i] = newItemHeight` or `state.itemStates[i] = newItemState`. That's because those `state` properties are the ones that don’t affect the presentation, so there's no need to re-render the list when those do change — updating those properties is just an effect of some change rather than cause for one. In order for a `VirtualScroller` implementation to work, a developer must either supply `getState`/`setState` options or `onStateChange` option (or both). The list should be re-rendered as part of either `setState` or `onStateChange`.
 
 * `scrollableContainer: Element` — (advanced) If the list is being rendered in a "scrollable container" (for example, if one of the parent elements of the list is styled with `max-height` and `overflow: auto`), then passing the "scrollable container" DOM Element is required for correct operation. *This feature is considered [experimental](https://github.com/catamphetamine/virtual-scroller/issues/8).* The width and height of the `scrollableContainer` shouldn't change unless window is resized.
+
+* `initialScrollPosition: number` — If passed, the page will be scrolled to this `scrollY` position.
+
+* `onScrollPositionChange(scrollY: number)` — Is called whenever a user scrolls the page.
 
 * `bypass: boolean` — Pass `true` to turn off `VirtualScroller` behavior and just render the full list of items.
 
 * `getItemId(item)` — (advanced) When `items` are dynamically updated via `.setItems()`, `VirtualScroller` detects an "incremental" update by comparing "new" and "old" item ["references"](https://codeburst.io/explaining-value-vs-reference-in-javascript-647a975e12a0): this way, `VirtualScroller` can understand that the "new" `items` are (mostly) the same as the "old" `items` when some items get prepended or appended to the list, in which case it doesn't re-render the whole list from scratch, but rather just renders the "new" items that got prepended or appended. Sometimes though, some of the "old" items might get updated: for example, if `items` is a list of comments, then some of those comments might get edited in-between the refreshes. In that case, the edited comment object reference should change in order to indicate that the comment's content has changed and that the comment should be re-rendered (at least that's how it has to be done in React world). At the same time, changing the edited comment object reference would break `VirtualScroller`'s "incremental" update detection, and it would re-render the whole list of comments from scratch, which is not what it should be doing in such cases. So, in cases like this, `VirtualScroller` should have some way to understand that the updated item, even if its object reference has changed, is still the same as the old one, so that it doesn't break "incremental" update detection. For that, `getItemId(item)` parameter could be passed, which `VirtualScroller` would use to compare "old" and "new" items (instead of the default "reference equality" check), and that would fix the "re-rendering the whole list from scratch" issue. It can also be used when `items` are fetched from an external API, in which case all item object references change on every such fetch.
 
 * `onItemInitialRender(item)` — Is called for each `item` when it's about to be rendered for the first time. Is guaranteed to be called at least once for each item rendered, though, in "asynchronous" rendering systems like React, it could be called multiple times for a given item, because "an item is calculated to be rendered" doesn't necessarily mean that the actual rendering will take place before a later calculation supercedes the former one. This function can be used to somehow "initialize" items before they're rendered for the first time. For example, consider a list of items that must be somehow "preprocessed" (parsed, enhanced, etc) before being rendered, and such "preprocessing" puts some load on the CPU (and therefore takes some time). In such case, instead of "preprocessing" the whole list of items up front, a developer could "preprocess" the items as they're being rendered, thereby eliminating any associated lag or freezing that would be inevitable have all the items been "preprocessed" up front. If a user only wants to see a few of the items, "preprocessing" all the items up front would simply be a waste.
-
-* `preserveScrollPositionOfTheBottomOfTheListOnMount: boolean` — (advanced) Set to `true` to preserve scroll position relative to the bottom of the list when it's first mounted. A possible use case: consider a forum thread only showing unread posts by default. If a user navigates to such thread, it could show "No new posts" message with a "Show previous" button above it. When the user clicks the "Show previous" button, a `<VirtualScroller/>` is mounted with a list of posts. If `preserveScrollPositionOfTheBottomOfTheListOnMount: true` is set, then, after the list of posts is shown, page scroll will be restored so that the bottom of the list remains on screen so that the user could start scrolling up to read the "previous" posts starting from the most recent ones to the oldest ones.
 
 * `shouldUpdateLayoutOnScreenResize(event: Event): boolean`  — By default, `VirtualScroller` always performs a re-layout on window `resize` event. The `resize` event is not only triggered when a user resizes the window itself: it's also [triggered](https://developer.mozilla.org/en-US/docs/Web/API/Window/fullScreen#Notes) when the user switches into (and out of) fullscreen mode. By default, `VirtualScroller` performs a re-layout on all window `resize` events, except for ones that don't result in actual window width or height change, and except for cases when, for example, a video somewhere in a list is maximized into fullscreen. There still can be other "custom" cases: for example, when an application uses a custom "slideshow" component (rendered outside of the list DOM element) that goes into fullscreen when a user clicks a picture or a video in the list. For such "custom" cases `shouldUpdateLayoutOnScreenResize(event)` option / property can be specified.
 
@@ -268,7 +279,9 @@ virtualScroller.listen()
 
 * `onItemHeightChange(i: number)` — Must be called whenever a list item's height changes (for example, when a user clicks an "Expand"/"Collapse" button of a list item): it re-measures the item's height and updates `VirtualScroller` layout. Every change in an item's height must come as a result of changing some kind of state, be it the item's state in `VirtualScroller` via `.onItemStateChange()`, or some other state managed by the application. Implementation-wise, calling `onItemHeightChange()` manually could be replaced with detecting item height changes automatically via [Resize Observer](https://caniuse.com/#search=Resize%20Observer).
 
-* `onItemStateChange(i: number, itemState: object)` — Updates a list item's state inside `VirtualScroller` state. Must be called whenever an item's "state" changes: this way, the item's state is preserved when the item is unmounted due to going off screen, and then restored when the item is on screen again. Calling `onItemStateChange()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout might not be required. If an item's height did change as a result of changing its state, then `VirtualScroller` layout must be updated, and to do that, call `onItemHeightChange(i)` after calling `onItemStateChange()`. For example, consider a social network feed, each post optionally having an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a small thumbnail that expands into a full-sized embedded YouTube video player when a user clicks on it. If the expanded/collapsed state of such attachment isn't been managed in `VirtualScroller`, then, when the user expands the video, then scrolls down so that the post with the video is no longer visible and is unmounted as a result, then scrolls back up so that the post with the video is visible again, the video's expanded state would be lost, and it would be rendered as a small thumbnail as if the user didn't click on it. And don't forget about calling `onItemHeightChange(i)` in such cases: if `onItemHeightChange(i)` isn't called after expanding the thumbnail into a video player, then the scroll position would "jump" when such item goes off screen, because `VirtualScroller` would have based its calculations on the initially measured item height, not the "expanded" one.
+* `onItemStateChange(i: number, itemState: object?)` — Updates a list item's state inside `VirtualScroller` state. Must be called whenever an item's "state" changes: this way, the item's state is preserved when the item is unmounted due to going off screen, and then restored when the item is on screen again. Calling `onItemStateChange()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout might not be required. If an item's height did change as a result of changing its state, then `VirtualScroller` layout must be updated, and to do that, call `onItemHeightChange(i)` after calling `onItemStateChange()`. For example, consider a social network feed, each post optionally having an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a small thumbnail that expands into a full-sized embedded YouTube video player when a user clicks on it. If the expanded/collapsed state of such attachment isn't been managed in `VirtualScroller`, then, when the user expands the video, then scrolls down so that the post with the video is no longer visible and is unmounted as a result, then scrolls back up so that the post with the video is visible again, the video's expanded state would be lost, and it would be rendered as a small thumbnail as if the user didn't click on it. And don't forget about calling `onItemHeightChange(i)` in such cases: if `onItemHeightChange(i)` isn't called after expanding the thumbnail into a video player, then the scroll position would "jump" when such item goes off screen, because `VirtualScroller` would have based its calculations on the initially measured item height, not the "expanded" one.
+
+* `getItemScrollPosition(i: number): number?` — Returns an item's scroll position inside the scrollable container. Returns `undefined` if any of the items before this item haven't been rendered yet.
 
 * `setItems(newItems: any[], options: object?)` — Updates `VirtualScroller` `items`. For example, it can be used to prepend or append new items to the list. See [Dynamically Loaded Lists](#dynamically-loaded-lists) section for more details. Available options: `preserveScrollPositionOnPrependItems: boolean` — Set to `true` to enable "restore scroll position after prepending new items" feature (should be used when implementing a "Show previous items" button).
 
@@ -424,7 +437,7 @@ Message.propTypes = {
 
 * `items` — The items list.
 
-* `itemComponent` — List item component. Receives the list item as the `children` property. Can optionally receive `state` and `onSaveState()` properties for saving list item state before unmounting it and then restoring that state after the item is re-mounted (for example, this supports "Show more" buttons, "Expand YouTube video" buttons, etc). For best performance, make sure it's a `React.PureComponent` or a `React.memo()`, otherwise it'll be re-rendering as the user scrolls.
+* `itemComponent` — List item component. For best performance, make sure it's a `React.PureComponent` or a `React.memo()`, otherwise it'll be re-rendering as the user scrolls and new items get shown or older ones get hidden.
 
 * `itemComponentProps: object` — (optional) The props passed to `itemComponent`.
 
@@ -435,8 +448,6 @@ Message.propTypes = {
 * `bypass: boolean` — (optional) The `bypass` option of `VirtualScroller` class.
 
 * `preserveScrollPositionOnPrependItems: boolean` — (optional) The `preserveScrollPositionOnPrependItems` option of `VirtualScroller.setItems()` method.
-
-* `preserveScrollPositionOfTheBottomOfTheListOnMount: boolean` — (optional) The `preserveScrollPositionOfTheBottomOfTheListOnMount` option of `VirtualScroller`.
 
 * `measureItemsBatchSize: number` — (optional) The `measureItemsBatchSize` option of `VirtualScroller`.
 
@@ -486,13 +497,13 @@ class Example extends React.Component {
 
 #####
 
-* `children` — The item.
+* `children` — The list item (an element of the `items` array).
 
-* `state` — Item's state. Can be used for storing and then restoring the state of components which are about to be shown again after being previously hidden. For example, consider a post with an "Expand YouTube Video" button. If a user clicks the button the post is expanded and its height changes. Then the user scrolls down until the post is no longer visible and so it's no longer rendered. Then the user scrolls back up and the post is visible again and so it's rendered again. If the "Expand YouTube Video" state wasn't preserved then the list items would "jump" for the expanded minus non-expanded height difference. To avoid that, some `{ videoExpanded: true }` `state` could be passed to the post component which would make it auto-expand the video on mount and so the list items wouldn't "jump". For that, `onStateChange({ videoExpanded: true })` would have to be called when the user clicks the "Expand YouTube Video" button.
+* `state` — (advanced) List item element state. If a list item element renders differently depending on some "state" then that state should be "managed" (stored and later restored) as the list item becomes hidden and later visible again. See `onStateChange` property description.
 
-* `onStateChange(itemState)` — A proxy for `VirtualScroller.onItemStateChange(i, itemState)`. Call this function to update item's `state`.
+* `onStateChange(newItemState)` — (advanced) Can be called to save the list item element state when it changes. The need for saving and restoring list item element state arises because item elements get unmounted as they go off screen. For example, consider a social network feed where feed items (posts) can be expanded or collapsed via a "Show more"/"Show less" button. Suppose a user clicks a "Show more" button on a post resulting in that post expanding in height. Then the user scrolls down and since the post is no longer visible it gets unmounted. Since no state is preserved by default, when the user scrolls back up and the post gets mounted again, its previous state will be lost and it will render as a collapsed post instead of an expanded one, resulting in a perceived "jump" of page content by the difference in height of the post being expanded and collapsed. To prevent that, define a "state" of an item element — for example, `{ expanded: true }` — and then call `onStateChange(newState)` every time the item element state changes, and read that state from the `state` property when rendering the item element. Calling `onStateChange()` simply updates the item element `state`, and doesn't re-render the item element: it's just a proxy for `VirtualScroller.onItemStateChange(i, itemState)`.
 
-* `onHeightChange()` — A proxy for `VirtualScroller.onItemHeightChange(i)`. Call this function to re-measure the item if it shrinks in height.
+* `onHeightChange()` — (advanced) Call this function whenever the item element height changes. In the example above, `onHeightChange()` should be called when a user clicks a "Show more"/"Show less" button because that results in a change of the item element's height, so `VirtualScroller` should re-measure it in order for its internal calculations to stay correct. This is simply a proxy for `VirtualScroller.onItemHeightChange(i)`.
 </details>
 
 #####
@@ -511,30 +522,29 @@ class Example extends React.Component {
 
 ## Rendering Engine
 
-`VirtualScroller` is written in such a way that it supports any type of a rendering engine, not just DOM. For example, it could support something like React Native or `<canvas/>`: for that, someone would have to write custom versions of [`Screen.js`](https://gitlab.com/catamphetamine/virtual-scroller/-/blob/master/source/DOM/Screen.js) and [`ScrollableContainer.js`](https://gitlab.com/catamphetamine/virtual-scroller/-/blob/master/source/DOM/ScrollableContainer.js), and then instruct `VirtualScroller` to use those instead of the default ones by passing custom `renderingEngine` configuration when constructing a `VirtualScroller` instance:
+`VirtualScroller` is written in such a way that it supports any type of a rendering engine, not just DOM. For example, it could support something like React Native or `<canvas/>`: for that, someone would have to write custom versions of [`Screen.js`](https://gitlab.com/catamphetamine/virtual-scroller/-/blob/master/source/DOM/Screen.js) and [`ScrollableContainer.js`](https://gitlab.com/catamphetamine/virtual-scroller/-/blob/master/source/DOM/ScrollableContainer.js), and then instruct `VirtualScroller` to use those instead of the default ones by passing custom `engine` object when constructing a `VirtualScroller` instance:
 
 ```js
 import VirtualScroller from 'virtual-scroller'
 
-import Screen from './Screen'
+import Container from './Container'
 import ScrollableContainer from './ScrollableContainer'
 
-new VirtualScroller(getContainerElement, {
+new VirtualScroller(getItemsContainerElement, items, {
   scrollableContainer,
-  renderingEngine: {
-    name: 'Non-DOM Rendering Engine',
-    createScreen() {
-      return new Screen()
+  engine: {
+    createItemsContainer(getItemsContainerElement) {
+      return new Container(getItemsContainerElement)
     },
-    createScrollableContainer(scrollableContainer) {
-      return new ScrollableContainer(scrollableContainer)
+    createScrollableContainer(scrollableContainer, getItemsContainerElement) {
+      return new ScrollableContainer(scrollableContainer, getItemsContainerElement)
     }
   },
   ...
 })
 ```
 
-`getContainerElement()` function would simply return a list "element", whatever that could mean. The concept of an "element" is "something, that can be rendered", so it could be anything, not just a DOM Element. Any operations with "elements" are done either in `Screen.js` or in `ScrollableContainer.js`: `Screen.js` defines the operations that could be applied to an "element", such as getting its height or getting its child elements' heights, and `ScrollableContainer.js` defines the operations that could be applied to a "scrollable container", such as getting its dimensions, listening for "resize" and "scroll" events,  controlling scroll position, etc.
+`getItemsContainerElement()` function would simply return a list "element", whatever that could mean. The concept of an "element" is "something, that can be rendered", so it could be anything, not just a DOM Element. Any operations with "elements" are done either in `Container.js` or in `ScrollableContainer.js`: `Container.js` defines the operations that could be applied to the list "container", or its items, such as getting its height or getting an items' height, and `ScrollableContainer.js` defines the operations that could be applied to a "scrollable container", such as getting its dimensions, listening for "resize" and "scroll" events, controlling scroll position, etc.
 
 ## Dynamically Loaded Lists
 
@@ -608,7 +618,7 @@ function getColumnsCount(container) {
 
 ### Margin collapse
 
-If any vertical `margin` is set on the list items then this may lead to the list items jumping by the value of that margin when scrolling. The reason is that when the first list item is rendered then there's no `padding-top` on the containing `<div/>` so the first item's margin ["collapses"](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Box_Model/Mastering_margin_collapsing) with outer margins, but when the first item is no longer rendered the containing `<div/>` has `padding-top` to compensate for that which prevents list item margin from "collapsing" with outer margins. To fix that, don't set any `margin-top` on the first item of the list and don't set any `margin-bottom` on the last item of the list. An example of fixing margin for the first and the last items of the list:
+If any vertical CSS `margin` is set on the list items, then this may lead to page content "jumping" by the value of that margin while scrolling. The reason is that when the top of the list is visible on screen, no `padding-top` gets applied to the list element, and the CSS spec states that having `padding` on an element disables its ["margin collapse"](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Box_Model/Mastering_margin_collapsing), so, while there's no `padding-top` on the list element, its margins do "collapse" with outer margins, but when the first item is no longer visible (and no longer rendered), `padding-top` gets applied to the list element to compensate for the non-rendered items, and that `padding-top` prevents the list's margins from "collapsing" with outer margins. So that results in the page content "jumping" when the first item in the list becomes invisible or becomes visible again. To fix that, don't set any `margin-top` on the first item of the list, and don't set any `margin-bottom` on the last item of the list. An example of fixing `margin` for the first and the last items of the list:
 
 ```css
 /* This margin is supposed to "collapse" with the outer ones
@@ -628,7 +638,7 @@ If any vertical `margin` is set on the list items then this may lead to the list
 
 ### Styling `:first-child` and `:last-child`
 
-When styling the first and the last items of the list via `:first-child` and `:last-child` one should also check that such styles don't change the item's height which means that one should not add any `border` or `padding` styles to `:first-child` and `:last-child` otherwise the list items will jump by that extra height while scrolling.
+When styling the first and the last items of the list via `:first-child` and `:last-child`, one should also check that such styles don't change the item's height, which means that one should not add any `border` or `padding` styles to `:first-child` and `:last-child`, otherwise the list items will jump by that extra height during scrolling.
 
 An example of a `:first-child`/`:last-child` style that will not work correctly with `VirtualScroller`:
 
@@ -640,6 +650,72 @@ An example of a `:first-child`/`:last-child` style that will not work correctly 
   border-top: 1px solid black;
 }
 ```
+
+### Resize
+
+When the container width changes, all items' heights must be recalculated because some CSS [`@media()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Media_Queries) rules might have been added or removed. If the list currently shows items starting from the `N`-th one, then all `N - 1` previous items have to be remeasured. But they can't be remeasured until rendered again, so `VirtualScroller` snapshots those items' heights before the resize, and then uses those snapshotted heights until the items are re-measured when they become visible again as the user scrolls up.
+
+Also, when such snapshotted upper items get re-rendered and re-measured, the scroll position has to be corrected to avoid ["content jumping"](https://css-tricks.com/content-jumping-avoid/).
+
+<details>
+<summary>Correcting scroll position though doesn't seem to work in a particular case when using Chrome web browser on a desktop</summary>
+
+#####
+
+When the user scrolls up past the "prerender margin", which equals to the screen height by default, the list content does "jump" because the web browser doesn't want to apply the scroll position correction while scrolling for some weird reason. Looks like a bug in the web browser.
+
+```
+[virtual-scroller] The user is scrolling: perform a re-layout when they stop scrolling
+Current scroll position: 7989
+[virtual-scroller] The user is scrolling: perform a re-layout when they stop scrolling
+Current scroll position: 7972
+[virtual-scroller] The user is scrolling: perform a re-layout when they stop scrolling
+Current scroll position: 7957
+[virtual-scroller] The user has scrolled far enough: perform a re-layout
+[virtual-scroller] ~ Update Layout (on scroll) ~
+...
+[virtual-scroller] ~ Rendered ~
+[virtual-scroller] State ...
+[virtual-scroller] ~ Measure item heights ~
+[virtual-scroller] Item index 27 height 232
+[virtual-scroller] Item index 28 height 178
+[virtual-scroller] ~ Clean up "before resize" item heights and correct scroll position ~
+[virtual-scroller] For item indexes from 27 to 28 — drop "before resize" heights [340, 259]
+[virtual-scroller] Correct scroll position by -189
+Scroll to position: 7768
+[virtual-scroller] Set state ...
+[virtual-scroller] ~ Rendered ~
+[virtual-scroller] State ...
+Current scroll position: 7944
+[virtual-scroller] The user is scrolling: perform a re-layout when they stop scrolling
+Current scroll position: 7933
+[virtual-scroller] The user is scrolling: perform a re-layout when they stop scrolling
+Current scroll position: 7924
+[virtual-scroller] The user is scrolling: perform a re-layout when they stop scrolling
+...
+```
+
+```js
+var listener = () => {
+  console.log('Current scroll position:', window.pageYOffset)
+}
+document.addEventListener('scroll', listener)
+var unlisten = () => document.removeEventListener('scroll', listener)
+
+// Also add `console.log('Scroll to position:', scrollY)` in
+// `scrollToY()` method in `./source/DOM/ScrollableContainer.js`.
+```
+
+Also, pressing the "Home" key wouldn't scroll up past the "prerender margin", which is equal to the screen height by default. The reason is the same: applying scroll position correction while the "Home" key is pressed cancels the effect of the "Home" button.
+
+A possible workaround for those bugs would be postponing scroll position correction until the user stops scrolling, and instead change `margin-bottom` of some "spacer" element at the top of the list (or maybe even before the list). When the user stops scrolling, the scroll position would get corrected by the value of `margin-bottom` of that "spacer" element, after which the `margin-bottom` value on that "spacer" element would be reset. But this type of a workaround would only work in a DOM environment because it requires the support of "negative" margin.
+
+For now, I don't see it as a bug that would be worth fixing. The user could just refresh the page, or not scroll up at all because they've already seen that content.
+</details>
+
+#####
+
+The "before resize" snapshot is stored in `VirtualScroller` state in `beforeResize` object: `itemHeights: number[]`, `verticalSpacing: number`, `columnsCount: number`.
 
 ### `<tbody/>`
 
@@ -707,6 +783,36 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 
 * Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.renderItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.setItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
 -->
+
+## TypeScript
+
+This library comes with TypeScript "typings". If you happen to find any bugs in those, create an issue.
+
+## Possible enhancements
+
+### Alternative approach in DOM rendering
+
+This library's `DOM` and `React` component implementations use `padding-top` and `padding-bottom` on the items container to emulate the items that're not currently visible. In DOM environment, this approach comes with a slight drawback: the web browser has to perform a "reflow" every time shown item indexes change as a result of the user scrolling the page.
+
+Twitter seems to use a slightly different approach: they set `position: relative` and `min-height: <all-items-height>` on the items container, and then `position: absolute`, `width: 100%` and `transform: translateY(<item-top-offset>)` on every items. Since `transform`s are only applied at the "compositing" stage of a web browser's rendering cycle, there's no need to recalculate anything, and so scrolling the page comes without any possible performance penalties at all.
+
+<details>
+<summary>My thoughts on moving from <code>padding</code>s to <code>transform</code>s</summary>
+
+######
+
+I've fantasised a bit about moving to `transforms` in this library's `DOM` and `React` component implementations, and it seems to involve a bit more than it initially seems:
+
+* Item heights aren't known before the items have been rendered, so it'll have to re-render twice rather than once as the user scrolls: first time to measure the newly-shown items' heights and second time to apply the calculated Y positions of those items.
+
+* A bit more complexity is added when one recalls that this library supports multi-column layout: now not only `y` positions but also `x` positions of every item would have to be calculated, and not only vertical spacing but also horizontal spacing between the items in a row.
+
+* The `state` would have to include a new property — `itemPositions` — that would include an `x` and `y` position for every item.
+
+* Using `x`/`y` positions for every item would mean that the `x`/`y` position of every item would no longer be dynamically calculated by a web browser (in `auto` mode) and instead would have to be pre-calculated by the library meaning that everything would have to be constantly re-calculated and re-rendered as the user resizes the window, not just on window resize end like it currently does. For example, if the user starts shrinking window width, the items' heights would start increasing due to content overflow, which, without constant re-calculation and re-rendering, would result in items being rendered on top of each other. So the fix for that would be re-calculating and re-rendering stuff immediately on every window `resize` event as the user drags the handle rather than waiting for the user to let go of that handle and stop resizing the window, which would obviously come with some performance penalties but maybe a modern device can handle such things without breaking a sweat.
+
+The points listed above aren't something difficult to implement, it's just that I don't want to do it unless there're any real observed performance issues related to the "reflows" during scrolling. "If it works, no need to change it".
+</details>
 
 ## GitHub
 

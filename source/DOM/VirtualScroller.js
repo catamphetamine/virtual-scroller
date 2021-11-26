@@ -1,11 +1,11 @@
 import VirtualScrollerCore from '../VirtualScroller'
 
-import log from '../utility/debug'
+import log, { warn } from '../utility/debug'
 import px from '../utility/px'
 
 export default class VirtualScroller {
-  constructor(element, items, renderItem, options = {}) {
-    this.container = element
+  constructor(itemsContainerElement, items, renderItem, options = {}) {
+    this.container = itemsContainerElement
     this.renderItem = renderItem
     const {
       onMount,
@@ -55,7 +55,6 @@ export default class VirtualScroller {
     const diffRender = prevState && items === prevState.items && items.length > 0
     // Remove no longer visible items from the DOM.
     if (diffRender) {
-      log('Incremental rerender')
       // Decrement instead of increment here because
       // `this.container.removeChild()` changes indexes.
       let i = prevState.lastShownItemIndex
@@ -63,14 +62,14 @@ export default class VirtualScroller {
         if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
           // The item is still visible.
         } else {
-          log('Remove item index', i)
+          log('DOM: Remove element for item index', i)
           // The item is no longer visible. Remove it.
           this.unmountItem(this.container.childNodes[i - prevState.firstShownItemIndex])
         }
         i--
       }
     } else {
-      log('Rerender from scratch')
+      log('DOM: Rerender the list from scratch')
       while (this.container.firstChild) {
         this.unmountItem(this.container.firstChild)
       }
@@ -89,11 +88,11 @@ export default class VirtualScroller {
       } else {
         const item = this.renderItem(items[i])
         if (shouldPrependItems) {
-          log('Prepend item index', i)
+          log('DOM: Prepend element for item index', i)
           // Append `item` to `this.container` before the retained items.
           this.container.insertBefore(item, prependBeforeItemElement)
         } else {
-          log('Append item index', i)
+          log('DOM: Append element for item index', i)
           // Append `item` to `this.container`.
           this.container.appendChild(item)
         }
@@ -104,13 +103,13 @@ export default class VirtualScroller {
 
   // Public API. Should be "bound" to `this`.
   onUnmount = () => {
-    console.warn('[virtual-scroller] `.onUnmount()` instance method name is deprecated, use `.stop()` instance method name instead.')
+    warn('`.onUnmount()` instance method name is deprecated, use `.stop()` instance method name instead.')
     this.stop()
   }
 
   // Public API. Should be "bound" to `this`.
   destroy = () => {
-    console.warn('[virtual-scroller] `.destroy()` instance method name is deprecated, use `.stop()` instance method name instead.')
+    warn('`.destroy()` instance method name is deprecated, use `.stop()` instance method name instead.')
     this.stop()
   }
 

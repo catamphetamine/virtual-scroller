@@ -6,7 +6,7 @@
 		<!-- Fix document width for mobile devices. -->
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-		<title>React VirtualScroller Demo (Grid Layout)</title>
+		<title>React VirtualScroller Demo</title>
 
 		<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
 		<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
@@ -19,28 +19,15 @@
 
 		<link rel="stylesheet" href="./style.css"/>
 
+		<!--
 		<style>
 			#messages {
-				display: flex;
-				flex-wrap: wrap;
-			}
-			.feed-message {
-				flex-basis: 33.333333%;
-				box-sizing: border-box;
-    		border: 2px solid rgb(230, 236, 240);
-			}
-			.container {
-				max-width: 1280px;
-			}
-			@media screen and (max-width: 1280px) {
-				.container {
-					max-width: 720px;
-				}
-				.feed-message {
-					flex-basis: 100%;
-				}
+				border-top: 2px solid rgb(230, 236, 240);
+				display: grid;
+				grid-gap: 2em;
 			}
 		</style>
+		-->
 	</head>
 
 	<body>
@@ -58,21 +45,13 @@
 
 		<script type="text/babel">
 			const BATCH_SIZE = 6
-			const COLUMNS_COUNT = 3
-
-			function getColumnsCount(container) {
-				if (container.getWidth() > 1280) {
-					return COLUMNS_COUNT
-				}
-				return 1
-			}
 
 			class FeedMessages extends React.Component {
 				constructor(props) {
 					super(props)
 					const { messages } = this.props
 					if (window.dynamic) {
-						const fromIndex = Math.floor((messages.length - BATCH_SIZE) / 2 / COLUMNS_COUNT) * COLUMNS_COUNT
+						const fromIndex = Math.floor(messages.length / 2 - BATCH_SIZE / 2)
 						const toIndex = fromIndex + BATCH_SIZE - 1
 						this.state = {
 							fromIndex,
@@ -127,11 +106,11 @@
 								</button>
 							}
 							<VirtualScroller
+								bypass
 								id="messages"
 								items={messages}
 								itemComponent={Message}
-								preserveScrollPositionOnPrependItems
-								getColumnsCount={getColumnsCount}/>
+								preserveScrollPositionOnPrependItems/>
 							{window.dynamic && toIndex < this.props.messages.length - 1 &&
 								<button
 									type="button"
