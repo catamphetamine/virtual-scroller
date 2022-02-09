@@ -473,7 +473,7 @@ export default class VirtualScroller {
 			afterItemsHeight
 		} = this.layout.getInitialLayoutValues({
 			itemsCount,
-			columnsCount: this.getColumnsCount()
+			columnsCount: this.getActualColumnsCount()
 		})
 		const itemHeights = new Array(itemsCount)
 		// Optionally preload items to be rendered.
@@ -1891,7 +1891,10 @@ export default class VirtualScroller {
 		// Re-calculate `firstShownItemIndex` and `lastShownItemIndex`
 		// based on the new `columnsCount` so that the whole row is visible.
 		const newFirstShownItemIndex = Math.floor(firstShownItemIndex / newColumnsCount) * newColumnsCount
-		const newLastShownItemIndex = Math.ceil((lastShownItemIndex + 1) / newColumnsCount) * newColumnsCount - 1
+		const newLastShownItemIndex = Math.min(
+			Math.ceil((lastShownItemIndex + 1) / newColumnsCount) * newColumnsCount,
+			itemsCount
+		) - 1
 
 		// Potentially update `firstShownItemIndex` if it needs to be adjusted in order to
 		// correspond to the new `columnsCount`.

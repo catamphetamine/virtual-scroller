@@ -111,15 +111,12 @@ export default class ItemHeights {
 		let firstMeasuredItemIndexHasBeenUpdated = false
 		let i = firstShownItemIndex
 		while (i <= lastShownItemIndex) {
+			// Measure item heights that haven't been measured previously.
 			// Don't re-measure item heights that have been measured previously.
 			// The rationale is that developers are supposed to manually call
 			// `.onItemHeightChange()` every time an item's height changes.
-			// If developers aren't neglecting that rule, item heights won't
+			// If developers don't neglect that rule, item heights won't
 			// change unexpectedly.
-			// // Re-measure all shown items' heights, because an item's height
-			// // might have changed since it has been measured initially.
-			// // For example, if an item is a long comment with a "Show more" button,
-			// // then the user might have clicked that "Show more" button.
 			if (this._get(i) === undefined) {
 				nonPreviouslyMeasuredItemIndexes.push(i)
 				const height = this._measureItemHeight(i, firstShownItemIndex)
@@ -159,14 +156,17 @@ export default class ItemHeights {
 					this.lastMeasuredItemIndex = i
 				}
 			} else {
-				// Validate the item's height right after showing it after being hidden,
-				// because, if the stored item's state isn't applied properly, the item's
-				// height might be incorrect when it's rendered with that state not applied,
-				// and so a developer could know that there's a bug in their code.
+				// Validate that the item's height didn't change since it was last measured.
+				// If it did, then display a warning and update the item's height
+				// as an attempt to fix things.
+				// If an item's height changes unexpectedly then it means that there'll
+				// likely be "content jumping".
 				const previousHeight = this._get(i)
 				const height = this._measureItemHeight(i, firstShownItemIndex)
 				if (previousHeight !== height) {
-					warn('Item index', i, 'height was', previousHeight, 'before it was hidden, but, after showing it again, its height is', height, '. Perhaps you forgot to persist the item\'s state by calling `onItemStateChange(i, newState)` when it changed, and that state got lost when the item element was unmounted, which resulted in a different height when the item was shown again, but with the missing state.')
+					warn('Item index', i, 'height changed unexpectedly: it was', previousHeight, 'before, but now it is', height, '. An item\'s height is allowed to change only in two cases: when the item\'s "state" changes and the developer calls `onItemStateChange(i, newState)`, or when the item\'s height changes for some other reason and the developer calls `onItemHeightChange(i)`. Perhaps you forgot to persist the item\'s "state" by calling `onItemStateChange(i, newState)` when it changed, and that "state" got lost when the item element was unmounted, which resulted in a different height when the item was shown again having its "state" reset.')
+					// Update the item's height as an attempt to fix things.
+					this._set(i, height)
 				}
 			}
 			i++

@@ -30,7 +30,7 @@ describe('VirtualScroller', function() {
 		// (when no `estimatedItemHeight` has been supplied)
 		virtualScroller.verifyState({
 			firstShownItemIndex: 0,
-			lastShownItemIndex: 0,
+			lastShownItemIndex: COLUMNS_COUNT - 1,
 			beforeItemsHeight: 0,
 			afterItemsHeight: 0
 		})
@@ -46,7 +46,7 @@ describe('VirtualScroller', function() {
 			beforeItemsHeight: 0,
 			afterItemsHeight: ITEM_HEIGHT * 4
 		}, () => {
-			virtualScroller.firstNonMeasuredItemIndex.should.equal(1)
+			virtualScroller.firstNonMeasuredItemIndex.should.equal(2)
 		})
 
 		// Layout has been re-calculated based on the actual item heights
