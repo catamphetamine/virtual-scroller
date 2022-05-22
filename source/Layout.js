@@ -1,4 +1,4 @@
-import log, { warn } from './utility/debug'
+import log, { warn } from './utility/debug.js'
 
 export default class Layout {
 	constructor({
@@ -116,7 +116,8 @@ export default class Layout {
 	}, {
 		itemsCount,
 		columnsCount,
-		shouldRestoreScrollPosition
+		shouldRestoreScrollPosition,
+		onResetGridLayout
 	}) {
 		// const layoutUpdate = {}
 
@@ -197,8 +198,10 @@ export default class Layout {
 				// use case. Instead, use the `getColumnsCount()` parameter function when
 				// fetching previous items.
 
+				onResetGridLayout()
+
 				warn('~ Prepended items count', prependedItemsCount, 'is not divisible by Columns Count', columnsCount, '~')
-				warn('Reset Layout')
+				warn('Layout reset required')
 
 				const shownItemsCountBeforeItemsUpdate = lastShownItemIndex - firstShownItemIndex + 1
 
@@ -240,20 +243,20 @@ export default class Layout {
 		// The reason is that only this way subsequent `setItems()` calls
 		// will be truly "stateless" when a chain of `setItems()` calls
 		// could be replaced with just the last one in a scenario when
-		// `setState()` calls are "asynchronous" (delayed execution).
+		// `updateState()` calls are "asynchronous" (delayed execution).
 		//
 		// So, for example, the user calls `setItems()` with one set of items.
-		// A `setState()` call has been dispatched but the `state` hasn't been updated yet.
+		// A `updateState()` call has been dispatched but the `state` hasn't been updated yet.
 		// Then the user calls `setItems()` with another set of items.
 		// If this function only returned a minimal set of properties that actually change,
 		// the other layout properties of the second `setItems()` call wouldn't overwrite the ones
 		// scheduled for update during the first `setItems()` call, resulting in an inconsistent `state`.
 		//
-		// For example, the first `setItems()` call does a `setState()` call where it updates
+		// For example, the first `setItems()` call does a `updateState()` call where it updates
 		// `afterItemsHeight`, and then the second `setItems()` call only updates `beforeItemsHeight`
 		// and `firstShownItemIndex` and `lastShownItemIndex`. If the second `setItems()` call was to
 		// overwrite any effects of the pending-but-not-yet-applied first `setItems()` call, it would
-		// have to call `setState()` with an `afterItemsHeight` property too, even though it hasn't change.
+		// have to call `updateState()` with an `afterItemsHeight` property too, even though it hasn't change.
 		// That would be just to revert the change to `afterItemsHeight` state property already scheduled
 		// by the first `setItems()` call.
 		//
@@ -772,8 +775,8 @@ export const LAYOUT_REASON = {
 	SCROLL: 'scroll',
 	STOPPED_SCROLLING: 'stopped scrolling',
 	MANUAL: 'manual',
-	MOUNTED: 'mounted',
-	ACTUAL_ITEM_HEIGHTS_HAVE_BEEN_MEASURED: 'actual item heights have been measured',
+	STARTED: 'started',
+	NON_MEASURED_ITEMS_HAVE_BEEN_MEASURED: 'non-measured item heights have been measured',
 	VIEWPORT_WIDTH_CHANGED: 'viewport width changed',
 	VIEWPORT_HEIGHT_CHANGED: 'viewport height changed',
 	VIEWPORT_SIZE_UNCHANGED: 'viewport size unchanged',

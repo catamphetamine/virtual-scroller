@@ -1,4 +1,4 @@
-import log from './utility/debug'
+import log from './utility/debug.js'
 
 export default class BeforeResize {
 	constructor({
@@ -11,22 +11,8 @@ export default class BeforeResize {
 		this.getColumnsCount = getColumnsCount
 	}
 
-	// Possibly clean up "before resize" property in state.
-	// "Before resize" state property is cleaned up when all "before resize" item heights
-	// have been re-measured in an asynchronous `this.setState({ beforeResize: undefined })` call.
-	// If `VirtualScroller` state was snapshotted externally before that `this.setState()` call
-	// has been applied, then "before resize" property might have not been cleaned up properly.
-	onInitialState(state) {
-		if (state) {
-			if (state.beforeResize) {
-				if (state.beforeResize.itemHeights.length === 0) {
-					state.beforeResize = undefined
-				}
-			}
-			if (state.beforeResize) {
-				this._includesBeforeResizeInState = true
-			}
-		}
+	initializeFromState(state) {
+		this._includesBeforeResizeInState = Boolean(state.beforeResize)
 	}
 
 	// Cleans up "before resize" item heights and adjusts the scroll position accordingly.
@@ -45,7 +31,7 @@ export default class BeforeResize {
 	//
 	// But, seems like it works fine as it is and there's no need to rewrite anything.
 	//
-	cleanUpBeforeResizeItemHeights(prevState) {
+	cleanUpBeforeResizeItemHeights() {
 		const {
 			firstShownItemIndex,
 			lastShownItemIndex,
@@ -138,9 +124,9 @@ export default class BeforeResize {
 					k++
 				}
 
-				// Schedule an asynchronous `this.setState()` call that will update
+				// Schedule an asynchronous `this.updateState()` call that will update
 				// `beforeResize` property of `state`. Ideally, it should be updated
-				// immediately, but since `this.setState()` calls are asynchronous,
+				// immediately, but since `this.updateState()` calls are asynchronous,
 				// the code updates just the underlying `beforeResize.itemHeights`
 				// array immediately instead, which is still a hack but still a lesser one.
 				if (firstShownItemIndex === 0) {
@@ -157,7 +143,7 @@ export default class BeforeResize {
 
 				// Immediately update `beforeResize.itemHeights`
 				// so that the component isn't left in an inconsistent state
-				// before a `this.setState()` call below is applied.
+				// before a `this.updateState()` call below is applied.
 				beforeResize.itemHeights.splice(
 					firstShownItemIndex,
 					beforeResize.itemHeights.length - firstShownItemIndex
@@ -314,4 +300,13 @@ function equalizeItemHeights(itemHeights, maxItemsCount, columnsCount) {
 	}
 
 	return itemHeights.slice(0, maxItemsCount)
+}
+
+export function cleanUpBeforeResizeState(state) {
+	if (state.beforeResize) {
+		if (state.beforeResize.itemHeights.length === 0) {
+			state.beforeResize = undefined
+		}
+	}
+	return state
 }

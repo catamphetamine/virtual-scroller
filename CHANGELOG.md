@@ -1,5 +1,62 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.9.0 / 18.05.2022
+==================
+
+General changes:
+
+* Refactored the code.
+
+* Moved to "ES Modules" exports (`type: "module"`). It's supposed to be a non-breaking change.
+
+Changes to the React component:
+
+* Rewrote React `<VirtualScroller/>` component as a function instead of a `Component` class.
+
+* Supposedly [fixed](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/21) re-mounting of the React component in accordance with React's recent [change](https://reactjs.org/blog/2022/03/08/react-18-upgrade-guide.html#updates-to-strict-mode) when they demand a component be mountable and unmountable several times during its lifetime.
+
+* Un-deprecated `getScrollableContainer()` option. It can be used instead of `scrollableContainer` option. The reason is React's recent [change](https://reactjs.org/blog/2022/03/08/react-18-upgrade-guide.html#updates-to-strict-mode) when they demand a component be mountable and unmountable several times during its lifetime: in that case, if components get mounted and unmounted several times, the `scrollableContainer` DOM Element reference does change between those re-mounts, so simply passing a `scrollableContainer` option would end up pointing to a non-existent DOM element on re-mount because the "core" (low-level) `VirtualScroller` class doesn't get re-created on re-mount.
+
+* (advanced) (breaking change) Removed the `initialCustomState` property due to not being used.
+
+* (advanced) (breaking change) Removed `.renderItem(i)` instance method from React `<VirtualScroller/>` component.
+
+(advanced) Changes to the "core" (low-level) `VirtualScroller` class:
+
+* Renamed `.listen()` instance method of `VirtualScroller` to `.start()`.
+
+* (breaking change) Removed long-deprecated instance methods:
+
+  * `.layout()` — use `.updateLayout()` instead.
+  * `.onMount()` — use `.start()` instead.
+  * `.render()` — use `.start()` instead.
+  * `.listen()` — use `.start()` instead.
+  * `.onUnmount()` — use `.stop()` instead.
+  * `.onUnmount()` — use `.destroy()` instead.
+  * `.updateItems()` — use `.setItems()` instead.
+
+* (breaking change) Removed the `customState` option due to not being used.
+
+* (breaking change) `onStateChange()` function used to receive two parameters: `newState` and `previousState`. Now it only receives one parameter: `newState`. Also, previously the readme adviced to perform a re-rendering of the list in `onStateChange()`. That's no longer true and `onStateChange()` should only be used for keeping track of the `VirtualScroller` state. For rendering there's a new parameter function called `render()`.
+
+* (breaking change) When not using custom (external) state management, passing a `render()` function as an option is required now. The `render()` function should (re)render the list.
+
+(advanced) Changes to the "core" (low-level) `VirtualScroller` class when using custom (external) state management:
+
+* (advanced) (breaking change) Removed `getState` / `setState` options of the `VirtualScroller` class. Instead, there's a new instance method called `.useState()` that should be called with `getState` and `updateState` parameters for enabling custom (external) state management. See the readme for more details.
+
+* (breaking change) A custom `setState()` state updater function of `VirtualScroller` used to receive a `willUpdateState()` parameter. That parameter has been removed now due to no longer being used.
+
+* (breaking change) A custom `setState()` state updater function of `VirtualScroller` previously received a `didUpdateState(prevState)` parameter function that should have been called on every state update. That parameter function has been removed. Instead, call a new instance method of `VirtualScroller`: `virtualScroller.onRender()` (without any arguments).
+
+* (breaking change) Renamed the custom `setState()` state updater function to `updateState()`.
+
+* (breaking change) The old `setState()` state updater function was called also when setting the initial state. The new `updateState()` state updater function doesn't get called to set the initial state. Instead, a `VirtualScroller` instance provides a `.getInitialState()` method, and developers are supposed to set the initial external state value themselves.
+
+(advanced) Changes to custom rendering `Engine`s:
+
+* (breaking change) Changed `Engine` interface: `createScrollableContainer()` function now receives `getScrollableContainer()` as its first argument instead of `scrollableContainer`. The reason is React's recent [change](https://reactjs.org/blog/2022/03/08/react-18-upgrade-guide.html#updates-to-strict-mode) when they demand a component be mountable and unmountable several times throughout its lifetime: in that case, if components get mounted and unmounted several times, the `scrollableContainer` DOM Element reference does change between those re-mounts, so simply passing a `scrollableContainer` option would end up pointing to a non-existent DOM element on re-mount because the "core" (low-level) `VirtualScroller` class doesn't get re-created on re-mount.re-mounts.
+
 1.8.0 / 26.11.2021
 ==================
 

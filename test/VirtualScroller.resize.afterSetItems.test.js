@@ -1,4 +1,4 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
 	it('should handle window resize after setItems()', async function() {
@@ -18,7 +18,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		let items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -27,7 +27,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// The first row of items is hidden.
 		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
@@ -38,6 +38,7 @@ describe('VirtualScroller', function() {
 			lastShownItemIndex: 5 * COLUMNS_COUNT - 1,
 			beforeItemsHeight: 1 * (ITEM_HEIGHT + VERTICAL_SPACING),
 			afterItemsHeight: (ROWS_COUNT - 5) * (ITEM_HEIGHT + VERTICAL_SPACING),
+			scrollableContainerWidth: SCREEN_WIDTH,
 			items,
 			itemStates: new Array(items.length),
 			itemHeights: new Array(5 * COLUMNS_COUNT).fill(ITEM_HEIGHT).concat(
@@ -85,8 +86,9 @@ describe('VirtualScroller', function() {
 				itemHeights: new Array(prevFirstShownItemIndex).fill(PREV_ITEM_HEIGHT),
 				verticalSpacing: VERTICAL_SPACING
 			},
-			columnsCount: COLUMNS_COUNT,
+			columnsCount: undefined, // COLUMNS_COUNT,
 			verticalSpacing: undefined,
+			scrollableContainerWidth: SCREEN_WIDTH,
 			items,
 			itemHeights: new Array(items.length),
 			itemStates: new Array(items.length),

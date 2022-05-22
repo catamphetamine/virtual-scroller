@@ -1,4 +1,4 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
 	it('should rebalance rows on columns count change on window resize', async function() {
@@ -19,7 +19,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -28,7 +28,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// The first row of items is hidden.
 		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
@@ -60,6 +60,7 @@ describe('VirtualScroller', function() {
 			},
 			columnsCount: COLUMNS_COUNT,
 			verticalSpacing: undefined,
+			scrollableContainerWidth: SCREEN_WIDTH,
 			itemHeights: new Array(items.length),
 			firstShownItemIndex: 2 * COLUMNS_COUNT - COLUMNS_COUNT,
 			lastShownItemIndex: 7 * COLUMNS_COUNT - 1,

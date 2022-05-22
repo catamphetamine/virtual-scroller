@@ -1,6 +1,6 @@
-import Layout from './Layout'
+import Layout from './Layout.js'
 
-import Engine from '../test/Engine'
+import Engine from './test/Engine.js'
 
 describe('Layout', function() {
 	it('should work', function() {
@@ -146,6 +146,8 @@ describe('Layout', function() {
 			getScrollableContainerHeight: () => scrollableContainer.height
 		})
 
+		let shouldResetGridLayout
+
 		layout.getLayoutUpdateForItemsDiff(
 			{
 				firstShownItemIndex: 3,
@@ -159,7 +161,8 @@ describe('Layout', function() {
 			}, {
 				itemsCount: 5 + 5 + items.length,
 				columnsCount: 4,
-				shouldRestoreScrollPosition: true
+				shouldRestoreScrollPosition: true,
+				onResetGridLayout: () => shouldResetGridLayout = true
 			}
 		).should.deep.equal({
 			firstShownItemIndex: 0,
@@ -167,5 +170,7 @@ describe('Layout', function() {
 			beforeItemsHeight: 0,
 			afterItemsHeight: 5 * (ITEM_HEIGHT + VERTICAL_SPACING)
 		})
+
+		shouldResetGridLayout.should.equal(true)
 	})
 })

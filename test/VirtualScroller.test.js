@@ -1,4 +1,4 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
 	it('should show and hide items on scroll', async function() {
@@ -18,7 +18,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -44,9 +44,10 @@ describe('VirtualScroller', function() {
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 4 * COLUMNS_COUNT - 1,
 			beforeItemsHeight: 0,
-			afterItemsHeight: ITEM_HEIGHT * 4
+			afterItemsHeight: ITEM_HEIGHT * 4,
+			scrollableContainerWidth: SCREEN_WIDTH
 		}, () => {
-			virtualScroller.firstNonMeasuredItemIndex.should.equal(2)
+			virtualScroller.getFirstNonMeasuredItemIndex().should.equal(2)
 		})
 
 		// Layout has been re-calculated based on the actual item heights
@@ -61,7 +62,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// Shows the first 3 rows of items.
 		virtualScroller.verifyState({
@@ -113,5 +114,18 @@ describe('VirtualScroller', function() {
 
 		// Stop listening to scroll events.
 		virtualScroller.stop()
+	})
+
+	it('should update layout manually', function() {
+		const virtualScroller = new VirtualScroller({
+			items: [{ area: 8000 }],
+			screenWidth: 800,
+			screenHeight: 400,
+			columnsCount: 1,
+			verticalSpacing: 0
+		})
+
+		virtualScroller.start()
+		virtualScroller.updateLayout()
 	})
 })

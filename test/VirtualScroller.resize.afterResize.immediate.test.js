@@ -1,7 +1,7 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
-	it('should handle two consequitive window resizes when async setState', async function() {
+	it('should handle two consequitive window resizes when async `updateState()`', async function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
@@ -19,7 +19,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -28,7 +28,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// The first row of items is hidden.
 		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)

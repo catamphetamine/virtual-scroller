@@ -1,11 +1,11 @@
 export default class ScrollableContainer {
 	/**
 	 * Constructs a new "scrollable container" from an element.
-	 * @param {Element} scrollableContainer
+	 * @param {func} getElement — Returns the scrollable container element.
 	 * @param {func} getItemsContainerElement — Returns items "container" element.
 	 */
-	constructor(element, getItemsContainerElement) {
-		this.element = element
+	constructor(getElement, getItemsContainerElement) {
+		this.getElement = getElement
 		this.getItemsContainerElement = getItemsContainerElement
 	}
 
@@ -14,7 +14,7 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getScrollY() {
-		return this.element.scrollTop
+		return this.getElement().scrollTop
 	}
 
 	/**
@@ -25,10 +25,10 @@ export default class ScrollableContainer {
 		// IE 11 doesn't seem to have a `.scrollTo()` method.
 		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/10
 		// https://stackoverflow.com/questions/39908825/window-scrollto-is-not-working-in-internet-explorer-11
-		if (this.element.scrollTo) {
-			this.element.scrollTo(0, scrollY)
+		if (this.getElement().scrollTo) {
+			this.getElement().scrollTo(0, scrollY)
 		} else {
-			this.element.scrollTop = scrollY
+			this.getElement().scrollTop = scrollY
 		}
 	}
 
@@ -38,7 +38,7 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getWidth() {
-		return this.element.offsetWidth
+		return this.getElement().offsetWidth
 	}
 
 	/**
@@ -47,10 +47,10 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getHeight() {
-		// if (!this.element && !precise) {
+		// if (!this.getElement() && !precise) {
 		// 	return getScreenHeight()
 		// }
-		return this.element.offsetHeight
+		return this.getElement().offsetHeight
 	}
 
 	/**
@@ -59,25 +59,26 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getItemsContainerTopOffset() {
-		const scrollableContainerTop = this.element.getBoundingClientRect().top
-		const scrollableContainerBorderTopWidth = this.element.clientTop
+		const scrollableContainerTop = this.getElement().getBoundingClientRect().top
+		const scrollableContainerBorderTopWidth = this.getElement().clientTop
 		const itemsContainerTop = this.getItemsContainerElement().getBoundingClientRect().top
 		return (itemsContainerTop - scrollableContainerTop) + this.getScrollY() - scrollableContainerBorderTopWidth
 	}
 
 	// isVisible() {
-	// 	const { top, bottom } = this.element.getBoundingClientRect()
+	// 	const { top, bottom } = this.getElement().getBoundingClientRect()
 	// 	return bottom > 0 && top < getScreenHeight()
 	// }
 
 	/**
 	 * Adds a "scroll" event listener to the "scrollable container".
-	 * @param {onScroll} Should be called whenever the scroll position inside the "scrollable container" (potentially) changes.
+	 * @param {onScrollListener} Should be called whenever the scroll position inside the "scrollable container" (potentially) changes.
 	 * @return {function} Returns a function that stops listening.
 	 */
-	onScroll(onScroll) {
-		this.element.addEventListener('scroll', onScroll)
-		return () => this.element.removeEventListener('scroll', onScroll)
+	onScroll(onScrollListener) {
+		const element = this.getElement()
+		element.addEventListener('scroll', onScrollListener)
+		return () => element.removeEventListener('scroll', onScrollListener)
 	}
 
 	/**
@@ -94,7 +95,7 @@ export default class ScrollableContainer {
 			const resizeObserver = new ResizeObserver((entries) => {
 				// "one entry per observed element".
 				// https://web.dev/resize-observer/
-				// `entry.target === this.element`.
+				// `entry.target === this.getElement()`.
 				const entry = entries[0]
 				// // If `entry.contentBoxSize` property is supported by the web browser.
 				// if (entry.contentBoxSize) {
@@ -104,8 +105,9 @@ export default class ScrollableContainer {
 				// }
 				onResize()
 			})
-			resizeObserver.observe(this.element)
-			unobserve = () => resizeObserver.unobserve(this.element)
+			const element = this.getElement()
+			resizeObserver.observe(element)
+			unobserve = () => resizeObserver.unobserve(element)
 		}
 		// I guess, if window is resized, `onResize()` will be triggered twice:
 		// once for window resize, and once for the scrollable container resize.
@@ -131,7 +133,7 @@ export class ScrollableWindowContainer extends ScrollableContainer {
 	 * @param {func} getItemsContainerElement — Returns items "container" element.
 	 */
 	constructor(getItemsContainerElement) {
-		super(window, getItemsContainerElement)
+		super(() => window, getItemsContainerElement)
 	}
 
 	/**

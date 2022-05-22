@@ -1,4 +1,4 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
 	it('should handle window resize when columns count changes', async function() {
@@ -18,7 +18,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		let items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -27,7 +27,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// The first 4 rows of items are hidden.
 		virtualScroller.scrollTo(MARGIN + 4 * (ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING)
@@ -41,7 +41,8 @@ describe('VirtualScroller', function() {
 			itemStates: new Array(items.length),
 			itemHeights: new Array(8 * COLUMNS_COUNT).fill(ITEM_HEIGHT).concat(
 				new Array((ROWS_COUNT - 8) * COLUMNS_COUNT)
-			)
+			),
+			scrollableContainerWidth: SCREEN_WIDTH
 		})
 
 		// Resize the window.
@@ -71,6 +72,7 @@ describe('VirtualScroller', function() {
 			},
 			columnsCount: COLUMNS_COUNT,
 			verticalSpacing: undefined,
+			scrollableContainerWidth: SCREEN_WIDTH,
 			itemHeights: new Array(items.length),
 			firstShownItemIndex: 4 * PREV_COLUMNS_COUNT + (1 * COLUMNS_COUNT - COLUMNS_COUNT),
 			lastShownItemIndex: 8 * PREV_COLUMNS_COUNT - 1,
@@ -79,7 +81,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Verify the average item height before resize.
-		virtualScroller.itemHeights.getAverage().should.equal(PREV_ITEM_HEIGHT)
+		virtualScroller.getAverageItemHeight().should.equal(PREV_ITEM_HEIGHT)
 
 		// Resize.
 		await virtualScroller.triggerResize({
@@ -90,7 +92,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The average item height has changed after resize.
-		virtualScroller.itemHeights.getAverage().should.equal(ITEM_HEIGHT)
+		virtualScroller.getAverageItemHeight().should.equal(ITEM_HEIGHT)
 
 		// Shows rows 3 to 4.
 		// (total items count: 4 rows)
@@ -130,7 +132,7 @@ describe('VirtualScroller', function() {
 
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
-		virtualScroller.scrollableContainer.getScrollY().should.equal(
+		virtualScroller.getScrollY().should.equal(
 			(MARGIN + 4 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING - 1) +
 			(
 				(ITEM_HEIGHT + VERTICAL_SPACING) - 2 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING)
@@ -152,7 +154,7 @@ describe('VirtualScroller', function() {
 
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
-		virtualScroller.scrollableContainer.getScrollY().should.equal(
+		virtualScroller.getScrollY().should.equal(
 			(MARGIN) +
 			(
 				(ITEM_HEIGHT + VERTICAL_SPACING) - 2 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING)

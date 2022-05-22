@@ -1,13 +1,13 @@
 export default class ScrollableContainer {
 	/**
 	 * Constructs a new "scrollable container" from an element.
-	 * @param {Element} element
+	 * @param {func} getElement — Returns the scrollable container element.
 	 * @param {func} getItemsContainerElement — Returns items "container" element.
 	 */
-	constructor(element, getItemsContainerElement) {
-		this.scrollTop = 0
-		this.element = element
+	constructor(getElement, getItemsContainerElement) {
+		this.getElement = getElement
 		this.getItemsContainerElement = getItemsContainerElement
+		this.scrollTop = 0
 	}
 
 	/**
@@ -35,7 +35,7 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getWidth() {
-		return this.element.width
+		return this.getElement().width
 	}
 
 	/**
@@ -44,7 +44,7 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getHeight() {
-		return this.element.height
+		return this.getElement().height
 	}
 
 	/**
@@ -78,5 +78,11 @@ export default class ScrollableContainer {
 		return () => {
 			delete this.onResizeListener
 		}
+	}
+
+	// Returns a `Promise` because `this.onResizeListener()` is a "debounced" function.
+	// See `./utility/debounce.js` for more details.
+	_triggerResizeListener() {
+		return this.onResizeListener()
 	}
 }

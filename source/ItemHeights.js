@@ -1,7 +1,12 @@
-import log, { warn, isDebug, reportError } from './utility/debug'
+import log, { warn, isDebug, reportError } from './utility/debug.js'
 
 export default class ItemHeights {
-	constructor(container, getItemHeight, setItemHeight) {
+	constructor({
+		container,
+		itemHeights,
+		getItemHeight,
+		setItemHeight
+	}) {
 		this.container = container
 		this._get = getItemHeight
 		this._set = setItemHeight
@@ -24,14 +29,14 @@ export default class ItemHeights {
 	}
 
 	/**
-	 * Is called after `.reset()`.
+	 * Can only be called after a `.reset()` (including new instance creation).
 	 * Initializes `this.measuredItemsHeight`, `this.firstMeasuredItemIndex`
 	 * and `this.lastMeasuredItemIndex` instance variables from `VirtualScroller` `state`.
 	 * These instance variables are used when calculating "average" item height:
 	 * the "average" item height is simply `this.measuredItemsHeight` divided by
 	 * `this.lastMeasuredItemIndex` minus `this.firstMeasuredItemIndex` plus 1.
 	 */
-	initialize(itemHeights) {
+	readItemHeightsFromState({ itemHeights }) {
 		let i = 0
 		while (i < itemHeights.length) {
 			if (itemHeights[i] === undefined) {

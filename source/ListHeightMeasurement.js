@@ -1,4 +1,4 @@
-export default class ListHeightChangeWatcher {
+export default class ListHeightMeasurement {
 	constructor({
 		itemsContainer,
 		getListTopOffset
@@ -8,12 +8,16 @@ export default class ListHeightChangeWatcher {
 	}
 
 	/**
-	 * `<ReactVirtualScroller/>` calls this method.
+	 * Snapshots the list height while `previousItems` are still rendered,
+	 * before rendering `newItems`. The list height will be re-measured
+	 * after the new items have been rendered, yielding the list height difference
+	 * which is gonna be the amount to scroll vertically in order to restore
+	 * the previous scroll position. Is only used when prepending items.
 	 * @param  {any[]} previousItems
 	 * @param  {any[]} newItems
 	 * @param  {number} prependedItemsCount
 	 */
-	snapshot({
+	snapshotListHeightBeforeAddingNewItems({
 		previousItems,
 		newItems,
 		prependedItemsCount
@@ -23,10 +27,12 @@ export default class ListHeightChangeWatcher {
 		if (previousItems.length === 0) {
 			return
 		}
+
 		// If no items were prepended then no need to restore scroll position.
 		if (prependedItemsCount === 0) {
 			return
 		}
+
 		// The first item is supposed to be shown when the user clicks
 		// "Show previous items" button. If it isn't shown though,
 		// could still calculate the first item's top position using
@@ -39,23 +45,18 @@ export default class ListHeightChangeWatcher {
 		// 		i--
 		// 	}
 		// }
-		// If the scroll position has already been captured for restoration,
-		// then don't capture it the second time.
-		// Capturing scroll position could happen when using `<ReactVirtualScroller/>`
-		// because it calls `ListHeightChangeWatcher.snapshot()` inside `ReactVirtualScroller.render()`
-		// which is followed by `<VirtualScroller/>`'s `.componentDidUpdate()`
-		// that also calls `ListHeightChangeWatcher.snapshot()` with the same arguments,
-		// so that second call to `ListHeightChangeWatcher.snapshot()` is ignored.
-		// Calling `ListHeightChangeWatcher.snapshot()` inside `ReactVirtualScroller.render()`
-		// is done to prevent scroll Y position from jumping
-		// when showing the first page of the "Previous items".
-		// See the long section of comments in `ReactVirtualScroller.render()`
-		// method for more info on why is `ListHeightChangeWatcher.snapshot()` called there.
-		if (this._snapshot &&
-			this._snapshot.previousItems === previousItems &&
-			this._snapshot.newItems === newItems) {
-			return
-		}
+
+		// This part is longer relevant: <ReactVirtualScroller/> no longer calls
+		// this function two times consequtively.
+		//
+		// // If the scroll position has already been captured for restoration,
+		// // then don't capture it the second time.
+		// if (this._snapshot &&
+		// 	this._snapshot.previousItems === previousItems &&
+		// 	this._snapshot.newItems === newItems) {
+		// 	return
+		// }
+
 		this._snapshot = {
 			previousItems,
 			newItems,

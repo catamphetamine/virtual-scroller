@@ -18,18 +18,19 @@ const WATCH_LIST_TOP_OFFSET_MAX_DURATION = 3000
 // returns "incorrect" `top` position because the styles haven't been applied yet.
 //
 // For example, consider a page:
+//
 // <div class="page">
 //   <nav class="sidebar">...</nav>
 //   <main>...</main>
 // </div>
 //
-// The sidebar is styled as `position: fixed`, but until
-// the page styles have been applied it's gonna be a regular `<div/>`
+// The sidebar is styled as `position: fixed`, but, until
+// the page styles have been applied, it's gonna be a regular `<div/>`
 // meaning that `<main/>` will be rendered below the sidebar
-// and will appear offscreen and so it will only render the first item.
+// and will appear offscreen, and so it will only render the first item.
 //
-// Then, the page styles are loaded and applied and the sidebar
-// is now `position: fixed` so `<main/>` is now rendered at the top of the page
+// Then, the page styles are loaded and applied, and the sidebar
+// is now `position: fixed`, so `<main/>` is now rendered at the top of the page,
 // but `VirtualScroller`'s `.render()` has already been called
 // and it won't re-render until the user scrolls or the window is resized.
 //
@@ -77,12 +78,16 @@ export default class ListTopOffsetWatcher {
 	}
 
 	start() {
-		this.isRendered = true
+		this._isActive = true
 		this.watchListTopOffset()
 	}
 
+	isStarted() {
+		return this._isActive
+	}
+
 	stop() {
-		this.isRendered = false
+		this._isActive = false
 
 		if (this.watchListTopOffsetTimer) {
 			clearTimeout(this.watchListTopOffsetTimer)
@@ -95,7 +100,7 @@ export default class ListTopOffsetWatcher {
 		const check = () => {
 			// If `VirtualScroller` has been unmounted
 			// while `setTimeout()` was waiting, then exit.
-			if (!this.isRendered) {
+			if (!this._isActive) {
 				return
 			}
 			// Skip comparing `top` coordinate of the list

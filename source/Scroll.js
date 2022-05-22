@@ -4,7 +4,7 @@
 // https://github.com/bvaughn/react-virtualized/issues/722
 import { setTimeout, clearTimeout } from 'request-animation-frame-timeout'
 
-import log from './utility/debug'
+import log from './utility/debug.js'
 
 export default class Scroll {
 	constructor({
@@ -39,9 +39,10 @@ export default class Scroll {
 		this.waitForScrollingToStop = waitForScrollingToStop
 	}
 
-	listen() {
+	start() {
 		if (this.initialScrollPosition !== undefined) {
 			this.scrollToY(this.initialScrollPosition)
+			this.initialScrollPosition = undefined
 		}
 		if (this.onScrollPositionChange) {
 			this.onScrollPositionChange(this.getScrollY())
@@ -50,20 +51,10 @@ export default class Scroll {
 	}
 
 	stop() {
-		if (this.stopReportingScrollPositionChange) {
-			this.stopReportingScrollPositionChange()
-			this.stopReportingScrollPositionChange = undefined
-		}
-		if (this.stopListeningToScroll) {
-			this.stopListeningToScroll()
-			this.stopListeningToScroll = undefined
-		}
-		if (this.onStopScrollingListener) {
-			this.onStopScrollingListener = undefined
-		}
-		if (this.onScrollOnStopScrolling) {
-			this.onScrollOnStopScrolling = undefined
-		}
+		this.stopListeningToScroll()
+		this.stopListeningToScroll = undefined
+		// this.onStopScrollingListener = undefined
+		this.shouldCallOnScrollListenerWhenStopsScrolling = undefined
 		this.cancelOnStopScrollingTimer()
 	}
 
@@ -175,7 +166,7 @@ export default class Scroll {
 			return
 		}
 
-		this.onScrollOnStopScrolling = true
+		this.shouldCallOnScrollListenerWhenStopsScrolling = true
 		this.watchOnStopScrolling()
 	}
 
@@ -184,21 +175,22 @@ export default class Scroll {
 			() => {
 				this.onStopScrollingTimer = undefined
 
-				if (this.onScrollOnStopScrolling) {
-					this.onScrollOnStopScrolling = undefined
+				if (this.shouldCallOnScrollListenerWhenStopsScrolling) {
+					this.shouldCallOnScrollListenerWhenStopsScrolling = undefined
 					this.onScroll({ delayed: true })
 				}
 
-				if (this.onStopScrollingListener) {
-					const onStopScrollingListener = this.onStopScrollingListener
-					this.onStopScrollingListener = undefined
-					// `onStopScrollingListener()` may hypothetically schedule
-					// another `onStopScrolling()` listener, so set
-					// `this.onStopScrollingListener` to `undefined` before
-					// calling it rather than after.
-					log('~ The user has stopped scrolling ~')
-					onStopScrollingListener()
-				}
+				// `onStopScrolling()` feature is not currently used.
+				// if (this.onStopScrollingListener) {
+				// 	const onStopScrollingListener = this.onStopScrollingListener
+				// 	this.onStopScrollingListener = undefined
+				// 	// `onStopScrollingListener()` may hypothetically schedule
+				// 	// another `onStopScrolling()` listener, so set
+				// 	// `this.onStopScrollingListener` to `undefined` before
+				// 	// calling it rather than after.
+				// 	log('~ The user has stopped scrolling ~')
+				// 	onStopScrollingListener()
+				// }
 			},
 			// "scroll" events are usually dispatched every 16 milliseconds
 			// for 60fps refresh rate, so waiting for 100 milliseconds feels
@@ -213,12 +205,12 @@ export default class Scroll {
 	}
 
 	// (this function isn't currently used)
-	onStopScrolling(onStopScrollingListener) {
-		this.onStopScrollingListener = onStopScrollingListener
-		if (!this.onStopScrollingTimer) {
-			this.watchOnStopScrolling()
-		}
-	}
+	// onStopScrolling(onStopScrollingListener) {
+	// 	this.onStopScrollingListener = onStopScrollingListener
+	// 	if (!this.onStopScrollingTimer) {
+	// 		this.watchOnStopScrolling()
+	// 	}
+	// }
 
 	/**
 	 * Returns visible area coordinates relative to the scrollable container.

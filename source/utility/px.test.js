@@ -1,4 +1,4 @@
-import px from './px'
+import px from './px.js'
 
 describe('utility/px', function() {
 	it('should truncate px values', function() {

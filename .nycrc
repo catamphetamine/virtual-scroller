@@ -12,7 +12,9 @@
   "exclude": [
     "DOM/**/*.js",
     "react/**/*.js",
-    "utility/throttle.js",
+    "utility/debounce.js",
+    "utility/debug.js",
+    "utility/shallowEqual.js",
     "**/*.test.js"
   ],
   "check-coverage": true,

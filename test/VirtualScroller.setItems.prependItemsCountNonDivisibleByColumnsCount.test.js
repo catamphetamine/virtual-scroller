@@ -1,4 +1,4 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
 	it('should prepend an items count that is not divisible by columns count', () => {
@@ -18,7 +18,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		let items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -27,7 +27,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// Shows rows 1 to 3.
 		virtualScroller.verifyState({
@@ -75,7 +75,7 @@ describe('VirtualScroller', function() {
 			afterItemsHeight: 0,
 			items,
 			itemHeights: new Array(1 * COLUMNS_COUNT - 1).concat(
-				new Array(5 * COLUMNS_COUNT).fill(ITEM_HEIGHT).concat(
+				new Array(5 * COLUMNS_COUNT).concat(
 					new Array(itemsCountBeforePrepend - 5 * COLUMNS_COUNT)
 				)
 			),

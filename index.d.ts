@@ -1,6 +1,12 @@
 export type ItemHeight = number | undefined;
 export type ItemState = any | undefined;
 
+interface BeforeResizeState {
+	itemHeights: number[];
+	columnsCount: number;
+	verticalSpacing: number;
+}
+
 export interface State<Item> {
 	items: Item[];
 	firstShownItemIndex: number;
@@ -11,6 +17,8 @@ export interface State<Item> {
 	itemHeights: ItemHeight[];
 	verticalSpacing?: number;
 	columnsCount?: number;
+	scrollableContainerWidth?: number;
+	beforeResize?: BeforeResizeState;
 }
 
 export interface ItemsContainer<Element> {
@@ -34,34 +42,40 @@ export interface ScrollableContainer<Element> {
 
 export interface Engine<Element> {
 	createItemsContainer(getItemsContainerElement: () => Element): ItemsContainer<Element>;
-	createScrollableContainer(scrollableContainer: Element, getItemsContainerElement: () => Element): ScrollableContainer<Element>;
+	createScrollableContainer(getScrollableContainer: () => Element, getItemsContainerElement: () => Element): ScrollableContainer<Element>;
 }
 
-export interface VirtualScrollerCommonOptionsWithoutInitialState<Element, Item> {
+interface ScrollableContainerArgument {
+	getWidth(): number;
+}
+
+export interface VirtualScrollerCommonOptions<Element, Item> {
 	bypass?: boolean;
-	onStateChange?(newState: State<Item>, prevState?: State<Item>);
+	onStateChange?(newState: State<Item>);
 	measureItemsBatchSize?: number;
 	estimatedItemHeight?: number;
 	initialScrollPosition?: number;
 	onScrollPositionChange?(scrollY: number): void;
 	onItemInitialRender?(item: Item): void;
 	getItemId?(item: Item): any;
-	getColumnsCount?(scrollableContainer: Element): number;
-}
-
-export interface VirtualScrollerCommonOptions<Element, Item> extends VirtualScrollerCommonOptionsWithoutInitialState<Element, Item> {
-	state?: State<Item>;
-	customState?: object;
+	getColumnsCount?(scrollableContainer: ScrollableContainerArgument): number;
 }
 
 interface Options<Element, Item> extends VirtualScrollerCommonOptions<Element, Item> {
-	getState?(): State<Item>;
-	setState?(stateUpdate: Partial<State<Item>>): void;
+	state?: State<Item>;
+	render?(state: State<Item>, previousState?: State<Item>): void;
 	engine?: Engine<Element>;
 	tbody?: boolean;
+	scrollableContainer?: Element;
+	getScrollableContainer?(): Element;
 }
 
-export interface VirtualScrollerSetItemsOptions {
+interface UseStateOptions<Item> {
+	getState?(): State<Item>;
+	updateState?(stateUpdate: Partial<State<Item>>): void;
+}
+
+export interface SetItemsOptions {
 	preserveScrollPositionOnPrependItems?: boolean;
 }
 
@@ -72,13 +86,14 @@ export default class VirtualScroller<Element, Item> {
 		options?: Options<Element, Item>
 	);
 
-	listen(): void;
+	start(): void;
 	stop(): void;
-	willUpdateState(newState: State<Item>, prevState: State<Item>): void;
-	didUpdateState(prevState: State<Item>): void;
 	updateLayout(): void;
-	setItems(newItems: Item[], options?: VirtualScrollerSetItemsOptions): void;
+	onRender(): void;
+	setItems(newItems: Item[], options?: SetItemsOptions): void;
   onItemHeightChange(i: number): void;
   onItemStateChange(i: number, itemState?: object): void;
   getItemScrollPosition(i: number): number | undefined;
+  getInitialState(): State<Item>;
+  useState(options: UseStateOptions<Item>): void;
 }

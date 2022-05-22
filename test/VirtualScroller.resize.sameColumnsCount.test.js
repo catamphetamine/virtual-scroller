@@ -1,4 +1,4 @@
-import VirtualScroller from './VirtualScroller'
+import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
 	it('should handle window resize', async function() {
@@ -18,7 +18,7 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		let items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
-		const virtualScroller = VirtualScroller({
+		const virtualScroller = new VirtualScroller({
 			items,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
@@ -27,7 +27,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Start listening to scroll events.
-		virtualScroller.listen()
+		virtualScroller.start()
 
 		// The first row of items is hidden.
 		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
@@ -66,6 +66,7 @@ describe('VirtualScroller', function() {
 			},
 			columnsCount: COLUMNS_COUNT,
 			verticalSpacing: undefined,
+			scrollableContainerWidth: SCREEN_WIDTH,
 			itemHeights: new Array(items.length),
 			firstShownItemIndex: 2 * COLUMNS_COUNT - COLUMNS_COUNT,
 			lastShownItemIndex: 5 * COLUMNS_COUNT - 1,
@@ -74,7 +75,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The average item height before resize.
-		virtualScroller.itemHeights.getAverage().should.equal(PREV_ITEM_HEIGHT)
+		virtualScroller.getAverageItemHeight().should.equal(PREV_ITEM_HEIGHT)
 
 		// Resize.
 		await virtualScroller.triggerResize({
@@ -85,7 +86,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The average item height has changed after resize.
-		virtualScroller.itemHeights.getAverage().should.equal(ITEM_HEIGHT)
+		virtualScroller.getAverageItemHeight().should.equal(ITEM_HEIGHT)
 
 		// Shows rows 3 to 5.
 		virtualScroller.verifyState({
@@ -140,7 +141,7 @@ describe('VirtualScroller', function() {
 
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
-		virtualScroller.scrollableContainer.getScrollY().should.equal(
+		virtualScroller.getScrollY().should.equal(
 			(PREV_ITEM_HEIGHT + MARGIN - 1) + (ITEM_HEIGHT - PREV_ITEM_HEIGHT)
 		)
 

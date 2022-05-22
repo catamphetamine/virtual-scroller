@@ -1,37 +1,42 @@
-import VirtualScrollerCore from '../VirtualScroller'
+import VirtualScrollerCore from '../VirtualScroller.js'
 
-import log, { warn } from '../utility/debug'
-import px from '../utility/px'
+import log, { warn } from '../utility/debug.js'
+import px from '../utility/px.js'
 
 export default class VirtualScroller {
   constructor(itemsContainerElement, items, renderItem, options = {}) {
     this.container = itemsContainerElement
     this.renderItem = renderItem
+
     const {
       onMount,
       onItemUnmount,
       ...restOptions
     } = options
+
     this.onItemUnmount = onItemUnmount
     this.tbody = this.container.tagName === 'TBODY'
+
     this.virtualScroller = new VirtualScrollerCore(
       () => this.container,
       items,
       {
         ...restOptions,
-        tbody: this.tbody,
-        onStateChange: this.onStateChange
+        render: this.render,
+        tbody: this.tbody
       }
     )
+
+    this.start()
+
     // `onMount()` option is deprecated due to no longer being used.
     // If someone thinks there's a valid use case for it, create an issue.
     if (onMount) {
       onMount()
     }
-    this.virtualScroller.listen()
   }
 
-  onStateChange = (state, prevState) => {
+  render = (state, prevState) => {
     const {
       items,
       firstShownItemIndex,
@@ -39,9 +44,11 @@ export default class VirtualScroller {
       beforeItemsHeight,
       afterItemsHeight
     } = state
-    log('~ On state change ~')
-    log('Previous state', prevState)
-    log('New state', state)
+
+    // log('~ On state change ~')
+    // log('Previous state', prevState)
+    // log('New state', state)
+
     // Set container padding top and bottom.
     // Work around `<tbody/>` not being able to have `padding`.
     // https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
@@ -51,6 +58,7 @@ export default class VirtualScroller {
       this.container.style.paddingTop = px(beforeItemsHeight)
       this.container.style.paddingBottom = px(afterItemsHeight)
     }
+
     // Perform an intelligent "diff" re-render if the `items` are the same.
     const diffRender = prevState && items === prevState.items && items.length > 0
     // Remove no longer visible items from the DOM.
@@ -74,6 +82,7 @@ export default class VirtualScroller {
         this.unmountItem(this.container.firstChild)
       }
     }
+
     // Add newly visible items to the DOM.
     let shouldPrependItems = diffRender
     const prependBeforeItemElement = shouldPrependItems && this.container.firstChild
@@ -113,9 +122,16 @@ export default class VirtualScroller {
     this.stop()
   }
 
-  // Public API. Should be "bound" to `this`.
+  // Public API.
+  // Should be "bound" to `this`.
   stop = () => {
     this.virtualScroller.stop()
+  }
+
+  // Potentially public API in some hypothetical scenario.
+  // Should be "bound" to `this`.
+  start = () => {
+    this.virtualScroller.start()
   }
 
   unmountItem(itemElement) {
