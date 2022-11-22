@@ -35,7 +35,7 @@ export default class VirtualScroller {
 		const isRestart = this._isActive === false
 
 		if (!isRestart) {
-			// If no custom one has been configured, uses the default one.
+			// If no custom state storage has been configured, use the default one.
 			// Also sets the initial state.
 			if (!this._usesCustomStateStorage) {
 				this.useDefaultStateStorage()

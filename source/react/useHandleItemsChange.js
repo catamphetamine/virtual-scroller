@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect } from 'react'
+import { useRef } from 'react'
 
 // If new `items` are passed:
 //

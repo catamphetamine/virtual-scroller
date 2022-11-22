@@ -49,7 +49,7 @@ interface ScrollableContainerArgument {
 	getWidth(): number;
 }
 
-export interface VirtualScrollerCommonOptions<Element, Item> {
+export interface VirtualScrollerCommonOptions<Item> {
 	bypass?: boolean;
 	onStateChange?(newState: State<Item>);
 	measureItemsBatchSize?: number;
@@ -61,7 +61,7 @@ export interface VirtualScrollerCommonOptions<Element, Item> {
 	getColumnsCount?(scrollableContainer: ScrollableContainerArgument): number;
 }
 
-interface Options<Element, Item> extends VirtualScrollerCommonOptions<Element, Item> {
+interface Options<Element, Item> extends VirtualScrollerCommonOptions<Item> {
 	state?: State<Item>;
 	render?(state: State<Item>, previousState?: State<Item>): void;
 	engine?: Engine<Element>;

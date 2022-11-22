@@ -184,8 +184,14 @@ function VirtualScroller({
 			style={style}>
 			{renderedItems.map((item, i) => {
 				if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
+					// Passing `item` as `children` property is legacy and is deprecated.
+					// If version `2.x` is published in some hypothetical future,
+					// the `item` and `itemIndex` properties should be moved below
+					// `{...itemComponentProps}`.
 					return (
 						<Component
+							item={item}
+							itemIndex={i}
 							{...itemComponentProps}
 							key={getItemKey(item, i)}
 							state={itemStates && itemStates[i]}

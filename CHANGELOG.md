@@ -1,5 +1,12 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.10.0 / 22.11.2022
+==================
+
+* [React] Applied TypeScript [props fixes](https://gitlab.com/catamphetamine/virtual-scroller/-/merge_requests/1).
+
+* [React] Added two new properties: `item` and [`itemIndex`](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/26). The legacy `children` property is still passed but is considered deprecated.
+
 1.9.0 / 18.05.2022
 ==================
 

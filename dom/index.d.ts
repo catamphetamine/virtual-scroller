@@ -4,7 +4,7 @@ export { State, ItemState } from '../index.d.ts';
 
 import * as React from 'react';
 
-interface Options<Item> extends VirtualScrollerCommonOptions<HTMLElement, Item> {
+interface Options<Item> extends VirtualScrollerCommonOptions<Item> {
 	state?: State<Item>;
 	scrollableContainer?: HTMLElement;
 	onItemUnmount?(): void;

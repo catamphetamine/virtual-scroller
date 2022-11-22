@@ -156,7 +156,7 @@
 			}
 
 			function Message(props) {
-				const { children: message } = props
+				const { item: message } = props
 				const {
 					username,
 					date,
@@ -178,7 +178,7 @@
 			}
 
 			Message.propTypes = {
-				children: message.isRequired
+				item: message.isRequired
 			}
 
 			class Feed extends React.Component {

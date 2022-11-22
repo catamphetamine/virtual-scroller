@@ -451,7 +451,9 @@ The required properties are:
 
 * `itemComponent` — List item React component.
 
-  * The `itemComponent` will receive a `children` property which is gonna be the item object itself (an element of the `items` array).
+  * The `itemComponent` will receive properties:
+    * `item` — the item object itself (an element of the `items` array).
+    * `itemIndex: number` — the index of the item object in the `items` array.
 
   * For best performance, make sure that `itemComponent` is a `React.memo()` component or a `React.PureComponent`. Otherwise, list items will keep re-rendering themselves as the user scrolls because the containing `<VirtualScroller/>` component gets re-rendered on scroll.
 
@@ -471,7 +473,7 @@ function Messages({ messages }) {
   )
 }
 
-function Message({ children: message }) {
+function Message({ item: message }) {
   const {
     username,
     date,
@@ -503,7 +505,7 @@ Messages.propTypes = {
 }
 
 Message.propTypes = {
-  children: message.isRequired
+  item: message.isRequired
 }
 ```
 
@@ -541,7 +543,7 @@ function ItemComponent({
   state: savedState,
   onStateChange,
   onHeightChange,
-  children: item
+  item
 }) {
   const [state, setState] = useState(savedState)
 
