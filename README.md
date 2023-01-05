@@ -10,12 +10,12 @@ A universal open-source implementation of Twitter's [`VirtualScroller`](https://
 
 ## Demo
 
-DOM (no frameworks):
+[DOM](#dom) (no frameworks):
 
 * [Basic](https://catamphetamine.gitlab.io/virtual-scroller/index-dom.html)
 * [Dynamically loaded](https://catamphetamine.gitlab.io/virtual-scroller/index-dom.html?dynamic=✓)
 
-React:
+[React](#react):
 
 * [Basic](https://catamphetamine.gitlab.io/virtual-scroller/)
 * [Dynamically loaded](https://catamphetamine.gitlab.io/virtual-scroller/?dynamic=✓)
@@ -68,7 +68,7 @@ The core `VirtualScroller` component works by dynamically updating its `state` a
 A higher-level wrapper around the core `VirtualScroller` component must manage the rendering of the items using the information from the `state`. At any given time, `state` should correspond exactly to what's rendered on the screen: whenever `state` gets updated, the corresponding changes should be immediately (without any "timeout" or "delay") rendered on the screen.
 
 <details>
-<summary>Show the list of all <code>state</code> properties</summary>
+<summary><code>state</code> properties</summary>
 
 #####
 
@@ -246,7 +246,7 @@ virtualScroller.start()
 #### Options
 
 <details>
-<summary>Show the list of all available core <code>VirtualScroller</code> <code>options</code>.</summary>
+<summary><code>VirtualScroller</code> <code>options</code></summary>
 
 #####
 
@@ -296,7 +296,7 @@ virtualScroller.start()
 #####
 
 <details>
-<summary>Show the list of all available core <code>VirtualScroller</code> instance methods.</summary>
+<summary><code>VirtualScroller</code> instance methods</summary>
 
 #####
 
@@ -412,7 +412,7 @@ const virtualScroller = new VirtualScroller(
 // virtualScroller.stop()
 ```
 <details>
-<summary>Show the list of additional DOM <code>VirtualScroller</code> options.</summary>
+<summary>Additional DOM <code>VirtualScroller</code> options</summary>
 
 #####
 
@@ -424,7 +424,7 @@ const virtualScroller = new VirtualScroller(
 #####
 
 <details>
-<summary>Show the list of DOM <code>VirtualScroller</code> instance methods.</summary>
+<summary>DOM <code>VirtualScroller</code> instance methods</summary>
 
 #####
 
@@ -510,7 +510,7 @@ Message.propTypes = {
 ```
 
 <details>
-<summary>Managing <code>itemComponent</code> state.</summary>
+<summary>Managing <code>itemComponent</code> state</summary>
 
 #####
 
@@ -520,7 +520,7 @@ For example, consider a social network feed where feed items (posts) can be expa
 
 To fix that, `itemComponent` receives the following state management properties:
 
-* `state` — Saved state of the item component. Use this property as the initial value for the item component state.
+* `state` — Saved state of the item component. Use this property to render the item component.
 
   * In the example described above, `state` might look like `{ expanded: true }`.
 
@@ -577,7 +577,7 @@ function ItemComponent({
 #####
 
 <details>
-<summary>Show the list of React <code>&lt;VirtualScroller/&gt;</code> optional properties.</summary>
+<summary><code>&lt;VirtualScroller/&gt;</code> optional properties</summary>
 
 #####
 
@@ -639,12 +639,62 @@ function Example() {
 * `onItemInitialRender(item)` — The `onItemInitialRender` option of `VirtualScroller` class.
 
 <!-- * `shouldUpdateLayoutOnScreenResize(event)` — The `shouldUpdateLayoutOnScreenResize` option of `VirtualScroller` class. -->
+
+* `getScrollableContainer(): Element` — The `getScrollableContainer` option of `VirtualScroller` class. The scrollable container DOM Element must exist by the time `<VirtualScroller/>` component is mounted.
+
+<!--
+If one considers that `useEffect()` hooks [run in the order from child element to parent element](https://stackoverflow.com/questions/58352375/what-is-the-correct-order-of-execution-of-useeffect-in-react-parent-and-child-co), one can conclude that there's no way that the application's `useLayoutEffect()` hook could run before the `useLayoutEffect()` hook in a `<VirtualScroller/>` component. Therefore, there's only one option to make it work, and that would be only rendering `<VirtualScroller/>` after the scrollable container has mounted:
+
+```js
+import React, { useState, useLayoutEffect } from 'react'
+import VirtualScroller from 'virtual-scroller'
+
+function ListContainer() {
+  return (
+    <div id="ListContainer">
+      <List/>
+    </div>
+  )
+}
+
+function List() {
+  const [scrollableContainerHasMounted, setScrollableContainerHasMounted] = useState()
+
+  useLayoutEffect(() => {
+    setScrollableContainerHasMounted(true)
+  }, [])
+
+  if (!scrollableContainerHasMounted) {
+    return null
+  }
+
+  return (
+    <VirtualScroller
+      items={...}
+      itemComponent={...}
+      getScrollableContainer={getScrollableContainer}
+    />
+  )
+}
+
+function getScrollableContainer() {
+  return document.getElementById('ListContainer')
+}
+```
+
+```css
+#ListContainer {
+  max-height: 30rem;
+  overflow-y: auto;
+}
+```
+-->
 </details>
 
 #####
 
 <details>
-<summary>Show the list of React <code>&lt;VirtualScroller/&gt;</code> instance methods.</summary>
+<summary><code>&lt;VirtualScroller/&gt;</code> instance methods</summary>
 
 #####
 
