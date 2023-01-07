@@ -1,5 +1,14 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.10.1 / 07.01.2023
+==================
+
+* Add a fix for calculating the initial state when using `getScrollableContainer` on the React component of `<VirtualScroller/>`. Previously, it threw an error when it found that the scrollable container element hasn't been mounted by the time `<VirtualScroller/>` element started being rendered (just rendered, not mounted yet). Now it falls back to some sensible default values for the size of the scrollable container until the `<VirtualScroller/>` element has been mounted on a page.
+
+* Renamed `estimatedItemHeight` parameter to `getEstimatedItemHeight()`. The older parameter name still works but is deprecated.
+
+* Added `getEstimatedVisibleItemRowsCount()` parameter. It can be used instead of `getEstimatedItemHeight()`.
+
 1.10.0 / 22.11.2022
 ==================
 

@@ -27,7 +27,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Shows just the first row of items in order to measure non-measured items.
-		// (when no `estimatedItemHeight` has been supplied)
+		// (when no `getEstimatedItemHeight()` or `getEstimatedVisibleItemRowsCount()` have been supplied)
 		virtualScroller.verifyState({
 			firstShownItemIndex: 0,
 			lastShownItemIndex: COLUMNS_COUNT - 1,

@@ -161,7 +161,7 @@ export default function createStateHelpers({
 	function getInitialStateFromScratch() {
 		const items = initialItems
 		const state = {
-			...getInitialLayoutState.call(this, items),
+			...getInitialLayoutState.call(this, items, { initialLayout: true }),
 			items,
 			itemStates: new Array(items.length)
 		}
@@ -221,15 +221,26 @@ export default function createStateHelpers({
 			warn('Reset Layout')
 			state = {
 				...state,
-				...getInitialLayoutState.call(this, state.items)
+				...getInitialLayoutState.call(this, state.items, { initialLayout: false })
 			}
 		}
 
 		return state
 	}
 
-	function getInitialLayoutState(items) {
+	function getInitialLayoutState(items, { initialLayout }) {
 		const itemsCount = items.length
+
+		const getColumnsCount = () => this.getActualColumnsCount()
+
+		const columnsCount = initialLayout
+			? this.layout.getInitialLayoutValueWithFallback(
+				'columnsCount',
+				getColumnsCount,
+				1
+			)
+			: getColumnsCount()
+
 		const {
 			firstShownItemIndex,
 			lastShownItemIndex,
@@ -237,9 +248,12 @@ export default function createStateHelpers({
 			afterItemsHeight
 		} = this.layout.getInitialLayoutValues({
 			itemsCount,
-			columnsCount: this.getActualColumnsCount()
+			columnsCount: this.getActualColumnsCount(),
+			initialLayout
 		})
+
 		const itemHeights = new Array(itemsCount)
+
 		// Optionally preload items to be rendered.
 		this.onBeforeShowItems(
 			items,
@@ -247,6 +261,7 @@ export default function createStateHelpers({
 			firstShownItemIndex,
 			lastShownItemIndex
 		)
+
 		return {
 			itemHeights,
 			columnsCount: this.getActualColumnsCountForState(),

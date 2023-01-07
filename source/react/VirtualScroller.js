@@ -17,7 +17,11 @@ function VirtualScroller({
 	items,
 	itemComponent: Component,
 	itemComponentProps,
+	// `estimatedItemHeight` property name is deprecated,
+	// use `getEstimatedItemHeight` property instead.
 	estimatedItemHeight,
+	getEstimatedItemHeight,
+	getEstimatedVisibleItemRowsCount,
 	bypass,
 	tbody,
 	// `preserveScrollPosition` property name is deprecated,
@@ -48,7 +52,11 @@ function VirtualScroller({
 	// Create a `VirtualScroller` instance.
 	const virtualScroller = useVirtualScroller({
 		items,
+		// `estimatedItemHeight` property name is deprecated,
+		// use `getEstimatedItemHeight` property instead.
 		estimatedItemHeight,
+		getEstimatedItemHeight,
+		getEstimatedVisibleItemRowsCount,
 		bypass,
 		// bypassBatchSize,
 		tbody,
@@ -76,7 +84,8 @@ function VirtualScroller({
 		return virtualScroller.getInitialState()
 	}, [])
 
-	// Create state management functions.
+	// Use React's `useState()` hook for managing `VirtualScroller`'s state lifecycle.
+	// This way, React will re-render the component on every state update.
 	const {
 		getState,
 		updateState
@@ -224,7 +233,11 @@ VirtualScroller.propTypes = {
 	items: PropTypes.arrayOf(PropTypes.any).isRequired,
 	itemComponent: elementType.isRequired,
 	itemComponentProps: PropTypes.object,
+	// `estimatedItemHeight` property name is deprecated,
+	// use `getEstimatedItemHeight` property instead.
 	estimatedItemHeight: PropTypes.number,
+	getEstimatedItemHeight: PropTypes.func,
+	getEstimatedVisibleItemRowsCount: PropTypes.func,
 	bypass: PropTypes.bool,
 	// bypassBatchSize: PropTypes.number,
 	tbody: PropTypes.bool,

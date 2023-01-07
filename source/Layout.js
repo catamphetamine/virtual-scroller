@@ -1,9 +1,11 @@
 import log, { warn } from './utility/debug.js'
+import ScrollableContainerNotReadyError from './ScrollableContainerNotReadyError.js'
 
 export default class Layout {
 	constructor({
 		bypass,
-		estimatedItemHeight,
+		getInitialEstimatedItemHeight,
+		getInitialEstimatedVisibleItemRowsCount,
 		measureItemsBatchSize,
 		getPrerenderMargin,
 		getVerticalSpacing,
@@ -18,7 +20,8 @@ export default class Layout {
 		getPreviouslyCalculatedLayout
 	}) {
 		this.bypass = bypass
-		this.estimatedItemHeight = estimatedItemHeight
+		this.getInitialEstimatedItemHeight = getInitialEstimatedItemHeight
+		this.getInitialEstimatedVisibleItemRowsCount = getInitialEstimatedVisibleItemRowsCount
 		this.measureItemsBatchSize = measureItemsBatchSize
 		this.getPrerenderMargin = getPrerenderMargin
 		this.getVerticalSpacing = getVerticalSpacing
@@ -40,20 +43,49 @@ export default class Layout {
 		this.getPreviouslyCalculatedLayout = getPreviouslyCalculatedLayout
 	}
 
+	// React `<VirtualScroller/>` component attempts to create the initial state
+	// before the component tree has mounted. This could result in an inability to
+	// calculate some initial layout values like `columnsCount` or `lastShownItemIndex`.
+	// Such errors aren't considered critical because layout will be re-calculated
+	// after the component mounts. The workaround is to use some sane default values
+	// until the scrollable container has mounted.
+	getInitialLayoutValueWithFallback(name, getValue, defaultValue) {
+		try {
+			return getValue()
+		} catch (error) {
+			if (error instanceof ScrollableContainerNotReadyError) {
+				log('Couldn\'t calculate', name, 'before scrollable container is ready. Default to', defaultValue);
+				return defaultValue
+			} else {
+				throw error
+			}
+		}
+	}
+
 	getInitialLayoutValues({
 		itemsCount,
-		columnsCount
+		columnsCount,
+		initialLayout
 	}) {
 		let firstShownItemIndex
 		let lastShownItemIndex
 		// If there're no items then `firstShownItemIndex` stays `undefined`.
 		if (itemsCount > 0) {
+			const getLastShownItemIndex = () => {
+				return this.getInitialLastShownItemIndex({
+					itemsCount,
+					columnsCount,
+					firstShownItemIndex
+				})
+			}
 			firstShownItemIndex = 0
-			lastShownItemIndex = this.getInitialLastShownItemIndex({
-				itemsCount,
-				columnsCount,
-				firstShownItemIndex
-			})
+			lastShownItemIndex = initialLayout
+				? this.getInitialLayoutValueWithFallback(
+					'lastShownItemIndex',
+					getLastShownItemIndex,
+					0
+				)
+			: getLastShownItemIndex()
 		}
 		return {
 			beforeItemsHeight: 0,
@@ -77,6 +109,11 @@ export default class Layout {
 		let estimatedRowsCount = 1
 		if (this.getMaxVisibleAreaHeight()) {
 			estimatedRowsCount = this.getEstimatedRowsCountForHeight(this.getMaxVisibleAreaHeight() + this.getPrerenderMargin())
+		} else if (this.getInitialEstimatedVisibleItemRowsCount) {
+			estimatedRowsCount = this.getInitialEstimatedVisibleItemRowsCount()
+			if (isNaN(estimatedRowsCount)) {
+				throw new Error('[virtual-scroller] `getEstimatedVisibleItemRowsCount()` must return a number')
+			}
 		}
 		return Math.min(
 			firstShownItemIndex + (estimatedRowsCount * columnsCount - 1),
@@ -102,7 +139,18 @@ export default class Layout {
 	 * @return {number}
 	 */
 	getEstimatedItemHeight() {
-		return this.getAverageItemHeight() || this.estimatedItemHeight || 0
+		const averageItemHeight = this.getAverageItemHeight()
+		if (averageItemHeight) {
+			return averageItemHeight
+		}
+		if (this.getInitialEstimatedItemHeight) {
+			const estimatedItemHeight = this.getInitialEstimatedItemHeight()
+			if (isNaN(estimatedItemHeight)) {
+				throw new Error('[virtual-scroller] `getInitialEstimatedItemHeight()` must return a number')
+			}
+			return estimatedItemHeight
+		}
+		return 0
 	}
 
 	getLayoutUpdateForItemsDiff({

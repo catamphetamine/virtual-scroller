@@ -5,7 +5,10 @@ import VirtualScroller from '../VirtualScroller.js'
 // Creates a `VirtualScroller` instance.
 export default function useVirtualScroller({
 	items,
+	// `estimatedItemHeight` is deprecated, use `getEstimatedItemHeight()` instead.
 	estimatedItemHeight,
+	getEstimatedItemHeight,
+	getEstimatedVisibleItemRowsCount,
 	bypass,
 	// bypassBatchSize,
 	tbody,
@@ -34,7 +37,10 @@ export default function useVirtualScroller({
 			items,
 			{
 				_useTimeoutInRenderLoop: true,
+				// `estimatedItemHeight` is deprecated, use `getEstimatedItemHeight()` instead.
 				estimatedItemHeight,
+				getEstimatedItemHeight,
+				getEstimatedVisibleItemRowsCount,
 				bypass,
 				// bypassBatchSize,
 				tbody,

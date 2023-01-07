@@ -46,7 +46,9 @@ export default function VirtualScrollerConstructor(
 		getColumnsCount,
 		getItemId,
 		tbody,
+		// `estimatedItemHeight` is deprecated, use `getEstimatedItemHeight()` instead.
 		estimatedItemHeight,
+		getEstimatedVisibleItemRowsCount,
 		onItemInitialRender,
 		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 		onItemFirstRender,
@@ -57,6 +59,7 @@ export default function VirtualScrollerConstructor(
 
 	let {
 		bypass,
+		getEstimatedItemHeight,
 		getScrollableContainer
 	} = options
 
@@ -65,6 +68,10 @@ export default function VirtualScrollerConstructor(
 	// Could support non-DOM rendering engines.
 	// For example, React Native, `<canvas/>`, etc.
 	this.engine = engine || DOMEngine
+
+	if (!getEstimatedItemHeight && typeof estimatedItemHeight === 'number') {
+		getEstimatedItemHeight = () => estimatedItemHeight
+	}
 
 	// `scrollableContainer` option is deprecated.
 	// Use `getScrollableContainer()` option instead.
@@ -174,8 +181,8 @@ export default function VirtualScrollerConstructor(
 	}
 
 	log('Items count', items.length)
-	if (estimatedItemHeight) {
-		log('Estimated item height', estimatedItemHeight)
+	if (getEstimatedItemHeight) {
+		log('Estimated item height', getEstimatedItemHeight())
 	}
 
 	createStateHelpers.call(this, { state, onStateChange, render, items })
@@ -190,7 +197,8 @@ export default function VirtualScrollerConstructor(
 
 	createHelpers.call(this, {
 		getScrollableContainer,
-		estimatedItemHeight,
+		getEstimatedItemHeight,
+		getEstimatedVisibleItemRowsCount,
 		measureItemsBatchSize,
 		initialScrollPosition,
 		onScrollPositionChange,
@@ -208,7 +216,8 @@ export default function VirtualScrollerConstructor(
 
 function createHelpers({
 	getScrollableContainer,
-	estimatedItemHeight,
+	getEstimatedItemHeight,
+	getEstimatedVisibleItemRowsCount,
 	measureItemsBatchSize,
 	initialScrollPosition,
 	onScrollPositionChange,
@@ -242,7 +251,8 @@ function createHelpers({
 
 	this.layout = new Layout({
 		bypass: this.bypass,
-		estimatedItemHeight,
+		getInitialEstimatedItemHeight: getEstimatedItemHeight,
+		getInitialEstimatedVisibleItemRowsCount: getEstimatedVisibleItemRowsCount,
 		measureItemsBatchSize,
 		getPrerenderMargin: () => this.getPrerenderMargin(),
 		getVerticalSpacing: () => this.getVerticalSpacing(),
@@ -253,7 +263,8 @@ function createHelpers({
 		getItemHeightBeforeResize: (i) => this.getState().beforeResize && this.getState().beforeResize.itemHeights[i],
 		getBeforeResizeItemsCount: () => this.getState().beforeResize ? this.getState().beforeResize.itemHeights.length : 0,
 		getAverageItemHeight: () => this.itemHeights.getAverage(),
-		getMaxVisibleAreaHeight: () => this.scrollableContainer && this.scrollableContainer.getHeight(),
+		getMaxVisibleAreaHeight: () => this.scrollableContainer.getHeight(),
+		isScrollableContainerReady: () => this.scrollableContainer.isReady(),
 		//
 		// The "previously calculated layout" feature is not currently used.
 		//

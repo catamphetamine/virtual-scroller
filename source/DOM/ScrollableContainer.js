@@ -1,3 +1,5 @@
+import ScrollableContainerNotReadyError from '../ScrollableContainerNotReadyError.js'
+
 export default class ScrollableContainer {
 	/**
 	 * Constructs a new "scrollable container" from an element.
@@ -38,6 +40,9 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getWidth() {
+		if (!this.getElement()) {
+			throw new ScrollableContainerNotReadyError()
+		}
 		return this.getElement().offsetWidth
 	}
 
@@ -47,6 +52,9 @@ export default class ScrollableContainer {
 	 * @return {number}
 	 */
 	getHeight() {
+		if (!this.getElement()) {
+			throw new ScrollableContainerNotReadyError()
+		}
 		// if (!this.getElement() && !precise) {
 		// 	return getScreenHeight()
 		// }

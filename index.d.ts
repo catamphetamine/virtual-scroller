@@ -53,7 +53,8 @@ export interface VirtualScrollerCommonOptions<Item> {
 	bypass?: boolean;
 	onStateChange?(newState: State<Item>);
 	measureItemsBatchSize?: number;
-	estimatedItemHeight?: number;
+	getEstimatedItemHeight?: () => number;
+	getEstimatedVisibleItemRowsCount?: () => number;
 	initialScrollPosition?: number;
 	onScrollPositionChange?(scrollY: number): void;
 	onItemInitialRender?(item: Item): void;
