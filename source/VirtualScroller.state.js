@@ -161,7 +161,7 @@ export default function createStateHelpers({
 	function getInitialStateFromScratch() {
 		const items = initialItems
 		const state = {
-			...getInitialLayoutState.call(this, items, { initialLayout: true }),
+			...getInitialLayoutState.call(this, items, { beforeStart: true }),
 			items,
 			itemStates: new Array(items.length)
 		}
@@ -221,19 +221,19 @@ export default function createStateHelpers({
 			warn('Reset Layout')
 			state = {
 				...state,
-				...getInitialLayoutState.call(this, state.items, { initialLayout: false })
+				...getInitialLayoutState.call(this, state.items, { beforeStart: false })
 			}
 		}
 
 		return state
 	}
 
-	function getInitialLayoutState(items, { initialLayout }) {
+	function getInitialLayoutState(items, { beforeStart }) {
 		const itemsCount = items.length
 
 		const getColumnsCount = () => this.getActualColumnsCount()
 
-		const columnsCount = initialLayout
+		const columnsCount = beforeStart
 			? this.layout.getInitialLayoutValueWithFallback(
 				'columnsCount',
 				getColumnsCount,
@@ -249,7 +249,7 @@ export default function createStateHelpers({
 		} = this.layout.getInitialLayoutValues({
 			itemsCount,
 			columnsCount: this.getActualColumnsCount(),
-			initialLayout
+			beforeStart
 		})
 
 		const itemHeights = new Array(itemsCount)

@@ -65,7 +65,7 @@ export default class Layout {
 	getInitialLayoutValues({
 		itemsCount,
 		columnsCount,
-		initialLayout
+		beforeStart
 	}) {
 		let firstShownItemIndex
 		let lastShownItemIndex
@@ -79,13 +79,13 @@ export default class Layout {
 				})
 			}
 			firstShownItemIndex = 0
-			lastShownItemIndex = initialLayout
+			lastShownItemIndex = beforeStart
 				? this.getInitialLayoutValueWithFallback(
 					'lastShownItemIndex',
 					getLastShownItemIndex,
 					0
 				)
-			: getLastShownItemIndex()
+				: getLastShownItemIndex()
 		}
 		return {
 			beforeItemsHeight: 0,

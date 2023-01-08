@@ -263,8 +263,9 @@ function createHelpers({
 		getItemHeightBeforeResize: (i) => this.getState().beforeResize && this.getState().beforeResize.itemHeights[i],
 		getBeforeResizeItemsCount: () => this.getState().beforeResize ? this.getState().beforeResize.itemHeights.length : 0,
 		getAverageItemHeight: () => this.itemHeights.getAverage(),
-		getMaxVisibleAreaHeight: () => this.scrollableContainer.getHeight(),
-		isScrollableContainerReady: () => this.scrollableContainer.isReady(),
+		// `this.scrollableContainer` is gonna be `undefined` during server-side rendering.
+		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/30
+		getMaxVisibleAreaHeight: () => this.scrollableContainer && this.scrollableContainer.getHeight(),
 		//
 		// The "previously calculated layout" feature is not currently used.
 		//
