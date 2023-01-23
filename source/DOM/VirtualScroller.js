@@ -145,6 +145,10 @@ export default class VirtualScroller {
     this.virtualScroller.onItemHeightChange(i)
   }
 
+  setItemState(i, newState) {
+    this.virtualScroller.setItemState(i, newState)
+  }
+
   /**
    * @deprecated
    * `.updateItems()` has been renamed to `.setItems()`.

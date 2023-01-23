@@ -1,5 +1,6 @@
 import log, { isDebug } from './utility/debug.js'
 import getItemsDiff from './getItemsDiff.js'
+import fillArray from './utility/fillArray.js'
 
 export default function() {
 	this.getItemsCount = () => {
@@ -81,10 +82,11 @@ export default function() {
 				log('Prepend', prependedItemsCount, 'items')
 
 				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
-
-				if (itemStates) {
-					itemStates = new Array(prependedItemsCount).concat(itemStates)
-				}
+				itemStates = fillArray(
+					new Array(prependedItemsCount),
+					(i) => this.getInitialItemState(newItems[i])
+				)
+					.concat(itemStates)
 
 				// Restore scroll position after prepending items (if requested).
 				if (shouldRestoreScrollPosition) {
@@ -126,9 +128,12 @@ export default function() {
 			if (appendedItemsCount > 0) {
 				log('Append', appendedItemsCount, 'items')
 				itemHeights = itemHeights.concat(new Array(appendedItemsCount))
-				if (itemStates) {
-					itemStates = itemStates.concat(new Array(appendedItemsCount))
-				}
+				itemStates = itemStates.concat(
+					fillArray(
+						new Array(appendedItemsCount),
+						(i) => this.getInitialItemState(newItems[prependedItemsCount + previousItems.length + i])
+					)
+				)
 			}
 
 			itemsUpdateInfo = {
@@ -142,7 +147,10 @@ export default function() {
 
 			// Reset item heights and item states.
 			itemHeights = new Array(newItems.length)
-			itemStates = new Array(newItems.length)
+			itemStates = fillArray(
+				new Array(newItems.length),
+				(i) => this.getInitialItemState(newItems[i])
+			)
 
 			layoutUpdate = this.layout.getInitialLayoutValues({
 				itemsCount: newItems.length,

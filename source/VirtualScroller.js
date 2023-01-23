@@ -219,9 +219,15 @@ export default class VirtualScroller {
 	 * @param  {number} i — Item index
 	 * @param  {any} i — Item's new state
 	 */
-	onItemStateChange(i, newItemState) {
+	setItemState(i, newItemState) {
 		this.hasToBeStarted()
-		this._onItemStateChange(i, newItemState)
+		this._setItemState(i, newItemState)
+	}
+
+	// (deprecated)
+	// Use `.setItemState()` method name instead.
+	onItemStateChange(i, newItemState) {
+		this.setItemState(i, newItemState)
 	}
 
 	/**

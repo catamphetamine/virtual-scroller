@@ -1,6 +1,6 @@
-import { State, VirtualScrollerCommonOptions } from '../index.d.ts';
+import { State, NoItemState, VirtualScrollerCommonOptions } from '../index.d.ts';
 
-export { State, ItemState } from '../index.d.ts';
+export { State } from '../index.d.ts';
 
 import * as React from 'react';
 
@@ -48,19 +48,25 @@ export type PolymorphicComponentProps<
 	Props = {}
 	> = InheritableElementProps<C, Props & AsProp<C>>
 
-interface Props<Item, ItemComponentProps extends object>
-	extends VirtualScrollerCommonOptions<Item>{
+interface ItemComponentPassedProps<Item, ItemState> {
+	item: Item;
+	state: ItemState;
+	setState: (newState: ItemState) => void;
+	onHeightChange: () => void;
+}
+
+interface Props<ItemComponentProps extends object, Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
 	items: Item[];
-	itemComponent: React.ElementType<ItemComponentProps & { item: Item, itemIndex: number }>;
+	itemComponent: React.ElementType<ItemComponentProps & ItemComponentPassedProps<Item, ItemState>>;
 	itemComponentProps?: ItemComponentProps;
-	initialState?: State<Item>;
+	initialState?: State<Item, ItemState>;
 	preserveScrollPositionOnPrependItems?: boolean;
 
 	getScrollableContainer?(): HTMLElement;
 }
 
-declare function VirtualScroller<Item = any, ItemComponentProps extends object={}, AsElement extends React.ElementType = 'div'>(
-	props: PolymorphicComponentProps<AsElement, Props<Item, ItemComponentProps>>
+declare function VirtualScroller<ItemComponentProps extends object = {}, Item = any, ItemState = NoItemState, AsElement extends React.ElementType = 'div'>(
+	props: PolymorphicComponentProps<AsElement, Props<ItemComponentProps, Item, ItemState>>
 ): JSX.Element;
 
 export default VirtualScroller;

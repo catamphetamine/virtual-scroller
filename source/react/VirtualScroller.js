@@ -6,7 +6,7 @@ import useVirtualScroller from './useVirtualScroller.js'
 import useVirtualScrollerStartStop from './useVirtualScrollerStartStop.js'
 import useInstanceMethods from './useInstanceMethods.js'
 import useItemKeys from './useItemKeys.js'
-import useOnItemStateChange from './useOnItemStateChange.js'
+import useSetItemState from './useSetItemState.js'
 import useOnItemHeightChange from './useOnItemHeightChange.js'
 import useHandleItemsChange from './useHandleItemsChange.js'
 import useClassName from './useClassName.js'
@@ -44,6 +44,7 @@ function VirtualScroller({
 	onScrollPositionChange,
 	onStateChange,
 	initialState,
+	getInitialItemState,
 	...rest
 }, ref) {
 	// List items "container" DOM Element reference.
@@ -74,6 +75,7 @@ function VirtualScroller({
 		getItemId,
 		AsComponent,
 		initialState,
+		getInitialItemState,
 		onStateChange
 	}, {
 		container
@@ -116,9 +118,9 @@ function VirtualScroller({
 		getItemId
 	})
 
-	// Cache per-item `onItemStateChange` functions' "references"
+	// Cache per-item `setItemState` functions' "references"
 	// so that item components don't get re-rendered needlessly.
-	const getOnItemStateChange = useOnItemStateChange({
+	const getSetItemState = useSetItemState({
 		items,
 		virtualScroller
 	})
@@ -193,10 +195,21 @@ function VirtualScroller({
 			style={style}>
 			{renderedItems.map((item, i) => {
 				if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
-					// Passing `item` as `children` property is legacy and is deprecated.
-					// If version `2.x` is published in some hypothetical future,
-					// the `item` and `itemIndex` properties should be moved below
-					// `{...itemComponentProps}`.
+					// * Passing `item` as `children` property is legacy and is deprecated.
+					//   If version `2.x` is published in some hypothetical future,
+					//   the `item` and `itemIndex` properties should be moved below
+					//   `{...itemComponentProps}`.
+					//
+					// * Passing `itemIndex` property is legacy and is deprecated.
+					//   The rationale is that setting new `items` on a React component
+					//   is an asynchronous operation, so when a user obtains `itemIndex`,
+					//   they don't know which `items` list does that index correspond to,
+					//   therefore making it useless, or even buggy if used incorreclty.
+					//
+					// * Passing `onStateChange` property for legacy reasons.
+					//   The new property name is `setState`.
+					//   The old property name `onStateChange` is deprecated.
+					//
 					return (
 						<Component
 							item={item}
@@ -204,7 +217,8 @@ function VirtualScroller({
 							{...itemComponentProps}
 							key={getItemKey(item, i)}
 							state={itemStates && itemStates[i]}
-							onStateChange={getOnItemStateChange(i)}
+							setState={getSetItemState(i)}
+							onStateChange={getSetItemState(i)}
 							onHeightChange={getOnItemHeightChange(i)}>
 							{item}
 						</Component>
@@ -262,7 +276,7 @@ VirtualScroller.propTypes = {
 	onStateChange: PropTypes.func,
 	initialState: PropTypes.shape({
 		items: PropTypes.arrayOf(PropTypes.object).isRequired,
-		itemStates: PropTypes.arrayOf(PropTypes.any),
+		itemStates: PropTypes.arrayOf(PropTypes.any).isRequired,
 		firstShownItemIndex: PropTypes.number.isRequired,
 		lastShownItemIndex: PropTypes.number.isRequired,
 		beforeItemsHeight: PropTypes.number.isRequired,
@@ -270,7 +284,8 @@ VirtualScroller.propTypes = {
 		itemHeights: PropTypes.arrayOf(PropTypes.number).isRequired,
 		columnsCount: PropTypes.number,
 		verticalSpacing: PropTypes.number
-	})
+	}),
+	getInitialItemState: PropTypes.func
 }
 
 VirtualScroller.defaultProps = {

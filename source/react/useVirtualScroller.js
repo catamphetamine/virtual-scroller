@@ -26,6 +26,7 @@ export default function useVirtualScroller({
 	getItemId,
 	AsComponent,
 	initialState,
+	getInitialItemState,
 	onStateChange
 }, {
 	container
@@ -58,6 +59,7 @@ export default function useVirtualScroller({
 				getItemId,
 				tbody: AsComponent === 'tbody',
 				state: initialState,
+				getInitialItemState,
 				onStateChange
 			}
 		)

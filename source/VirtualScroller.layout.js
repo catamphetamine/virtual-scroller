@@ -99,7 +99,7 @@ export default function() {
 		// or an "Expand YouTube video" button, which would result
 		// in the actual height of the list item being different
 		// from what has been initially measured in `this.itemHeights[i]`,
-		// if the developer didn't call `.onItemStateChange()` and `.onItemHeightChange(i)`.
+		// if the developer didn't call `.setItemState(i, newState)` and `.onItemHeightChange(i)`.
 		if (!validateWillBeHiddenItemHeightsAreAccurate.call(this, firstShownItemIndex, lastShownItemIndex)) {
 			log('~ Because some of the will-be-hidden item heights (listed above) have changed since they\'ve last been measured, redo layout. ~')
 			// Redo layout, now with the correct item heights.
@@ -269,7 +269,7 @@ export default function() {
 	 * or an "Expand YouTube video" button, which would result
 	 * in the actual height of the list item being different
 	 * from what has been initially measured in `this.itemHeights[i]`,
-	 * if the developer didn't call `.onItemStateChange()` and `.onItemHeightChange(i)`.
+	 * if the developer didn't call `.setItemState(i, newState)` and `.onItemHeightChange(i)`.
 	 */
 	function validateWillBeHiddenItemHeightsAreAccurate(firstShownItemIndex, lastShownItemIndex) {
 		let isValid = true

@@ -1,5 +1,5 @@
 export type ItemHeight = number | undefined;
-export type ItemState = any | undefined;
+export type NoItemState = undefined;
 
 interface BeforeResizeState {
 	itemHeights: number[];
@@ -7,7 +7,7 @@ interface BeforeResizeState {
 	verticalSpacing: number;
 }
 
-export interface State<Item> {
+export interface State<Item, ItemState> {
 	items: Item[];
 	firstShownItemIndex: number;
 	lastShownItemIndex: number;
@@ -49,9 +49,10 @@ interface ScrollableContainerArgument {
 	getWidth(): number;
 }
 
-export interface VirtualScrollerCommonOptions<Item> {
+export interface VirtualScrollerCommonOptions<Item, ItemState> {
 	bypass?: boolean;
-	onStateChange?(newState: State<Item>);
+	onStateChange?(newState: State<Item, ItemState>);
+	getInitialItemState?: (item: Item) => ItemState;
 	measureItemsBatchSize?: number;
 	getEstimatedItemHeight?: () => number;
 	getEstimatedVisibleItemRowsCount?: () => number;
@@ -62,29 +63,29 @@ export interface VirtualScrollerCommonOptions<Item> {
 	getColumnsCount?(scrollableContainer: ScrollableContainerArgument): number;
 }
 
-interface Options<Element, Item> extends VirtualScrollerCommonOptions<Item> {
-	state?: State<Item>;
-	render?(state: State<Item>, previousState?: State<Item>): void;
+interface Options<Element, Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
+	state?: State<Item, ItemState>;
+	render?(state: State<Item, ItemState>, previousState?: State<Item, ItemState>): void;
 	engine?: Engine<Element>;
 	tbody?: boolean;
 	scrollableContainer?: Element;
 	getScrollableContainer?(): Element;
 }
 
-interface UseStateOptions<Item> {
-	getState?(): State<Item>;
-	updateState?(stateUpdate: Partial<State<Item>>): void;
+interface UseStateOptions<Item, ItemState> {
+	getState?(): State<Item, ItemState>;
+	updateState?(stateUpdate: Partial<State<Item, ItemState>>): void;
 }
 
 export interface SetItemsOptions {
 	preserveScrollPositionOnPrependItems?: boolean;
 }
 
-export default class VirtualScroller<Element, Item> {
+export default class VirtualScroller<Element, Item, ItemState> {
 	constructor(
 		getItemsContainerElement: () => Element,
 		items: Item[],
-		options?: Options<Element, Item>
+		options?: Options<Element, Item, ItemState>
 	);
 
 	start(): void;
@@ -93,8 +94,8 @@ export default class VirtualScroller<Element, Item> {
 	onRender(): void;
 	setItems(newItems: Item[], options?: SetItemsOptions): void;
   onItemHeightChange(i: number): void;
-  onItemStateChange(i: number, itemState?: object): void;
+  setItemState(i: number, itemState?: object): void;
   getItemScrollPosition(i: number): number | undefined;
-  getInitialState(): State<Item>;
-  useState(options: UseStateOptions<Item>): void;
+  getInitialState(): State<Item, ItemState>;
+  useState(options: UseStateOptions<Item, ItemState>): void;
 }

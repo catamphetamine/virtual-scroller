@@ -36,6 +36,7 @@ export default function VirtualScrollerConstructor(
 	const {
 		render,
 		state,
+		getInitialItemState = () => {},
 		onStateChange,
 		initialScrollPosition,
 		onScrollPositionChange,
@@ -185,7 +186,7 @@ export default function VirtualScrollerConstructor(
 		log('Estimated item height', getEstimatedItemHeight())
 	}
 
-	createStateHelpers.call(this, { state, onStateChange, render, items })
+	createStateHelpers.call(this, { state, getInitialItemState, onStateChange, render, items })
 
 	createVerticalSpacingHelpers.call(this)
 	createColumnsHelpers.call(this, { getColumnsCount })

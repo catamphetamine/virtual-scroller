@@ -169,7 +169,7 @@ export default class ItemHeights {
 				const previousHeight = this._get(i)
 				const height = this._measureItemHeight(i, firstShownItemIndex)
 				if (previousHeight !== height) {
-					warn('Item index', i, 'height changed unexpectedly: it was', previousHeight, 'before, but now it is', height, '. An item\'s height is allowed to change only in two cases: when the item\'s "state" changes and the developer calls `onItemStateChange(i, newState)`, or when the item\'s height changes for some other reason and the developer calls `onItemHeightChange(i)`. Perhaps you forgot to persist the item\'s "state" by calling `onItemStateChange(i, newState)` when it changed, and that "state" got lost when the item element was unmounted, which resulted in a different height when the item was shown again having its "state" reset.')
+					warn('Item index', i, 'height changed unexpectedly: it was', previousHeight, 'before, but now it is', height, '. An item\'s height is allowed to change only in two cases: when the item\'s "state" changes and the developer calls `setItemState(i, newState)`, or when the item\'s height changes for some other reason and the developer calls `onItemHeightChange(i)`. Perhaps you forgot to persist the item\'s "state" by calling `setItemState(i, newState)` when it changed, and that "state" got lost when the item element was unmounted, which resulted in a different height when the item was shown again having its "state" reset.')
 					// Update the item's height as an attempt to fix things.
 					this._set(i, height)
 				}

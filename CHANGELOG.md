@@ -1,5 +1,21 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.11.0 / 19.01.2023
+==================
+
+* Added a new property on `<VirtualScroller/>` — `getInitialItemState(item)`. The same option was added in `VirtualScroller` constructor parameters.
+
+* Deprecated `itemIndex` property of `itemComponent`. The rationale is that setting new `items` on a React component is an asynchronous operation, so when a user obtains `itemIndex`, they don't know which `items` list does that index correspond to, therefore making it useless, or even buggy if used incorreclty.
+
+* (React) Renamed `itemComponent`'s `onStateChange()` property to `setState()`. The older property name still works but is considered deprecated.
+
+* Renamed `VirtualScroller`'s `onItemStateChange()` instance method to `setItemState()`. The older instance method name still works but is considered deprecated.
+
+* (TypeScript) Added a new (second or third) "generic" parameter (interface) called `ItemState` which is `undefined` by default. Removed the previously exported type called `ItemState` which was defined as `any | undefined`.
+  * (React) The addition of the new "generic" parameter has changed the order of generic parameters in the `<VirtualScroller/>` React component from `<Item, ItemComponentProps, AsElement>` to `<ItemComponentProps, Item, ItemState, AsElement>`.
+
+* (miscellaneous) In README, when describing `VirtualScroller` state, `itemStates` and `itemHeights` properties were previously marked as "optional" for some unknown reason. They've been properly marked as "required" now.
+
 1.10.1 / 07.01.2023
 ==================
 
