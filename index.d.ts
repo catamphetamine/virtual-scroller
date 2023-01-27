@@ -81,7 +81,7 @@ export interface SetItemsOptions {
 	preserveScrollPositionOnPrependItems?: boolean;
 }
 
-export default class VirtualScroller<Element, Item, ItemState> {
+export default class VirtualScroller<Element, Item, ItemState = NoItemState> {
 	constructor(
 		getItemsContainerElement: () => Element,
 		items: Item[],
