@@ -1,113 +1,98 @@
-import { useState, useRef, useLayoutEffect } from 'react'
+import { useState, useRef, useCallback, useLayoutEffect } from 'react'
 
 // Creates state management functions.
-export default function _useState({ initialState, onRender, items }) {
-	// `VirtualScroller` state.
+export default function _useState({
+	initialState,
+	onRender,
+	itemsProperty,
+	USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION
+}) {
+	// This is a utility state variable that is used to re-render the component.
+	// It should not be used to access the current `VirtualScroller` state.
+	// It's more of a "requested" `VirtualScroller` state.
 	//
-	// The `_stateUpdate` variable shouldn't be used directly
-	// because in some cases its value may not represent
-	// the actual `state` of the `VirtualScroller`.
+	// It will also be stale in cases when `USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION`
+	// feature is used for setting new `items` in state.
 	//
-	// * It will contain an incorrect initial value if `initialState` property is passed
-	//   because it doesn't get initialized to `initialState`.
-	//
-	// * If `items` property gets changed, `state` reference variable gets updated immediately
-	//   but the `_stateUpdate` variable here doesn't (until the component re-renders some other time).
-	//
-	// Instead, use the `state` reference below.
-	//
-	const [_stateUpdate, _setStateUpdate] = useState()
+	const [_newState, _setNewState] = useState(initialState)
 
-	// This `state` reference is used for accessing the externally stored
-	// virtual scroller state from inside a `VirtualScroller` instance.
-	//
-	// It's also the "source of truth" on the actual `VirtualScroller` state.
-	//
+	// This `state` reference is what `VirtualScroller` uses internally.
+	// It's the "source of truth" on the actual `VirtualScroller` state.
 	const state = useRef(initialState)
 
-	// Accumulates state updates until they have been applied.
-	const targetState = useRef(initialState)
+	const setState = useCallback((newState) => {
+		state.current = newState
+	}, [])
 
-	// Update the current state reference.
-	//
-	// Ignores the cases when `state` reference has already been updated
-	// "immediately" bypassing a `_setStateUpdate()` call, because
-	// in that case, `_stateUpdate` holds a stale value.
-	//
-	if (state.current !== targetState.current) {
-		state.current = _stateUpdate
-	}
+	// Accumulates all "pending" state updates until they have been applied.
+	const nextState = useRef(initialState)
 
-	// Call `onRender()` right after every state update.
-	//
-	// When `items` property changes, `useHandleItemsChange()` hook doesn't call
-	// `_setStateUpdate()` because there's no need for a re-render.
-	// But chaning `items` still does trigger a `VirtualScroller` state update,
-	// so added `items` property in the list of this "effect"'s dependencies.
-	//
+	// Updates the actual `VirtualScroller` state right after a requested state update
+	// has been applied. Doesn't do anything at initial render.
+	useLayoutEffect(() => {
+		setState(_newState)
+	}, [
+		_newState
+	])
+
+	// Calls `onRender()` right after every state update (which is a re-render),
+	// and also right after the initial render.
 	useLayoutEffect(() => {
 		onRender()
 	}, [
-		_stateUpdate,
-		items
+		_newState,
+		// When using `USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION` feature,
+		// there won't be a `_setNewState()` function call when `items` property changes,
+		// hence the additional `itemsProperty` dependency.
+		USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION ? itemsProperty : undefined
 	])
 
 	return {
 		getState: () => state.current,
 
-		// Updates existing state.
+		getNextState: () => nextState.current,
+
+		// Requests a state update.
 		//
-		// State updates are incremental meaning that this code should mimick
+		// State updates are incremental meaning that this function mimicks
 		// the classic `React.Component`'s `this.setState()` behavior
-		// when calling `this.setState()` doesn't replace `state` but rather merges
-		// a set of the updated state properties with the rest of the old ones.
+		// when calling `this.setState()` didn't replace `state` but rather merged
+		// the updated state properties over the "old" state properties.
 		//
-		// The reason is that `useState()` updates are "asynchronous" (not immediate),
+		// The reason for using pending state updates accumulation is that
+		// `useState()` updates are "asynchronous" (not immediate),
 		// and simply merging over `...state` would merge over potentially stale
 		// property values in cases when more than a single `updateState()` call is made
-		// before the state actually updates, resulting in losing some of the state updates.
+		// before the state actually updates, resulting in losing some of those state updates.
 		//
-		// For example, the first `updateState()` call updates shown item indexes,
+		// Example: the first `updateState()` call updates shown item indexes,
 		// and the second `updateState()` call updates `verticalSpacing`.
 		// If it was simply `updateState({ ...state, ...stateUpdate })`
 		// then the second state update could overwrite the first state update,
 		// resulting in incorrect items being shown/hidden.
 		//
-		// Using `...state.current` instead of `...pendingState.current` here
-		// would produce "stale" results.
-		//
 		updateState: (stateUpdate) => {
-			const newState = {
-				...targetState.current,
+			nextState.current = {
+				...nextState.current,
 				...stateUpdate
 			}
-			targetState.current = newState
-			// If `items` property did change the component detects it at render time
-			// and updates `VirtualScroller` items immediately by calling `.setItems()`.
-			// But, since all of that happens at render time and not in an "effect",
-			// if the state update was done as usual by calling `_setStateUpdate()`,
-			// React would throw an error about updating state during render.
-			// Hence, state update in that particular case should happen "directly",
-			// without waiting for an "asynchronous" effect to trigger and call
-			// an "asyncronous" `_setStateUpdate()` function.
+			// If `items` property did change, the component detects it at render time
+			// and updates `VirtualScroller` items immediately by calling `.setItems()`,
+			// which, in turn, immediately calls this `updateState()` function
+			// with a `stateUpdate` argument that contains the new `items`,
+			// so checking for `stateUpdate.items` could detect situations like that.
 			//
-			// Updating state directly in that particular case works because there
-			// already is a render ongoing, so there's no need to re-render the component
-			// again after such render-time state update.
-			//
-			// When the initial `VirtualScroller` state is being set, it contains an `.items`
+			// When the initial `VirtualScroller` state is being set, it contains the `.items`
 			// property too, but that initial setting is done using another function called
 			// `setInitialState()`, so using `if (stateUpdate.items)` condition here for describing
 			// just the case when `state` has been updated as a result of a `setItems()` call
 			// seems to be fine.
 			//
-			if (stateUpdate.items) {
-				// If a `stateUpdate` contains `items` then it means that there was a `setItems()` call.
-				// No need to trigger a re-render — the component got re-rendered anyway.
-				// Just update the `state` "in place".
-				state.current = newState
+			const _newState = nextState.current
+			if (stateUpdate.items && USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION) {
+				setState(_newState)
 			} else {
-				_setStateUpdate(newState)
+				_setNewState(_newState)
 			}
 		}
 	}

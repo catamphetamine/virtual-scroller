@@ -40,7 +40,7 @@ export default function createStateHelpers({
 	this._setItemState = (i, newItemState) => {
 		if (isDebug()) {
 			log('~ Item state changed ~')
-			log('Item', i)
+			log('Item index', i)
 			// Uses `JSON.stringify()` here instead of just outputting the JSON objects as is
 			// because outputting JSON objects as is would show different results later when
 			// the developer inspects those in the web browser console if those state objects

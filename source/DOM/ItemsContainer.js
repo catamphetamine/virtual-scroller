@@ -7,13 +7,23 @@ export default class ItemsContainer {
 		this.getElement = getElement
 	}
 
+	_getNthRenderedItemElement(renderedElementIndex) {
+		const childNodes = this.getElement().childNodes
+		if (renderedElementIndex > childNodes.length - 1) {
+			console.log('~ Items Container Contents ~')
+			console.log(this.getElement().innerHTML)
+			throw new Error(`Element with index ${renderedElementIndex} was not found in the list of Rendered Item Elements in the Items Container of Virtual Scroller. There're only ${childNodes.length} Elements there.`)
+		}
+		return childNodes[renderedElementIndex]
+	}
+
 	/**
 	 * Returns an item element's "top offset", relative to the items `container`'s top edge.
 	 * @param  {number} renderedElementIndex — An index of an item relative to the "first shown item index". For example, if the list is showing items from index 8 to index 12 then `renderedElementIndex = 0` would mean the item at index `8`.
 	 * @return {number}
 	 */
 	getNthRenderedItemTopOffset(renderedElementIndex) {
-		return this.getElement().childNodes[renderedElementIndex].getBoundingClientRect().top - this.getElement().getBoundingClientRect().top
+		return this._getNthRenderedItemElement(renderedElementIndex).getBoundingClientRect().top - this.getElement().getBoundingClientRect().top
 	}
 
 	/**
@@ -23,8 +33,8 @@ export default class ItemsContainer {
 	 */
 	getNthRenderedItemHeight(renderedElementIndex) {
 		// `offsetHeight` is not precise enough (doesn't return fractional pixels).
-		// return this.getElement().childNodes[renderedElementIndex].offsetHeight
-		return this.getElement().childNodes[renderedElementIndex].getBoundingClientRect().height
+		// return this._getNthRenderedItemElement(renderedElementIndex).offsetHeight
+		return this._getNthRenderedItemElement(renderedElementIndex).getBoundingClientRect().height
 	}
 
 	/**

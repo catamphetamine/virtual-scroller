@@ -8,13 +8,36 @@ import useInstanceMethods from './useInstanceMethods.js'
 import useItemKeys from './useItemKeys.js'
 import useSetItemState from './useSetItemState.js'
 import useOnItemHeightChange from './useOnItemHeightChange.js'
-import useHandleItemsChange from './useHandleItemsChange.js'
+import useHandleItemsPropertyChange from './useHandleItemsPropertyChange.js'
+import useHandleItemIndexesChange from './useHandleItemIndexesChange.js'
 import useClassName from './useClassName.js'
 import useStyle from './useStyle.js'
 
+// When `items` property changes, `useHandleItemsPropertyChange()` hook detects that
+// and calls `VirtualScroller.setItems()` which in turn calls the `updateState()` function.
+// At this point, an insignificant optimization could be applied:
+// the component could avoid re-rendering the second time.
+// Instead, the state update could be applied "immediately" if it originated
+// from `.setItems()` function call, eliminating the unneeded second re-render.
+//
+// I could see how this minor optimization could get brittle when modifiying the code,
+// so I put it under a feature flag so that it could potentially be turned off
+// in case of any potential weird issues in some future.
+//
+// Another reason for using this feature is:
+//
+// Since `useHandleItemsPropertyChange()` runs at render time
+// and not after the render has finished (not in an "effect"),
+// if the state update was done "conventionally" (by calling `_setNewState()`),
+// React would throw an error about updating state during render.
+// No one knows what the original error message was.
+// Perhaps it's no longer relevant in newer versions of React.
+//
+const USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION = true
+
 function VirtualScroller({
 	as: AsComponent,
-	items,
+	items: itemsProperty,
 	itemComponent: Component,
 	itemComponentProps,
 	// `estimatedItemHeight` property name is deprecated,
@@ -52,7 +75,7 @@ function VirtualScroller({
 
 	// Create a `VirtualScroller` instance.
 	const virtualScroller = useVirtualScroller({
-		items,
+		items: itemsProperty,
 		// `estimatedItemHeight` property name is deprecated,
 		// use `getEstimatedItemHeight` property instead.
 		estimatedItemHeight,
@@ -90,11 +113,13 @@ function VirtualScroller({
 	// This way, React will re-render the component on every state update.
 	const {
 		getState,
-		updateState
+		updateState,
+		getNextState
 	} = useState({
 		initialState: _initialState,
 		onRender: virtualScroller.onRender,
-		items
+		itemsProperty,
+		USE_ITEMS_UPDATE_NO_SECOND_RENDER_OPTIMIZATION
 	})
 
 	// Use custom (external) state storage in the `VirtualScroller`.
@@ -121,24 +146,31 @@ function VirtualScroller({
 	// Cache per-item `setItemState` functions' "references"
 	// so that item components don't get re-rendered needlessly.
 	const getSetItemState = useSetItemState({
-		items,
+		initialItemsCount: itemsProperty.length,
 		virtualScroller
 	})
 
 	// Cache per-item `onItemHeightChange` functions' "references"
 	// so that item components don't get re-rendered needlessly.
 	const getOnItemHeightChange = useOnItemHeightChange({
-		items,
+		initialItemsCount: itemsProperty.length,
 		virtualScroller
 	})
 
-	// Detect if `items` have changed.
-	useHandleItemsChange(items, {
+	// Calls `.setItems()` if `items` property has changed.
+	useHandleItemsPropertyChange(itemsProperty, {
 		virtualScroller,
 		// `preserveScrollPosition` property name is deprecated,
 		// use `preserveScrollPositionOnPrependItems` property instead.
 		preserveScrollPosition,
 		preserveScrollPositionOnPrependItems,
+		nextItems: getNextState().items
+	})
+
+	// Updates `key`s if item indexes have changed.
+	useHandleItemIndexesChange({
+		virtualScroller,
+		itemsBeingRendered: getNextState().items,
 		updateItemKeysForNewItems
 	})
 
@@ -177,15 +209,15 @@ function VirtualScroller({
 
 	const style = useStyle({
 		tbody,
-		virtualScroller
+		getNextState
 	})
 
 	const {
-		items: renderedItems,
+		items: currentItems,
 		itemStates,
 		firstShownItemIndex,
 		lastShownItemIndex
-	} = virtualScroller.getState()
+	} = getNextState()
 
 	return (
 		<AsComponent
@@ -193,7 +225,7 @@ function VirtualScroller({
 			ref={container}
 			className={className}
 			style={style}>
-			{renderedItems.map((item, i) => {
+			{currentItems.map((item, i) => {
 				if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
 					// * Passing `item` as `children` property is legacy and is deprecated.
 					//   If version `2.x` is published in some hypothetical future,

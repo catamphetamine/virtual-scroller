@@ -372,7 +372,7 @@ export default function() {
 
 	this._onItemHeightChange = (i) => {
 		log('~ Re-measure item height ~')
-		log('Item', i)
+		log('Item index', i)
 
 		const {
 			itemHeights,
@@ -407,7 +407,7 @@ export default function() {
 			// So, even though the developer has written their code properly, there're
 			// still situations when the item could be no longer rendered by the time
 			// `.onItemHeightChange(i)` gets called.
-			return warn('The item is no longer rendered. This is not necessarily a bug, and could happen, for example, when there\'re several `onItemHeightChange(i)` calls issued at the same time.')
+			return warn('The item is no longer rendered. This is not necessarily a bug, and could happen, for example, when when a developer calls `onItemHeightChange(i)` while looping through a batch of items.')
 		}
 
 		const previousHeight = itemHeights[i]
