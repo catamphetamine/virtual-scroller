@@ -21,6 +21,6 @@ export default class VirtualScroller<Item, ItemState = NoItemState> {
 	// start(): void;
 	stop(): void;
 	setItems(newItems: Item[], options?: SetItemsOptions): void;
-  onItemHeightChange(i: number): void;
+  onItemHeightDidChange(i: number): void;
   setItemState(i: number, newState: ItemState): void;
 }

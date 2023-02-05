@@ -88,7 +88,7 @@ The following `state` properties are only used for saving and restoring `Virtual
 
 * `itemStates: any[]` — The states of all items. Any change in an item's appearance while it's rendered must be reflected in changing that item's state by calling `.setItemState(i, itemState)` instance method (described below): this way, the item's state is preserved when it's shown next time after being hidden due to going off screen. For example, if an item is a social media comment, and there's a "Show more"/"Show less" button that shows the full text of the comment, then it must call `.setItemState(i, { showMore: true/false })` every time.
 
-* `itemHeights: number[]` — The measured heights of all items. If an item's height hasn't been measured yet then it's `undefined`. By default, items are only measured once: when they're initially rendered. If an item's height changes afterwards, then `.onItemHeightChange(i)` instance method must be called (described below), otherwise `VirtualScroller`'s calculations will be off. For example, if an item is a social media comment, and there's a "Show more"/"Show less" button that shows the full text of the comment, then it must call `.onItemHeightChange(i)` every time. And every change in an item's height must come as a result of changing some kind of state, be it the item's state in `VirtualScroller` via `.setItemState()`, or some other state managed by the application.
+* `itemHeights: number[]` — The measured heights of all items. If an item's height hasn't been measured yet then it's `undefined`. By default, items are only measured once: when they're initially rendered. If an item's height changes afterwards, then `.onItemHeightDidChange(i)` instance method must be called right after it happens (described later in the document), otherwise `VirtualScroller`'s calculations will be off. For example, if an item is a social media comment, and there's a "Show more"/"Show less" button that shows the full text of the comment, then it must call `.onItemHeightDidChange(i)` every time the comment text has been expanded or collapsed. And every change in an item's height must conceptually be a result of changing some kind of "state", be it the item's state in `VirtualScroller` updated via `.setItemState()`, or some other "state" that got updated by the application.
 
 * `verticalSpacing: number?` — Vertical item spacing. Is `undefined` until it has been measured. Is only measured once, when at least two rows of items have been rendered.
 
@@ -343,19 +343,19 @@ When using custom (external) state management, contrary to the default (internal
 
 #### "Advanced" (rarely used) instance methods
 
-* `onItemHeightChange(i: number)` — (advanced) If an item's height could change, this function should be called immediately after the item's height has changed. An example would be having an "Expand"/"Collapse" button in a list item. The function re-measures the item's height and re-calculates `VirtualScroller` layout.
+* `onItemHeightDidChange(i: number)` — (advanced) If an item's height could've changed, this function should be called immediately after the item's height has potentially changed. An example would be having an "Expand"/"Collapse" button in a list item. The function re-measures the item's height and re-calculates `VirtualScroller` layout.
 
   * There's also a convention that every change in an item's height must come as a result of changing its "state", be it the item's state that is stored internally in the `VirtualScroller` state (see `.setItemState()` function) or some other application-level state that is stored outside of the `VirtualScroller` state.
 
-  * Implementation-wise, calling `onItemHeightChange()` manually could be replaced with detecting item height changes automatically via [Resize Observer](https://caniuse.com/#search=Resize%20Observer) in some future version.
+  * Implementation-wise, calling `onItemHeightDidChange()` manually could be replaced with detecting item height changes automatically via [Resize Observer](https://caniuse.com/#search=Resize%20Observer) in some future version.
 
 * `setItemState(i: number, itemState: any?)` — (advanced) Replaces a list item's state inside `VirtualScroller` state. Use it to preserve an item's state because offscreen items get unmounted and any unsaved state is lost in the process. If an item's state is correctly preserved, it will be restored when an item gets mounted again due to becoming visible.
 
-  * Calling `setItemState()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout might not be required. If an item's height did change as a result of changing its state, then `VirtualScroller` layout must be updated, and to do that, call `onItemHeightChange(i)` after calling `setItemState()` has taken effect.
+  * Calling `setItemState()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout might not be required. If an item's height did change as a result of changing its state, then `VirtualScroller` layout must be updated, and to do that, call `onItemHeightDidChange(i)` right after calling `setItemState()` has taken effect.
 
   * For example, consider a social network feed, where each post optionally has an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a small thumbnail that expands into a full-sized embedded YouTube video player when a user clicks on it. If the expanded/collapsed state of such attachment wasn't stored in `VirtualScroller` state then the following scenario would be possible: the user expands the video, then scrolls down so that the post with the video is no longer visible, the post gets unmounted due to going off screen, then the user scrolls back up so that the post with the video is visible again, the post gets mounted, but the video is not expanded and instead of it a small thumbnail is shown because there's no previous "state" to restore.
 
-  * In the example above, one should also call `onItemHeightChange(i)` after the YouTube video has been expanded/collapsed. Otherwise, the scroll position would "jump" when the item goes off screen, because `VirtualScroller` would have based its calculations on the initially measured item height, not the "expanded" one, so it would subtract an incorrect value from the list's top margin, resulting in a "jump of content".
+  * In the example above, one should also call `onItemHeightDidChange(i)` right after the YouTube video has been expanded/collapsed. Otherwise, the scroll position would "jump" when the item goes off screen, because `VirtualScroller` would have based its calculations on the initially measured item height, not the "expanded" one, so it would subtract an incorrect value from the list's top margin, resulting in a "jump of content".
 
 * `getItemScrollPosition(i: number): number?` — (advanced) Returns an item's scroll position inside the scrollable container. Returns `undefined` if any of the items before this item haven't been rendered yet.
 
@@ -446,7 +446,7 @@ const virtualScroller = new VirtualScroller(
 
 * `setItems(items, options)` — A proxy for the corresponding `VirtualScroller` method.
 
-* `onItemHeightChange(i)` — A proxy for the corresponding `VirtualScroller` method.
+* `onItemHeightDidChange(i)` — A proxy for the corresponding `VirtualScroller` method.
 
 * `setItemState(i, itemState)` — A proxy for the corresponding `VirtualScroller` method.
 
@@ -467,7 +467,7 @@ The required properties are:
     * `item: any` — The item object itself (an element of the `items` array).
     * `state: any?` — Item's state. See the description of `itemStates` property of `VirtualScroller` `state` for more details.
     * `setState(newState: any?)` — Can be called to replace item's state. See the description of `setItemState(i, newState)` function of `VirtualScroller` for more details.
-    * `onHeightChange(i)` — If an item's height could change, this function should be called immediately after the item's height has changed. See the description of `onItemHeightChange()` function of `VirtualScroller` for more details.
+    * `onHeightDidChange(i)` — If an item's height could change after the initial render, this function should be called immediately after the item's height has potentially changed. See the description of `onItemHeightDidChange()` function of `VirtualScroller` for more details.
 
   * For best performance, make sure that `itemComponent` is a `React.memo()` component or a `React.PureComponent`. Otherwise, list items will keep re-rendering themselves as the user scrolls because the containing `<VirtualScroller/>` component gets re-rendered on scroll.
 
@@ -550,7 +550,7 @@ To fix that, `itemComponent` receives the following state management properties:
 
   * In the example described above, `onHeightChange()` would be called immediately after a user has clicked a "Show more"/"Show less" button and the component has re-rendered itself, because that results in a change of the item element's height, so `VirtualScroller` should re-measure it in order for its internal calculations to stay correct.
 
-  * This is simply a proxy for `virtualScroller.onItemHeightChange(i)`.
+  * This is simply a proxy for `virtualScroller.onItemHeightDidChange(i)`.
 
 ```js
 function ItemComponent({
@@ -1008,7 +1008,7 @@ One can use any npm CDN service, e.g. [unpkg.com](https://unpkg.com) or [jsdeliv
 <!--
 ## Possible enhancements
 
-* Use [Resize Observer](https://caniuse.com/#search=Resize%20Observer) instead of calling `.onItemHeightChange(i)` manually.
+* Use [Resize Observer](https://caniuse.com/#search=Resize%20Observer) instead of calling `.onItemHeightDidChange(i)` manually.
 
 * Currently React `<VirtualScroller/>` passes `onHeightChange()` property and provides `.renderItem(i)` instance method. Both these features could be replaced with doing it internally in `VirtualScroller`'s `.setItems(newItems)` method: it could detect the items that have changed (`prevItems[i] !== newItems[i]`) and recalculate heights for such items, while the changed `item` properties would also cause the relevant React elements to be rerendered.
 -->

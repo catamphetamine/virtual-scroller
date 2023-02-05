@@ -141,8 +141,17 @@ export default class VirtualScroller {
     }
   }
 
+  /**
+   * @deprecated
+   * `.onItemHeightChange()` has been renamed to `.onItemHeightDidChange()`.
+   */
   onItemHeightChange(i) {
-    this.virtualScroller.onItemHeightChange(i)
+    warn('`.onItemHeightChange(i)` method was renamed to `.onItemHeightDidChange(i)`')
+    this.onItemHeightDidChange(i)
+  }
+
+  onItemHeightDidChange(i) {
+    this.virtualScroller.onItemHeightDidChange(i)
   }
 
   setItemState(i, newState) {
@@ -154,6 +163,7 @@ export default class VirtualScroller {
    * `.updateItems()` has been renamed to `.setItems()`.
    */
   updateItems(newItems, options) {
+    warn('`.updateItems()` method was renamed to `.setItems(i)`')
     this.setItems(newItems, options)
   }
 

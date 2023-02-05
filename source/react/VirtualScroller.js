@@ -7,7 +7,7 @@ import useVirtualScrollerStartStop from './useVirtualScrollerStartStop.js'
 import useInstanceMethods from './useInstanceMethods.js'
 import useItemKeys from './useItemKeys.js'
 import useSetItemState from './useSetItemState.js'
-import useOnItemHeightChange from './useOnItemHeightChange.js'
+import useOnItemHeightDidChange from './useOnItemHeightDidChange.js'
 import useHandleItemsPropertyChange from './useHandleItemsPropertyChange.js'
 import useHandleItemIndexesChange from './useHandleItemIndexesChange.js'
 import useClassName from './useClassName.js'
@@ -150,9 +150,9 @@ function VirtualScroller({
 		virtualScroller
 	})
 
-	// Cache per-item `onItemHeightChange` functions' "references"
+	// Cache per-item `onItemHeightDidChange` functions' "references"
 	// so that item components don't get re-rendered needlessly.
-	const getOnItemHeightChange = useOnItemHeightChange({
+	const getOnItemHeightDidChange = useOnItemHeightDidChange({
 		initialItemsCount: itemsProperty.length,
 		virtualScroller
 	})
@@ -251,7 +251,8 @@ function VirtualScroller({
 							state={itemStates && itemStates[i]}
 							setState={getSetItemState(i)}
 							onStateChange={getSetItemState(i)}
-							onHeightChange={getOnItemHeightChange(i)}>
+							onHeightChange={getOnItemHeightDidChange(i)}
+							onHeightDidChange={getOnItemHeightDidChange(i)}>
 							{item}
 						</Component>
 					)

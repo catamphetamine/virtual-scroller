@@ -93,7 +93,7 @@ export default class VirtualScroller<Element, Item, ItemState = NoItemState> {
 	updateLayout(): void;
 	onRender(): void;
 	setItems(newItems: Item[], options?: SetItemsOptions): void;
-  onItemHeightChange(i: number): void;
+  onItemHeightDidChange(i: number): void;
   setItemState(i: number, itemState?: object): void;
   getItemScrollPosition(i: number): number | undefined;
   getInitialState(): State<Item, ItemState>;

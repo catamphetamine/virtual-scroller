@@ -1,7 +1,7 @@
 import VirtualScrollerConstructor from './VirtualScroller.constructor.js'
 import { hasTbodyStyles, addTbodyStyles } from './DOM/tbody.js'
 import { LAYOUT_REASON } from './Layout.js'
-import log from './utility/debug.js'
+import log, { warn } from './utility/debug.js'
 
 export default class VirtualScroller {
 	/**
@@ -206,12 +206,21 @@ export default class VirtualScroller {
 	}
 
 	/**
+	 * @deprecated
+	 * `.onItemHeightChange()` has been renamed to `.onItemHeightDidChange()`.
+	 */
+	onItemHeightChange(i) {
+		warn('`.onItemHeightChange(i)` method was renamed to `.onItemHeightDidChange(i)`')
+		this.onItemHeightDidChange(i)
+	}
+
+	/**
 	 * Forces a re-measure of an item's height.
 	 * @param  {number} i — Item index
 	 */
-	onItemHeightChange(i) {
+	onItemHeightDidChange(i) {
 		this.hasToBeStarted()
-		this._onItemHeightChange(i)
+		this._onItemHeightDidChange(i)
 	}
 
 	/**
