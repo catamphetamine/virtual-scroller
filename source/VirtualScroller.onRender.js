@@ -77,7 +77,7 @@ export default function() {
 
 		let layoutUpdateReason
 
-		if (this.updateLayoutAfterRenderBecauseItemHeightChanged) {
+		if (itemHeightHasChanged) {
 			layoutUpdateReason = LAYOUT_REASON.ITEM_HEIGHT_CHANGED
 		}
 
