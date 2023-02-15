@@ -1,3 +1,5 @@
+import ItemNotRenderedError from '../ItemNotRenderedError.js'
+
 export default class ItemsContainer {
 	/**
 	 * Constructs a new "container" from an element.
@@ -16,9 +18,18 @@ export default class ItemsContainer {
 		const children = this.getElement().children
 		const maxWidth = this.getElement().width
 		let topOffset = this.getElement().paddingTop
+
 		let rowWidth
 		let rowHeight
 		let startNewRow = true
+
+		if (renderedElementIndex > children.length - 1) {
+			throw new ItemNotRenderedError({
+				renderedElementIndex,
+				renderedElementsCount: children.length
+			})
+		}
+
 		let i = 0
 		while (i <= renderedElementIndex) {
 			if (startNewRow || rowWidth + children[i].width > maxWidth) {
@@ -39,6 +50,7 @@ export default class ItemsContainer {
 			}
 			i++
 		}
+
 		return topOffset
 	}
 
@@ -48,7 +60,16 @@ export default class ItemsContainer {
 	 * @return {number}
 	 */
 	getNthRenderedItemHeight(renderedElementIndex) {
-		return this.getElement().children[renderedElementIndex].height
+		const children = this.getElement().children
+
+		if (renderedElementIndex > children.length - 1) {
+			throw new ItemNotRenderedError({
+				renderedElementIndex,
+				renderedElementsCount: children.length
+			})
+		}
+
+		return children[renderedElementIndex].height
 	}
 
 	/**

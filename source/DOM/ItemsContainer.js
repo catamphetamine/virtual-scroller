@@ -1,3 +1,5 @@
+import ItemNotRenderedError from '../ItemNotRenderedError.js'
+
 export default class ItemsContainer {
 	/**
 	 * Constructs a new "container" from an element.
@@ -10,9 +12,12 @@ export default class ItemsContainer {
 	_getNthRenderedItemElement(renderedElementIndex) {
 		const childNodes = this.getElement().childNodes
 		if (renderedElementIndex > childNodes.length - 1) {
-			console.log('~ Items Container Contents ~')
-			console.log(this.getElement().innerHTML)
-			throw new Error(`Element with index ${renderedElementIndex} was not found in the list of Rendered Item Elements in the Items Container of Virtual Scroller. There're only ${childNodes.length} Elements there.`)
+			// console.log('~ Items Container Contents ~')
+			// console.log(this.getElement().innerHTML)
+			throw new ItemNotRenderedError({
+				renderedElementIndex,
+				renderedElementsCount: childNodes.length
+			})
 		}
 		return childNodes[renderedElementIndex]
 	}

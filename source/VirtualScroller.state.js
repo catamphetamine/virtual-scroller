@@ -52,7 +52,13 @@ export default function createStateHelpers({
 
 		this.getState().itemStates[i] = newItemState
 
-		// Schedule the item state update for after the new items have been rendered.
+		// If there was a request for `setState()` with new `items`, then the changes
+		// to `currentState.itemStates[]` made above would be overwritten when that
+		// pending `setState()` call gets applied.
+		// To fix that, the updates to current `itemStates[]` are noted in
+		// `this.itemStatesThatChangedWhileNewItemsWereBeingRendered` variable.
+		// That variable is then checked when the `setState()` call with the new `items`
+		// has been updated.
 		if (this.newItemsWillBeRendered) {
 			if (!this.itemStatesThatChangedWhileNewItemsWereBeingRendered) {
 				this.itemStatesThatChangedWhileNewItemsWereBeingRendered = {}
@@ -78,9 +84,25 @@ export default function createStateHelpers({
 		}
 		this._isSettingNewItems = undefined
 
-		// Update `state`.
+		this.waitingForRender = true
+
+		// Store previous `state`.
 		this.previousState = this.getState()
-		this._updateState(stateUpdate)
+
+		// If it's the first call to `this.updateState()` then initialize
+		// the most recent `setState()` value to be the current state.
+		if (!this.mostRecentSetStateValue) {
+			this.mostRecentSetStateValue = this.getState()
+		}
+
+		// Accumulates all "pending" state updates until they have been applied.
+		this.mostRecentSetStateValue = {
+			...this.mostRecentSetStateValue,
+			...stateUpdate
+		}
+
+		// Update `state`.
+		this._setState(this.mostRecentSetStateValue, stateUpdate)
 	}
 
 	this.getInitialState = () => {
@@ -92,6 +114,7 @@ export default function createStateHelpers({
 
 	this.useState = ({
 		getState,
+		setState,
 		updateState
 	}) => {
 		if (this._isActive) {
@@ -103,17 +126,28 @@ export default function createStateHelpers({
 		}
 
 		if (render) {
-			throw new Error('[virtual-scroller] Creating a `VirtualScroller` class instance with a `render()` parameter means using the default (internal) state storage')
+			throw new Error('[virtual-scroller] Creating a `VirtualScroller` class instance with a `render()` parameter implies using the default (internal) state storage')
 		}
 
-		if (!getState || !updateState) {
-			throw new Error('[virtual-scroller] When using a custom state storage, one must supply both `getState()` and `updateState()` functions')
+		if (setState && updateState) {
+			throw new Error('[virtual-scroller] When using a custom state storage, one must supply either `setState()` or `updateState()` function but not both')
+		}
+
+		if (!getState || !(setState || updateState)) {
+			throw new Error('[virtual-scroller] When using a custom state storage, one must supply both `getState()` and `setState()`/`updateState()` functions')
 		}
 
 		this._usesCustomStateStorage = true
 
 		this._getState = getState
-		this._updateState = updateState
+
+		this._setState = (newState, stateUpdate) => {
+			if (setState) {
+				setState(newState)
+			} else {
+				updateState(stateUpdate)
+			}
+		}
 	}
 
 	this.useDefaultStateStorage = () => {
@@ -121,9 +155,9 @@ export default function createStateHelpers({
 			throw new Error('[virtual-scroller] When using the default (internal) state management, one must supply a `render(state, prevState)` function parameter')
 		}
 
-		// Create default `getState()`/`updateState()` functions.
+		// Create default `getState()`/`setState()` functions.
 		this._getState = defaultGetState.bind(this)
-		this._updateState = defaultUpdateState.bind(this)
+		this._setState = defaultSetState.bind(this)
 
 		// When `state` is stored externally, a developer is responsible for
 		// initializing it with the initial value.
@@ -140,17 +174,20 @@ export default function createStateHelpers({
 		this.state = newState
 	}
 
-	function defaultUpdateState(stateUpdate) {
-		// Because this variant of `.updateState()` is "synchronous" (immediate),
-		// it can be written like `...prevState`, and no state updates would be lost.
-		// But if it was "asynchronous" (not immediate), then `...prevState`
-		// wouldn't work in all cases, because it could be stale in cases
-		// when more than a single `updateState()` call is made before
-		// the state actually updates, making `prevState` stale.
-		this.state = {
-			...this.state,
-			...stateUpdate
-		}
+	function defaultSetState(newState, stateUpdate) {
+		// // Because the default state updates are "synchronous" (immediate),
+		// // the `...stateUpdate` could be applied over `...this.state`,
+		// // and no state updates would be lost.
+		// // But if it was "asynchronous" (not immediate), then `...this.state`
+		// // wouldn't work in all cases, because it could be stale in cases
+		// // when more than a single `setState()` call is made before
+		// // the state actually updates, making some properties of `this.state` stale.
+		// this.state = {
+		// 	...this.state,
+		// 	...stateUpdate
+		// }
+
+		this.state = newState
 
 		render(this.state, this.previousState)
 

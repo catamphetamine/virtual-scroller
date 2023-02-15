@@ -319,11 +319,13 @@ A developer might prefer to use custom (external) state management rather than t
 
 * `getInitialState(): object` — Returns the initial `VirtualScroller` state for the cases when a developer configures `VirtualScroller` for custom (external) state management.
 
-* `useState({ getState, updateState })` — Enables custom (external) state management.
+* `useState({ getState, setState, updateState? })` — Enables custom (external) state management.
 
   * `getState(): object` — Returns the externally managed `VirtualScroller` `state`.
 
-  * `updateState(stateUpdate: object)` — Updates the externally managed `VirtualScroller` `state`. Must call `.onRender()` right after the updated `state` gets "rendered". A higher-order `VirtualScroller` implementation could either "render" the list immediately in its `updateState()` function, like the DOM implementation does, or the `updateState()` function could "schedule" a "re-render", like the React implementation does, in which case such `updateState()` function would be called an ["asynchronous"](https://reactjs.org/docs/state-and-lifecycle.html#state-updates-may-be-asynchronous) one, meaning that state updates aren't "rendered" immediately and are instead queued and then "rendered" in a single compound state update for better performance.
+  * `setState(newState: object)` — Sets the externally managed `VirtualScroller` `state`. Must call `.onRender()` right after the updated `state` gets "rendered". A higher-order `VirtualScroller` implementation could either "render" the list immediately in its `setState()` function, in which case it would be better to use the default state management instead and pass a custom `render()` function, or the `setState()` function could "schedule" an "asynchronous" "re-render", like the React implementation does, in which case such `setState()` function would be called an ["asynchronous"](https://reactjs.org/docs/state-and-lifecycle.html#state-updates-may-be-asynchronous) one, meaning that state updates aren't "rendered" immediately and are instead queued and then "rendered" in a single compound state update for better performance.
+
+  * `updateState(stateUpdate: object)` — (optional) `setState()` parameter could be replaced with `updateState()` parameter. The only difference between the two is that `updateState()` gets called with just the portion of the state that is being updated while `setState()` gets called with the whole updated state object, so it's just a matter of preference.
 
 For a usage example, see `./source/react/VirtualScroller.js`. The steps are:
 
@@ -343,7 +345,7 @@ When using custom (external) state management, contrary to the default (internal
 
 #### "Advanced" (rarely used) instance methods
 
-* `onItemHeightDidChange(i: number)` — (advanced) If an item's height could've changed, this function should be called immediately after the item's height has potentially changed. An example would be having an "Expand"/"Collapse" button in a list item. The function re-measures the item's height and re-calculates `VirtualScroller` layout.
+* `onItemHeightDidChange(i: number)` — (advanced) If an item's height could've changed, this function should be called immediately after the item's height has potentially changed. The function re-measures the item's height (the item must still be rendered) and re-calculates `VirtualScroller` layout. An example for using this function would be having an "Expand"/"Collapse" button in a list item.
 
   * There's also a convention that every change in an item's height must come as a result of changing its "state", be it the item's state that is stored internally in the `VirtualScroller` state (see `.setItemState()` function) or some other application-level state that is stored outside of the `VirtualScroller` state.
 
@@ -467,7 +469,7 @@ The required properties are:
     * `item: any` — The item object itself (an element of the `items` array).
     * `state: any?` — Item's state. See the description of `itemStates` property of `VirtualScroller` `state` for more details.
     * `setState(newState: any?)` — Can be called to replace item's state. See the description of `setItemState(i, newState)` function of `VirtualScroller` for more details.
-    * `onHeightDidChange(i)` — If an item's height could change after the initial render, this function should be called immediately after the item's height has potentially changed. See the description of `onItemHeightDidChange()` function of `VirtualScroller` for more details.
+    * `onHeightDidChange(i)` — If an item's height could change after the initial render, this function should be called immediately after the item's height has potentially changed — in a `useLayoutEffect()`. See the description of `onItemHeightDidChange()` function of `VirtualScroller` for more details.
 
   * For best performance, make sure that `itemComponent` is a `React.memo()` component or a `React.PureComponent`. Otherwise, list items will keep re-rendering themselves as the user scrolls because the containing `<VirtualScroller/>` component gets re-rendered on scroll.
 

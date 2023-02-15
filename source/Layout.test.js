@@ -148,6 +148,10 @@ describe('Layout', function() {
 
 		let shouldResetGridLayout
 
+		const errors = []
+
+		global.VirtualScrollerCatchError = (error) => errors.push(error)
+
 		layout.getLayoutUpdateForItemsDiff(
 			{
 				firstShownItemIndex: 3,
@@ -170,6 +174,11 @@ describe('Layout', function() {
 			beforeItemsHeight: 0,
 			afterItemsHeight: 5 * (ITEM_HEIGHT + VERTICAL_SPACING)
 		})
+
+		global.VirtualScrollerCatchError = undefined
+		errors.length.should.equal(2)
+		errors[0].message.should.equal('[virtual-scroller] ~ Prepended items count 5 is not divisible by Columns Count 4 ~')
+		errors[1].message.should.equal('[virtual-scroller] Layout reset required')
 
 		shouldResetGridLayout.should.equal(true)
 	})

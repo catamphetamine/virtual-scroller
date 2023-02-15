@@ -82,9 +82,17 @@ describe('VirtualScroller', function() {
 			itemStates: new Array(items.length)
 		})
 
+		const errors = []
+		global.VirtualScrollerCatchError = (error) => errors.push(error)
+
 		virtualScroller.setItems(items, {
 			preserveScrollPositionOnPrependItems: true
 		})
+
+		global.VirtualScrollerCatchError = undefined
+		errors.length.should.equal(2)
+		errors[0].message.should.equal('[virtual-scroller] ~ Prepended items count 1 is not divisible by Columns Count 2 ~')
+		errors[1].message.should.equal('[virtual-scroller] Layout reset required')
 
 		// Stop listening to scroll events.
 		virtualScroller.stop()

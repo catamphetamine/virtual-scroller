@@ -2,7 +2,7 @@ import px from '../utility/px.js'
 
 export default function useStyle({
 	tbody,
-	getNextState
+	state
 }) {
 	if (tbody) {
 		return
@@ -11,7 +11,7 @@ export default function useStyle({
 	const {
 		beforeItemsHeight,
 		afterItemsHeight
-	} = getNextState()
+	} = state
 
 	return {
 		paddingTop: px(beforeItemsHeight),

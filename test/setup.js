@@ -5,3 +5,4 @@ chai.should()
 
 global.VirtualScrollerDebug = true
 global.VirtualScrollerWarningsAreErrors = true
+global.VirtualScrollerThrowErrors = true

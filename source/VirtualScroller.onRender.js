@@ -1,4 +1,4 @@
-import log, { warn, isDebug } from './utility/debug.js'
+import log, { warn, reportError, isDebug } from './utility/debug.js'
 import getStateSnapshot from './utility/getStateSnapshot.js'
 import shallowEqual from './utility/shallowEqual.js'
 import { LAYOUT_REASON } from './Layout.js'
@@ -11,6 +11,8 @@ export default function() {
 	 * @param  {object} [prevState]
 	 */
 	this._onRender = (newState, prevState) => {
+		this.waitingForRender = false
+
 		log('~ Rendered ~')
 		if (isDebug()) {
 			log('State', getStateSnapshot(newState))
@@ -33,18 +35,57 @@ export default function() {
 			)
 		}
 
-		if (!prevState) {
-			return
+		// `this.mostRecentlySetState` checks that state management behavior is correct:
+		// that in situations when there're multiple new states waiting to be set,
+		// only the latest one gets applied.
+		// It keeps the code simpler and prevents possible race condition bugs.
+		// For example, `VirtualScroller` keeps track of its latest requested
+		// state update in different instance variable flags which assume that
+		// only that latest requested state update gets actually applied.
+		//
+		// This check should also be performed for the initial render in order to
+		// guarantee that no potentially incorrect state update goes unnoticed.
+		// Incorrect state updates could happen when `VirtualScroller` state
+		// is managed externally by passing `getState()`/`updateState()` options.
+		//
+		// Perform the check only when `this.mostRecentSetStateValue` is defined.
+		// `this.mostRecentSetStateValue` is normally gonna be `undefined` at the initial render
+		// because the initial state is not set by calling `this.updateState()`.
+		// At the same time, it is possible that the initial render is delayed
+		// for whatever reason, and `this.updateState()` gets called before the initial render,
+		// so `this.mostRecentSetStateValue` could also be defined at the initial render,
+		// in which case the check should be performed.
+		//
+		if (this.mostRecentSetStateValue) {
+			// "Shallow equality" is used here instead of "strict equality"
+			// because a developer might choose to supply an `updateState()` function
+			// rather than a `setState()` function, in which case the `updateState()` function
+			// would construct its own state object.
+			if (!shallowEqual(newState, this.mostRecentSetStateValue)) {
+				warn('The most recent state that was set', getStateSnapshot(this.mostRecentSetStateValue))
+				reportError('The state that has been rendered is not the most recent one that was set')
+			}
 		}
 
 		// `this.resetStateUpdateFlags()` must be called before calling
 		// `this.measureItemHeightsAndSpacing()`.
 		const {
 			nonMeasuredItemsHaveBeenRendered,
+			itemHeightHasChanged,
 			widthHasChanged
 		} = resetStateUpdateFlags.call(this)
 
 		let layoutUpdateReason
+
+		if (this.updateLayoutAfterRenderBecauseItemHeightChanged) {
+			layoutUpdateReason = LAYOUT_REASON.ITEM_HEIGHT_CHANGED
+		}
+
+		if (!prevState) {
+			if (!layoutUpdateReason) {
+				return
+			}
+		}
 
 		// If the `VirtualScroller`, while calculating layout parameters, encounters
 		// a not-shown item with a non-measured height, it calls `updateState()` just to
@@ -74,41 +115,43 @@ export default function() {
 			this.verticalSpacing = undefined
 		}
 
-		const { items: previousItems } = prevState
-		const { items: newItems } = newState
-		// Even if `this.newItemsWillBeRendered` flag is `true`,
-		// `newItems` could still be equal to `previousItems`.
-		// For example, when `updateState()` calls don't update `state` immediately
-		// and a developer first calls `setItems(newItems)` and then calls `setItems(oldItems)`:
-		// in that case, `this.newItemsWillBeRendered` flag will be `true` but the actual `items`
-		// in state wouldn't have changed due to the first `updateState()` call being overwritten
-		// by the second `updateState()` call (that's called "batching state updates" in React).
-		if (newItems !== previousItems) {
-			const itemsDiff = this.getItemsDiff(previousItems, newItems)
-			if (itemsDiff) {
-				// The call to `.onPrepend()` must precede the call to `.measureItemHeights()`
-				// which is called in `.onRender()`.
-				// `this.itemHeights.onPrepend()` updates `firstMeasuredItemIndex`
-				// and `lastMeasuredItemIndex` of `this.itemHeights`.
-				const { prependedItemsCount } = itemsDiff
-				this.itemHeights.onPrepend(prependedItemsCount)
-			} else {
-				this.itemHeights.reset()
-			}
+		if (prevState) {
+			const { items: previousItems } = prevState
+			const { items: newItems } = newState
+			// Even if `this.newItemsWillBeRendered` flag is `true`,
+			// `newItems` could still be equal to `previousItems`.
+			// For example, when `updateState()` calls don't update `state` immediately
+			// and a developer first calls `setItems(newItems)` and then calls `setItems(oldItems)`:
+			// in that case, `this.newItemsWillBeRendered` flag will be `true` but the actual `items`
+			// in state wouldn't have changed due to the first `updateState()` call being overwritten
+			// by the second `updateState()` call (that's called "batching state updates" in React).
+			if (newItems !== previousItems) {
+				const itemsDiff = this.getItemsDiff(previousItems, newItems)
+				if (itemsDiff) {
+					// The call to `.onPrepend()` must precede the call to `.measureItemHeights()`
+					// which is called in `.onRender()`.
+					// `this.itemHeights.onPrepend()` updates `firstMeasuredItemIndex`
+					// and `lastMeasuredItemIndex` of `this.itemHeights`.
+					const { prependedItemsCount } = itemsDiff
+					this.itemHeights.onPrepend(prependedItemsCount)
+				} else {
+					this.itemHeights.reset()
+				}
 
-			if (!widthHasChanged) {
-				// The call to `this.onNewItemsRendered()` must precede the call to
-				// `.measureItemHeights()` which is called in `.onRender()` because
-				// `this.onNewItemsRendered()` updates `firstMeasuredItemIndex` and
-				// `lastMeasuredItemIndex` of `this.itemHeights` in case of a prepend.
-				//
-				// If after prepending items the scroll position
-				// should be "restored" so that there's no "jump" of content
-				// then it means that all previous items have just been rendered
-				// in a single pass, and there's no need to update layout again.
-				//
-				if (onNewItemsRendered.call(this, itemsDiff, newState) !== 'SEAMLESS_PREPEND') {
-					layoutUpdateReason = LAYOUT_REASON.ITEMS_CHANGED
+				if (!widthHasChanged) {
+					// The call to `this.onNewItemsRendered()` must precede the call to
+					// `.measureItemHeights()` which is called in `.onRender()` because
+					// `this.onNewItemsRendered()` updates `firstMeasuredItemIndex` and
+					// `lastMeasuredItemIndex` of `this.itemHeights` in case of a prepend.
+					//
+					// If after prepending items the scroll position
+					// should be "restored" so that there's no "jump" of content
+					// then it means that all previous items have just been rendered
+					// in a single pass, and there's no need to update layout again.
+					//
+					if (onNewItemsRendered.call(this, itemsDiff, newState) !== 'SEAMLESS_PREPEND') {
+						layoutUpdateReason = LAYOUT_REASON.ITEMS_CHANGED
+					}
 				}
 			}
 		}
@@ -124,9 +167,11 @@ export default function() {
 		// item height measurements is required.
 		//
 		if (
-			newState.firstShownItemIndex !== prevState.firstShownItemIndex ||
-			newState.lastShownItemIndex !== prevState.lastShownItemIndex ||
-			newState.items !== prevState.items ||
+			(prevState && (
+				newState.firstShownItemIndex !== prevState.firstShownItemIndex ||
+				newState.lastShownItemIndex !== prevState.lastShownItemIndex ||
+				newState.items !== prevState.items
+			)) ||
 			widthHasChanged
 		) {
 			const verticalSpacingStateUpdate = this.measureItemHeightsAndSpacing()
@@ -202,14 +247,14 @@ export default function() {
 			// See if any items' heights changed while new items were being rendered.
 			if (this.itemHeightsThatChangedWhileNewItemsWereBeingRendered) {
 				for (const i of Object.keys(this.itemHeightsThatChangedWhileNewItemsWereBeingRendered)) {
-					itemHeights[prependedItemsCount + parseInt(i)] = this.itemHeightsThatChangedWhileNewItemsWereBeingRendered[i]
+					itemHeights[prependedItemsCount + Number(i)] = this.itemHeightsThatChangedWhileNewItemsWereBeingRendered[i]
 				}
 			}
 
 			// See if any items' states changed while new items were being rendered.
 			if (this.itemStatesThatChangedWhileNewItemsWereBeingRendered) {
 				for (const i of Object.keys(this.itemStatesThatChangedWhileNewItemsWereBeingRendered)) {
-					itemStates[prependedItemsCount + parseInt(i)] = this.itemStatesThatChangedWhileNewItemsWereBeingRendered[i]
+					itemStates[prependedItemsCount + Number(i)] = this.itemStatesThatChangedWhileNewItemsWereBeingRendered[i]
 				}
 			}
 
@@ -325,6 +370,9 @@ export default function() {
 
 		// Read `this.firstNonMeasuredItemIndex` flag.
 		const nonMeasuredItemsHaveBeenRendered = this.firstNonMeasuredItemIndex !== undefined
+		if (nonMeasuredItemsHaveBeenRendered) {
+			log('Non-measured item index', this.firstNonMeasuredItemIndex)
+		}
 		// Reset `this.firstNonMeasuredItemIndex` flag.
 		this.firstNonMeasuredItemIndex = undefined
 
@@ -337,8 +385,13 @@ export default function() {
 		// Reset `this.itemStatesThatChangedWhileNewItemsWereBeingRendered`.
 		this.itemStatesThatChangedWhileNewItemsWereBeingRendered = undefined
 
+		// Reset `this.updateLayoutAfterRenderBecauseItemHeightChanged`.
+		const itemHeightHasChanged = this.updateLayoutAfterRenderBecauseItemHeightChanged
+		this.updateLayoutAfterRenderBecauseItemHeightChanged = undefined
+
 		return {
 			nonMeasuredItemsHaveBeenRendered,
+			itemHeightHasChanged,
 			widthHasChanged
 		}
 	}

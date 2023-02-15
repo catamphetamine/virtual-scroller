@@ -7,6 +7,8 @@ import { setTimeout, clearTimeout } from 'request-animation-frame-timeout'
 import log, { warn, isDebug, reportError } from './utility/debug.js'
 import { LAYOUT_REASON } from './Layout.js'
 
+import ItemNotRenderedError from './ItemNotRenderedError.js'
+
 export default function() {
 	this.onUpdateShownItemIndexes = ({ reason, stateUpdate }) => {
 		// In case of "don't do anything".
@@ -149,6 +151,9 @@ export default function() {
 
 		// Set `this.firstNonMeasuredItemIndex`.
 		this.firstNonMeasuredItemIndex = firstNonMeasuredItemIndex
+		// if (firstNonMeasuredItemIndex !== undefined) {
+		// 	log('Non-measured item index that will be measured at next layout', firstNonMeasuredItemIndex)
+		// }
 
 		// Set "previously calculated layout".
 		//
@@ -340,20 +345,21 @@ export default function() {
 	// rather than from scratch, which would be an optimization.
 	//
 	function updatePreviouslyCalculatedLayoutOnItemHeightChange(i, previousHeight, newHeight) {
-		if (this.previouslyCalculatedLayout) {
+		const prevLayout = this.previouslyCalculatedLayout
+		if (prevLayout) {
 			const heightDifference = newHeight - previousHeight
-			if (i < this.previouslyCalculatedLayout.firstShownItemIndex) {
-				// Patch `this.previouslyCalculatedLayout`'s `.beforeItemsHeight`.
-				this.previouslyCalculatedLayout.beforeItemsHeight += heightDifference
-			} else if (i > this.previouslyCalculatedLayout.lastShownItemIndex) {
-				// Could patch `.afterItemsHeight` of `this.previouslyCalculatedLayout` here,
-				// if `.afterItemsHeight` property existed in `this.previouslyCalculatedLayout`.
-				if (this.previouslyCalculatedLayout.afterItemsHeight !== undefined) {
-					this.previouslyCalculatedLayout.afterItemsHeight += heightDifference
+			if (i < prevLayout.firstShownItemIndex) {
+				// Patch `prevLayout`'s `.beforeItemsHeight`.
+				prevLayout.beforeItemsHeight += heightDifference
+			} else if (i > prevLayout.lastShownItemIndex) {
+				// Could patch `.afterItemsHeight` of `prevLayout` here,
+				// if `.afterItemsHeight` property existed in `prevLayout`.
+				if (prevLayout.afterItemsHeight !== undefined) {
+					prevLayout.afterItemsHeight += heightDifference
 				}
 			} else {
-				// Patch `this.previouslyCalculatedLayout`'s shown items height.
-				this.previouslyCalculatedLayout.shownItemsHeight += newHeight - previousHeight
+				// Patch `prevLayout`'s shown items height.
+				prevLayout.shownItemsHeight += newHeight - previousHeight
 			}
 		}
 	}
@@ -371,7 +377,7 @@ export default function() {
 	}
 
 	this._onItemHeightDidChange = (i) => {
-		log('~ Re-measure item height ~')
+		log('~ On Item Height Did Change was called ~')
 		log('Item index', i)
 
 		const {
@@ -412,24 +418,57 @@ export default function() {
 
 		const previousHeight = itemHeights[i]
 		if (previousHeight === undefined) {
-			return reportError(`"onItemHeightDidChange()" has been called for item ${i}, but that item hasn't been rendered before.`)
+			return reportError(`"onItemHeightDidChange()" has been called for item index ${i} but the item hasn't been rendered before.`)
 		}
 
-		const newHeight = remeasureItemHeight.call(this, i)
+		log('~ Re-measure item height ~')
+
+		let newHeight
+
+		try {
+			newHeight = remeasureItemHeight.call(this, i)
+		} catch (error) {
+			// Successfully finishing an `onItemHeightDidChange(i)` call is not considered
+			// critical for `VirtualScroller`'s operation, so such errors could be ignored.
+			if (error instanceof ItemNotRenderedError) {
+				return reportError(`"onItemHeightDidChange()" has been called for item index ${i} but the item is not currently rendered and can\'t be measured. The exact error was: ${error.message}`)
+			}
+		}
 
 		log('Previous height', previousHeight)
 		log('New height', newHeight)
 
 		if (previousHeight !== newHeight) {
-			log('~ Item height has changed ~')
+			log('~ Item height has changed. Should update layout. ~')
 
-			// Update or reset previously calculated layout.
+			// Update or reset a previously calculated layout
+			// so that the "diff"s based on that layout in the future
+			// produce correct results.
 			updatePreviouslyCalculatedLayoutOnItemHeightChange.call(this, i, previousHeight, newHeight)
 
 			// Recalculate layout.
-			this.onUpdateShownItemIndexes({ reason: LAYOUT_REASON.ITEM_HEIGHT_CHANGED })
+			//
+			// If the `VirtualScroller` is already waiting for a state update to be rendered,
+			// delay `onItemHeightDidChange(i)`'s re-layout until that state update is rendered.
+			// The reason is that React `<VirtualScroller/>`'s `onHeightDidChange()` is meant to
+			// be called inside `useLayoutEffect()` hook. Due to how React is implemented internally,
+			// that might happen in the middle of the currently pending `setState()` operation
+			// being applied, resulting in weird "race condition" bugs.
+			//
+			if (this.waitingForRender) {
+				log('~ Another state update is already waiting to be rendered. Delay the layout update until then. ~')
+				this.updateLayoutAfterRenderBecauseItemHeightChanged = true
+			} else {
+				this.onUpdateShownItemIndexes({ reason: LAYOUT_REASON.ITEM_HEIGHT_CHANGED })
+			}
 
-			// Schedule the item height update for after the new items have been rendered.
+			// If there was a request for `setState()` with new `items`, then the changes
+			// to `currentState.itemHeights[]` made above in a `remeasureItemHeight()` call
+			// would be overwritten when that pending `setState()` call gets applied.
+			// To fix that, the updates to current `itemHeights[]` are noted in
+			// `this.itemHeightsThatChangedWhileNewItemsWereBeingRendered` variable.
+			// That variable is then checked when the `setState()` call with the new `items`
+			// has been updated.
 			if (this.newItemsWillBeRendered) {
 				if (!this.itemHeightsThatChangedWhileNewItemsWereBeingRendered) {
 					this.itemHeightsThatChangedWhileNewItemsWereBeingRendered = {}

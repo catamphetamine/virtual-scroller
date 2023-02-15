@@ -18,6 +18,9 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
+		const errors = []
+		global.VirtualScrollerCatchError = (error) => errors.push(error)
+
 		const virtualScroller = new VirtualScroller({
 			// The `items` option will be overridden by the `items` from the restored state.
 			items: [],
@@ -37,6 +40,11 @@ describe('VirtualScroller', function() {
 				scrollableContainerWidth: SCREEN_WIDTH
 			}
 		})
+
+		global.VirtualScrollerCatchError = undefined
+		errors.length.should.equal(2)
+		errors[0].message.should.equal('[virtual-scroller] ~ Columns Count changed from 1 to 2 ~')
+		errors[1].message.should.equal('[virtual-scroller] Reset Layout')
 
 		// Columns count mismatch — the state gets reset.
 		virtualScroller.verifyState({

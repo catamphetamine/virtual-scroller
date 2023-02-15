@@ -99,3 +99,9 @@ export default class VirtualScroller<Element, Item, ItemState = NoItemState> {
   getInitialState(): State<Item, ItemState>;
   useState(options: UseStateOptions<Item, ItemState>): void;
 }
+
+export class ItemNotRenderedError {
+	constructor(
+		message: string
+	);
+}
