@@ -6,9 +6,12 @@ export default function getVerticalSpacing({ itemsContainer, renderedItemsCount 
 		while (i < renderedItemsCount) {
 			const itemTopOffset = itemsContainer.getNthRenderedItemTopOffset(i)
 			const itemHeight = itemsContainer.getNthRenderedItemHeight(i)
-			// If next row is detected.
-			if (itemTopOffset !== firstShownRowTopOffset) {
+			// See if the item is on the next row.
+			// Simply checking for `itemTopOffset !== firstShownRowTopOffset` wouldn't work
+			// because items in a row aren't required to be aligned to the top border.
+			if (itemTopOffset >= firstShownRowTopOffset + firstShownRowHeight) {
 				// Measure inter-row spacing.
+				// Can't be "negative" with the current `if` condition.
 				return itemTopOffset - (firstShownRowTopOffset + firstShownRowHeight)
 			}
 			// A row height is the maximum of its item heights.

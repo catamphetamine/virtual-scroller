@@ -86,9 +86,21 @@ The main `state` properties are:
 
 The following `state` properties are only used for saving and restoring `VirtualScroller` `state`, and normally shouldn't be accessed:
 
-* `itemStates: any[]` — The states of all items. Any change in an item's appearance while it's rendered must be reflected in changing that item's state by calling `.setItemState(i, itemState)` instance method (described below): this way, the item's state is preserved when it's shown next time after being hidden due to going off screen. For example, if an item is a social media comment, and there's a "Show more"/"Show less" button that shows the full text of the comment, then it must call `.setItemState(i, { showMore: true/false })` every time.
+* `itemStates: any[]` — The "states" of all items. If an item's appearance is not "static" and could change, then every aspect of the item's appearance that could change should be represented in the item's "state", and that "state" must be preserved somewhere. That's because of the nature of how `VirtualScroller` works: no-longer-visible items get un-rendered, and when they later become visible again, they should precisely restore their latest-rendered appearance by re-rendering from a previously preserved "state".
 
-* `itemHeights: number[]` — The measured heights of all items. If an item's height hasn't been measured yet then it's `undefined`. By default, items are only measured once: when they're initially rendered. If an item's height changes afterwards, then `.onItemHeightDidChange(i)` instance method must be called right after it happens (described later in the document), otherwise `VirtualScroller`'s calculations will be off. For example, if an item is a social media comment, and there's a "Show more"/"Show less" button that shows the full text of the comment, then it must call `.onItemHeightDidChange(i)` every time the comment text has been expanded or collapsed. And every change in an item's height must conceptually be a result of changing some kind of "state", be it the item's state in `VirtualScroller` updated via `.setItemState()`, or some other "state" that got updated by the application.
+  * The item "state" could be preserved anywhere in the application, or the developer could use `VirtualScroller`'s built-in item "state" storage. To preserve an item's state in the built-in storage, call `.setItemState(i, itemState)` instance method (described below) immediately after an item's state has changed.
+
+    * An example would be an item representing a social media comment, with a "Show more"/"Show less" button that shows or hides the full text of the comment. Immediately after the full text of a comment has been shown or hidden, it should call `.setItemState(i, { showMore: true/false })` instance method along with `.onItemHeightDidChange(i)` instance method (described below), so that next time when the item is rendered, it could restore its appearance from `virtualScroller.getState().itemStates[i]`.
+
+    * For another similar example, consider a social network feed, where each post optionally has an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a small thumbnail that expands into a full-sized embedded YouTube video player when a user clicks on it. If the expanded/collapsed state of such attachment wasn't preserved, then the following "glitch" would be observed: the user expands the video, then scrolls down so that the post with the video is no longer visible, the post gets unmounted due to going off screen, then the user scrolls back up so that the post with the video is visible again, the post gets mounted again, but the video is not expanded and instead a small thumbnail is shown because there's no previous "state" to restore from.
+
+      * In this example, besides preserving the item state itself, one should also call `.onItemHeightDidChange(i)` instance method (described below) right after the YouTube video has been expanded/collapsed.
+
+* `itemHeights: number[]` — The measured heights of all items. If an item's height hasn't been measured yet then it's `undefined`.
+
+  * By default, items are only measured once: when they're initially rendered. If an item's height changes afterwards, then `.onItemHeightDidChange(i)` instance method must be called right after it happens (described later in the document), otherwise `VirtualScroller`'s calculations will be off. For example, if an item is a social media comment, and there's a "Show more"/"Show less" button that shows the full text of the comment, then it must call `.onItemHeightDidChange(i)` immediately after the comment text has been expanded or collapsed.
+
+    * Besides the requirement of calling `.onItemHeightDidChange(i)`, every change in an item's height must also be reflected in the actual data: the change in height must be either a result of the item's internal properties changing or it could be a result of changing the item's "state". The reason is that when an item gets hidden, it's no longer rendered, so when it becomes visible again, it should precisely restore its last-rendered appearance based on the item's properties and any persisted "state".
 
 * `verticalSpacing: number?` — Vertical item spacing. Is `undefined` until it has been measured. Is only measured once, when at least two rows of items have been rendered.
 
@@ -352,17 +364,15 @@ When using custom (external) state management, contrary to the default (internal
 
 * `onItemHeightDidChange(i: number)` — (advanced) If an item's height could've changed, this function should be called immediately after the item's height has potentially changed. The function re-measures the item's height (the item must still be rendered) and re-calculates `VirtualScroller` layout. An example for using this function would be having an "Expand"/"Collapse" button in a list item.
 
-  * There's also a convention that every change in an item's height must come as a result of changing its "state", be it the item's state that is stored internally in the `VirtualScroller` state (see `.setItemState()` function) or some other application-level state that is stored outside of the `VirtualScroller` state.
+  * There's also a convention that every change in an item's height must come as a result of changing the item's "state". See the descripton of `itemStates` and `itemHeights` properties of the `VirtualScroller` [state](#state) for more details.
 
   * Implementation-wise, calling `onItemHeightDidChange()` manually could be replaced with detecting item height changes automatically via [Resize Observer](https://caniuse.com/#search=Resize%20Observer) in some future version.
 
-* `setItemState(i: number, itemState: any?)` — (advanced) Replaces a list item's state inside `VirtualScroller` state. Use it to preserve an item's state because offscreen items get unmounted and any unsaved state is lost in the process. If an item's state is correctly preserved, it will be restored when an item gets mounted again due to becoming visible.
+* `setItemState(i: number, itemState: any?)` — (advanced) Preserves a list item's "state" inside `VirtualScroller`'s built-in item "state" storage. See the descripton of `itemStates` property of the `VirtualScroller` [state](#state) for more details.
 
-  * Calling `setItemState()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout might not be required. If an item's height did change as a result of changing its state, then `VirtualScroller` layout must be updated, and to do that, call `onItemHeightDidChange(i)` right after calling `setItemState()` has taken effect.
+  * A developer could use it to preserve an item's "state" if it could change. The reason is that offscreen items get unmounted and any unsaved state is lost in the process. If an item's state is correctly preserved, the item's latest-rendered appearance could be restored from that state when the item gets mounted again due to becoming visible again.
 
-  * For example, consider a social network feed, where each post optionally has an attachment. Suppose there's a post in the feed having a YouTube video attachment. The attachment is initially shown as a small thumbnail that expands into a full-sized embedded YouTube video player when a user clicks on it. If the expanded/collapsed state of such attachment wasn't stored in `VirtualScroller` state then the following scenario would be possible: the user expands the video, then scrolls down so that the post with the video is no longer visible, the post gets unmounted due to going off screen, then the user scrolls back up so that the post with the video is visible again, the post gets mounted, but the video is not expanded and instead of it a small thumbnail is shown because there's no previous "state" to restore.
-
-  * In the example above, one should also call `onItemHeightDidChange(i)` right after the YouTube video has been expanded/collapsed. Otherwise, the scroll position would "jump" when the item goes off screen, because `VirtualScroller` would have based its calculations on the initially measured item height, not the "expanded" one, so it would subtract an incorrect value from the list's top margin, resulting in a "jump of content".
+  * Calling `setItemState()` doesn't trigger a re-layout of `VirtualScroller` because changing a list item's state doesn't necessarily mean a change of its height, so a re-layout might not be required. If an item's height did change as a result of changing its state, then `VirtualScroller` layout must be updated, and to do that, one should call `onItemHeightDidChange(i)` right after the change in the item's state has been reflected on screen.
 
 * `getItemScrollPosition(i: number): number?` — (advanced) Returns an item's scroll position inside the scrollable container. Returns `undefined` if any of the items before this item haven't been rendered yet.
 
@@ -932,6 +942,56 @@ Due to the [inherent limitations](https://gitlab.com/catamphetamine/virtual-scro
 ### Search, focus management.
 
 Due to offscreen list items not being rendered native browser features like "Find on page", moving focus through items via `Tab` key, screen reader announcement and such won't work. A workaround for "search on page" is adding a custom "🔍 Search" input field that would filter items by their content and then call `VirtualScroller.setItems()`.
+
+### "Item index N height changed unexpectedly" warning on page load in dev mode.
+
+`VirtualScroller` assumes there'd be no "unexpected" (unannounced) changes in items' heights. If an item's height changes for whatever reason, a developer must announce it immediately by calling `.onItemHeightDidChange(i)` instance method.
+
+There might still be cases outside of a developer's control when items' heights do change "unexpectedly". One such case is when running an application in "development" mode and the CSS styles or custom fonts haven't loaded yet, resulting in different item height measurements "before" and "after" the page has fully loaded.
+
+<details>
+
+<summary>To filter out such "false" warnings, one could temporarily override <code>console.warn</code> function in development mode.</summary>
+
+######
+
+```js
+const PAGE_LOAD_TIMEOUT = 1000
+
+let consoleWarnHasBeenInstrumented = false
+
+export default function suppressVirtualScrollerDevModePageLoadWarnings() {
+  if (consoleWarnHasBeenInstrumented) {
+    return
+  }
+  // `virtual-scroller` might produce false warnings about items changing their height unexpectedly.
+  // https://gitlab.com/catamphetamine/virtual-scroller/#item-index-n-height-changed-unexpectedly-warning-on-page-load-in-dev-mode
+  // That might be the case because Webpack hasn't yet loaded the styles by the time `virtual-scroller`
+  // performs its initial items measurement.
+  // To clear the console from such false warnings, a "page load timeout" is introduced in development mode.
+  if (process.env.NODE_ENV !== 'production') {
+    consoleWarnHasBeenInstrumented = true
+    const originalConsoleWarn = console.warn
+    const startedAt = Date.now()
+    let muteVirtualScrollerUnexpectedHeightChangeWarnings = true
+    console.warn = (...args) => {
+      if (muteVirtualScrollerUnexpectedHeightChangeWarnings) {
+        if (Date.now() - startedAt < PAGE_LOAD_TIMEOUT) {
+          if (args[0] === '[virtual-scroller]' && args[1] === 'Item index' && args[3] === 'height changed unexpectedly: it was') {
+            // Mute the warning.
+            console.log('(muted `virtual-scroller` warning because the page hasn\'t loaded yet)')
+            return
+          }
+        } else {
+          muteVirtualScrollerUnexpectedHeightChangeWarnings = false
+        }
+      }
+      return originalConsoleWarn(...args)
+    }
+  }
+}
+```
+</details>
 
 ### If only the first item is rendered on page load in dev mode.
 
