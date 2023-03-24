@@ -7,8 +7,6 @@
 
 * Fixed React `18.2.0` [bug](https://github.com/facebook/react/issues/25023#issuecomment-1480463544) when out-of-sync (stale) state values are being rendered.
 
-* `VirtualScroller` no longer restores the Y scroll position on mount: it was found out that this feature conflicted with the same feature of application "router" libraries.
-
 1.11.3 / 05.02.2023
 ==================
 
