@@ -49,7 +49,11 @@ export default class VirtualScroller {
 			}
 		}
 
-		log('~ Start ~')
+		if (isRestart) {
+			log('~ Start (restart) ~')
+		} else {
+			log('~ Start ~')
+		}
 
 		// `this._isActive = true` should be placed somewhere at the start of this function.
 		this._isActive = true
@@ -71,18 +75,13 @@ export default class VirtualScroller {
 			}
 		}
 
-		// If there was a pending state update that didn't get applied
-		// because of stopping the `VirtualScroller`, apply that state update now.
-		//
-		// The pending state update won't get applied if the scrollable container width
-		// has changed but that's ok because that state update currently could only contain:
-		// * `scrollableContainerWidth`
-		// * `verticalSpacing`
-		// * `beforeResize`
-		// All of those get rewritten in `onResize()` anyway.
-		//
-		let stateUpdate = this._stoppedStateUpdate
-		this._stoppedStateUpdate = undefined
+		// If there was a pending "after render" state update that didn't get applied
+		// because the `VirtualScroller` got stopped, then apply that pending "after render"
+		// state update now. Such state update could include properties like:
+		// * A `verticalSpacing` that has been measured in `onRender()`.
+		// * A cleaned-up `beforeResize` object that was cleaned-up in `onRender()`.
+		let stateUpdate = this._afterRenderStateUpdateThatWasStopped
+		this._afterRenderStateUpdateThatWasStopped = undefined
 
 		// Reset `this.verticalSpacing` so that it re-measures it in cases when
 		// the `VirtualScroller` was previously stopped and is now being restarted.
@@ -122,12 +121,10 @@ export default class VirtualScroller {
 			const prevWidth = this.getState().scrollableContainerWidth
 			if (newWidth !== prevWidth) {
 				log('~ Scrollable container width changed from', prevWidth, 'to', newWidth, '~')
-				// `stateUpdate` doesn't get passed to `this.onResize()`, and, therefore,
-				// won't be applied. But that's ok because currently it could only contain:
-				// * `scrollableContainerWidth`
-				// * `verticalSpacing`
-				// * `beforeResize`
-				// All of those get rewritten in `onResize()` anyway.
+				// The pending state update (if present) won't be applied in this case.
+				// That's ok because such state update could currently only originate in
+				// `this.onResize()` function. Therefore, alling `this.onResize()` again
+				// would rewrite all those `stateUpdate` properties anyway, so they're not passed.
 				return this.onResize()
 			}
 		}
@@ -221,7 +218,9 @@ export default class VirtualScroller {
 	 * @param  {number} i — Item index
 	 */
 	onItemHeightDidChange(i) {
-		this.hasToBeStarted()
+		// See the comments in the `setItemState()` function below for the rationale
+		// on why the `hasToBeStarted()` check was commented out.
+		// this.hasToBeStarted()
 		this._onItemHeightDidChange(i)
 	}
 
@@ -231,7 +230,48 @@ export default class VirtualScroller {
 	 * @param  {any} i — Item's new state
 	 */
 	setItemState(i, newItemState) {
-		this.hasToBeStarted()
+		// There is an issue in React 18.2.0 when `useInsertionEffect()` doesn't run twice
+		// on mount unlike `useLayoutEffect()` in "strict" mode. That causes a bug in a React
+		// implementation of the `virtual-scroller`.
+		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/33
+		// https://github.com/facebook/react/issues/26320
+		// A workaround for that bug is ignoring the second-initial run of the effects at mount.
+		//
+		// But in that case, if an `ItemComponent` calls `setItemState()` in `useLayoutEffect()`,
+		// it could result in a bug.
+		//
+		// Consider a type of `useLayoutEffect()` that skips the initial mount:
+		// `useLayoutEffectSkipInitialMount()`.
+		// Suppose that effect is written in such a way that it only skips the first call of itself.
+		// In that case, if React is run in "strict" mode, the effect will no longer work as expected
+		// and it won't actually skip the initial mount and will be executed during the second initial run.
+		// But the `VirtualScroller` itself has already implemented a workaround that prevents
+		// its hooks from running twice on mount. This means that `useVirtualScrollerStartStop()`
+		// of the React component would have already stopped the `VirtualScroller` by the time
+		// `ItemComponent`'s incorrectly-behaving `useLayoutEffectSkipInitialMount()` effect is run,
+		// resulting in an error: "`VirtualScroller` hasn't been started".
+		//
+		// The log when not in "strict" mode would be:
+		//
+		// * `useLayoutEffect()` is run in `ItemComponent` — skips the initial run.
+		// * `useLayoutEffect()` is run in `useVirtualScrollerStartStop()`. It starts the `VirtualScroller`.
+		// * Some dependency property gets updated inside `ItemComponent`.
+		// * `useLayoutEffect()` is run in `ItemComponent` — no longer skips. Calls `setItemState()`.
+		// * The `VirtualScroller` is started so it handles `setState()` correctly.
+		//
+		// The log when in "strict" mode would be:
+		//
+		// * `useLayoutEffect()` is run in `ItemComponent` — skips the initial run.
+		// * `useLayoutEffect()` is run in `useVirtualScrollerStartStop()`. It starts the `VirtualScroller`.
+		// * `useLayoutEffect()` is unmounted in `useVirtualScrollerStartStop()`. It stops the `VirtualScroller`.
+		// * `useLayoutEffect()` is unmounted in `ItemComponent` — does nothing.
+		// * `useLayoutEffect()` is run the second time in `ItemComponent` — no longer skips. Calls `setItemState()`.
+		// * The `VirtualScroller` is stopped so it throws an error: "`VirtualScroller` hasn't been started".
+		//
+		// For that reason, the requirement of the `VirtualScroller` to be started was commented out.
+		// Commenting it out wouldn't result in any potential bugs because the code would work correctly
+		// in both cases.
+		// this.hasToBeStarted()
 		this._setItemState(i, newItemState)
 	}
 

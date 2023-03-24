@@ -1,5 +1,14 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.12.3 / 23.03.2023
+==================
+
+* [Fixed](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/33) React `18.2.0` [bug](https://github.com/facebook/react/issues/26320) in ["strict" mode](https://hu.reactjs.org/docs/strict-mode.html) when `useInsertionEffect()` doesn't run twice on mount unlike `useEffect()` or `useLayoutEffect()`.
+
+* Fixed React `18.2.0` [bug](https://github.com/facebook/react/issues/25023#issuecomment-1480463544) when out-of-sync (stale) state values are being rendered.
+
+* `VirtualScroller` no longer restores the Y scroll position on mount: it was found out that this feature conflicted with the same feature of application "router" libraries.
+
 1.11.3 / 05.02.2023
 ==================
 

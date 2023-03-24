@@ -441,9 +441,13 @@ export default function() {
 		if (previousHeight !== newHeight) {
 			log('~ Item height has changed. Should update layout. ~')
 
-			// Update or reset a previously calculated layout
-			// so that the "diff"s based on that layout in the future
-			// produce correct results.
+			// Update or reset a previously calculated layout with the new item height
+			// so that the potential future "diff"s based on that "previously calculated" layout
+			// would be correct.
+			//
+			// The "previously calculated layout" feature is not currently used
+			// so this function call doesn't really affect anything.
+			//
 			updatePreviouslyCalculatedLayoutOnItemHeightChange.call(this, i, previousHeight, newHeight)
 
 			// Recalculate layout.
@@ -455,11 +459,13 @@ export default function() {
 			// that might happen in the middle of the currently pending `setState()` operation
 			// being applied, resulting in weird "race condition" bugs.
 			//
-			if (this.waitingForRender) {
-				log('~ Another state update is already waiting to be rendered. Delay the layout update until then. ~')
-				this.updateLayoutAfterRenderBecauseItemHeightChanged = true
-			} else {
-				this.onUpdateShownItemIndexes({ reason: LAYOUT_REASON.ITEM_HEIGHT_CHANGED })
+			if (this._isActive) {
+				if (this.waitingForRender) {
+					log('~ Another state update is already waiting to be rendered. Delay the layout update until then. ~')
+					this.updateLayoutAfterRenderBecauseItemHeightChanged = true
+				} else {
+					this.onUpdateShownItemIndexes({ reason: LAYOUT_REASON.ITEM_HEIGHT_CHANGED })
+				}
 			}
 
 			// If there was a request for `setState()` with new `items`, then the changes

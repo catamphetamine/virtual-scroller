@@ -1,7 +1,10 @@
 import log, { isDebug } from '../utility/debug.js'
 import getStateSnapshot from '../utility/getStateSnapshot.js'
 
-import { useState, useRef, useCallback, useLayoutEffect, useInsertionEffect } from 'react'
+import { useRef, useCallback } from 'react'
+import useStateNoStaleBug from './useStateNoStaleBug.js'
+import useInsertionEffectDontMountTwiceInStrictMode from './useInsertionEffectDontMountTwiceInStrictMode.js'
+import useLayoutEffectDontMountTwiceInStrictMode from './useLayoutEffectDontMountTwiceInStrictMode.js'
 
 // Creates state management functions.
 export default function _useState({
@@ -14,7 +17,7 @@ export default function _useState({
 	// `VirtualScroller` state gets updated from this variable.
 	// The reason for that is that `VirtualScroller` state must always
 	// correspond exactly to what's currently rendered on the screen.
-	const [_newState, _setNewState] = useState(initialState)
+	const [_newState, _setNewState] = useStateNoStaleBug(initialState)
 
 	// This `state` reference is what `VirtualScroller` uses internally.
 	// It's the "source of truth" on the actual `VirtualScroller` state.
@@ -137,7 +140,7 @@ export default function _useState({
 	// So if `useInsertionEffect()` gets removed from React in some hypothetical future,
 	// it could be replaced with using `ref`s on `ItemComponent`s to measure the DOM element heights.
 	//
-	useInsertionEffect(() => {
+	useInsertionEffectDontMountTwiceInStrictMode(() => {
 		// Update the actual `VirtualScroller` state right before the DOM changes
 		// are going to be applied for the requested state update.
 		//
@@ -160,13 +163,13 @@ export default function _useState({
 		// This hook doesn't do anything at the initial render.
 		//
 		if (isDebug()) {
-			log('React: ~ The requested state is about to be applied in DOM. Set it as the `VirtualScroller` state. ~')
+			log('React: ~ The requested state is about to be applied in DOM. Setting it as the `VirtualScroller` state. ~')
 			log(getStateSnapshot(_newState))
 		}
 		setState(_newState)
 	}, [_newState])
 
-	useLayoutEffect(() => {
+	useLayoutEffectDontMountTwiceInStrictMode(() => {
 		// Call `onRender()` right after a requested state update has been applied,
 		// and also right after the initial render.
 		onRender()

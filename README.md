@@ -332,7 +332,7 @@ virtualScroller.start()
 
 A developer might prefer to use custom (external) state management rather than the default one. That might be the case when a certain high-order `VirtualScroller` implementation comes with a specific state management paradigm, like in React. In such case, `VirtualScroller` provides the following instance methods:
 
-* `onRender()` — When using custom (external) state management, the `.onRender()` function must be called every time right after the list has been "rendered" (including the initial render).
+* `onRender()` — When using custom (external) state management, `.onRender()` function must be called every time right after the list has been "rendered" (including the initial render). The list should always "render" only with the "latest" state where the "latest" state is defined as the argument of the latest `setState()` call. Otherwise, the component may not work correctly.
 
 * `getInitialState(): object` — Returns the initial `VirtualScroller` state for the cases when a developer configures `VirtualScroller` for custom (external) state management.
 

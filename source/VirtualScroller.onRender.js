@@ -63,7 +63,7 @@ export default function() {
 			// would construct its own state object.
 			if (!shallowEqual(newState, this.mostRecentSetStateValue)) {
 				warn('The most recent state that was set', getStateSnapshot(this.mostRecentSetStateValue))
-				reportError('The state that has been rendered is not the most recent one that was set')
+				reportError('`VirtualScroller` has been rendered with a `state` that is not equal to the most recently set one')
 			}
 		}
 
@@ -199,7 +199,7 @@ export default function() {
 		}
 
 		if (!this._isActive) {
-			this._stoppedStateUpdate = stateUpdate
+			this._afterRenderStateUpdateThatWasStopped = stateUpdate
 			return
 		}
 

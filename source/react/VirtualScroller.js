@@ -13,6 +13,8 @@ import useUpdateItemKeysOnItemsChange from './useUpdateItemKeysOnItemsChange.js'
 import useClassName from './useClassName.js'
 import useStyle from './useStyle.js'
 
+import { warn } from '../utility/debug.js'
+
 // When `items` property changes:
 // * A new `items` property is supplied to the React component.
 // * The React component re-renders itself.
@@ -172,6 +174,7 @@ function VirtualScroller({
 		// `onMount()` option is deprecated due to no longer being used.
 		// If someone thinks there's a valid use case for it, create an issue.
 		if (onMount) {
+			warn('`onMount` property is deprecated')
 			onMount()
 		}
 	}, [])

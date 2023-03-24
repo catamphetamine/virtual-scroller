@@ -42,6 +42,7 @@ export default class Scroll {
 	start() {
 		if (this.initialScrollPosition !== undefined) {
 			this.scrollToY(this.initialScrollPosition)
+			// Don't restore this scroll position on restart.
 			this.initialScrollPosition = undefined
 		}
 		if (this.onScrollPositionChange) {

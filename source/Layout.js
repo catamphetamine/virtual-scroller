@@ -54,7 +54,7 @@ export default class Layout {
 			return getValue()
 		} catch (error) {
 			if (error instanceof ScrollableContainerNotReadyError) {
-				log('Couldn\'t calculate', name, 'before scrollable container is ready. Default to', defaultValue);
+				log(`Scrollable container size is not known at this point, so "${name}" can't be calculated yet. Default to`, defaultValue);
 				return defaultValue
 			} else {
 				throw error
