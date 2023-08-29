@@ -5,7 +5,7 @@
 			"follow_symlinks": true,
 			"path": ".",
 			"file_exclude_patterns": ["npm-debug.log", "*.js.map", "package-lock.json"],
-			"folder_exclude_patterns": ["node_modules", "commonjs", "modules", "bundle", "coverage", ".nyc_output"]
+			"folder_exclude_patterns": ["node_modules", "commonjs", "modules", "bundle", "coverage", ".nyc_output", "website/lib"]
 		}
 	],
 	"settings":

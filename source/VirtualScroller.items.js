@@ -215,7 +215,7 @@ export default function() {
 		// `this.newItemsWillBeRendered` is cleared in `onRender()`.
 		//
 		// The values in `this.newItemsWillBeRendered` are used, for example,
-		// in `.onResize()` handler in order to not break state consistency when
+		// in `.onContainerResize()` handler in order to not break state consistency when
 		// state updates are "asynchronous" (delayed) and there's a window resize event
 		// in between calling `updateState()` below and that call actually being applied.
 		//

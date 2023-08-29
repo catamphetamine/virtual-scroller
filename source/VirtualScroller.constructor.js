@@ -6,7 +6,7 @@ import {
 import DOMEngine from './DOM/Engine.js'
 
 import Layout, { LAYOUT_REASON } from './Layout.js'
-import Resize from './Resize.js'
+import ScrollableContainerResizeHandler from './ScrollableContainerResizeHandler.js'
 import BeforeResize from './BeforeResize.js'
 import Scroll from './Scroll.js'
 import ListHeightMeasurement from './ListHeightMeasurement.js'
@@ -19,7 +19,7 @@ import createVerticalSpacingHelpers from './VirtualScroller.verticalSpacing.js'
 import createColumnsHelpers from './VirtualScroller.columns.js'
 import createLayoutHelpers from './VirtualScroller.layout.js'
 import createOnRenderHelpers from './VirtualScroller.onRender.js'
-import createResizeHelpers from './VirtualScroller.resize.js'
+import createScrollableContainerResizeHelpers from './VirtualScroller.onContainerResize.js'
 import createItemsHelpers from './VirtualScroller.items.js'
 
 /**
@@ -193,7 +193,7 @@ export default function VirtualScrollerConstructor(
 
 	createLayoutHelpers.call(this)
 	createOnRenderHelpers.call(this)
-	createResizeHelpers.call(this)
+	createScrollableContainerResizeHelpers.call(this)
 	createItemsHelpers.call(this)
 
 	createHelpers.call(this, {
@@ -277,7 +277,7 @@ function createHelpers({
 		getPreviouslyCalculatedLayout: () => this.previouslyCalculatedLayout
 	})
 
-	this.resize = new Resize({
+	this.scrollableContainerResizeHandler = new ScrollableContainerResizeHandler({
 		bypass: this.bypass,
 		getWidth: () => this.scrollableContainer.getWidth(),
 		getHeight: () => this.scrollableContainer.getHeight(),
@@ -303,7 +303,7 @@ function createHelpers({
 		}),
 		onWidthChange: (prevWidth, newWidth) => {
 			log('~ Scrollable container width changed from', prevWidth, 'to', newWidth, '~')
-			this.onResize()
+			this.onContainerResize()
 		}
 	})
 

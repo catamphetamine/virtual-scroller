@@ -102,7 +102,7 @@ export default class VirtualScroller {
 			}
 		}
 
-		this.resize.start()
+		this.scrollableContainerResizeHandler.start()
 		this.scroll.start()
 
 		// If `scrollableContainerWidth` hasn't been measured yet,
@@ -123,9 +123,9 @@ export default class VirtualScroller {
 				log('~ Scrollable container width changed from', prevWidth, 'to', newWidth, '~')
 				// The pending state update (if present) won't be applied in this case.
 				// That's ok because such state update could currently only originate in
-				// `this.onResize()` function. Therefore, alling `this.onResize()` again
+				// `this.onContainerResize()` function. Therefore, alling `this.onContainerResize()` again
 				// would rewrite all those `stateUpdate` properties anyway, so they're not passed.
-				return this.onResize()
+				return this.onContainerResize()
 			}
 		}
 
@@ -136,7 +136,7 @@ export default class VirtualScroller {
 			const columnsCount = this.getActualColumnsCount()
 			const columnsCountFromState = this.getState().columnsCount || 1
 			if (columnsCount !== columnsCountFromState) {
-				return this.onResize()
+				return this.onContainerResize()
 			}
 		}
 
@@ -158,7 +158,7 @@ export default class VirtualScroller {
 
 		log('~ Stop ~')
 
-		this.resize.stop()
+		this.scrollableContainerResizeHandler.stop()
 		this.scroll.stop()
 
 		// Stop `ListTopOffsetWatcher` if it has been started.
