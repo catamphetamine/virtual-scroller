@@ -31,8 +31,10 @@ describe('Layout', function() {
 		// Initial render.
 		layout.getShownItemIndexes({
 			itemsCount: items.length,
-			visibleAreaTop: 0,
-			visibleAreaBottom: SCREEN_HEIGHT
+			visibleAreaInsideTheList: {
+				top: 0,
+				bottom: SCREEN_HEIGHT
+			}
 		}).should.deep.equal({
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 2
@@ -41,8 +43,10 @@ describe('Layout', function() {
 		// The first item is almost hidden.
 		layout.getShownItemIndexes({
 			itemsCount: items.length,
-			visibleAreaTop: SCREEN_HEIGHT + ITEM_HEIGHT - 1,
-			visibleAreaBottom: (SCREEN_HEIGHT + ITEM_HEIGHT - 1) + SCREEN_HEIGHT
+			visibleAreaInsideTheList: {
+				top: SCREEN_HEIGHT + ITEM_HEIGHT - 1,
+				bottom: (SCREEN_HEIGHT + ITEM_HEIGHT - 1) + SCREEN_HEIGHT
+			}
 		}).should.deep.equal({
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 4
@@ -51,8 +55,10 @@ describe('Layout', function() {
 		// The first item is hidden.
 		layout.getShownItemIndexes({
 			itemsCount: items.length,
-			visibleAreaTop: SCREEN_HEIGHT + ITEM_HEIGHT,
-			visibleAreaBottom: (SCREEN_HEIGHT + ITEM_HEIGHT) + SCREEN_HEIGHT
+			visibleAreaInsideTheList: {
+				top: SCREEN_HEIGHT + ITEM_HEIGHT,
+				bottom: (SCREEN_HEIGHT + ITEM_HEIGHT) + SCREEN_HEIGHT
+			}
 		}).should.deep.equal({
 			firstShownItemIndex: 1,
 			lastShownItemIndex: 4
@@ -61,8 +67,10 @@ describe('Layout', function() {
 		// A new item at the bottom is almost visible.
 		layout.getShownItemIndexes({
 			itemsCount: items.length,
-			visibleAreaTop: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 - SCREEN_HEIGHT * 2,
-			visibleAreaBottom: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 - SCREEN_HEIGHT
+			visibleAreaInsideTheList: {
+				top: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 - SCREEN_HEIGHT * 2,
+				bottom: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 - SCREEN_HEIGHT
+			}
 		}).should.deep.equal({
 			firstShownItemIndex: 1,
 			lastShownItemIndex: 4
@@ -71,8 +79,10 @@ describe('Layout', function() {
 		// A new item at the bottom is visible.
 		layout.getShownItemIndexes({
 			itemsCount: items.length,
-			visibleAreaTop: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 + 1 - SCREEN_HEIGHT * 2,
-			visibleAreaBottom: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 + 1 - SCREEN_HEIGHT
+			visibleAreaInsideTheList: {
+				top: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 + 1 - SCREEN_HEIGHT * 2,
+				bottom: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 + 1 - SCREEN_HEIGHT
+			}
 		}).should.deep.equal({
 			firstShownItemIndex: 1,
 			lastShownItemIndex: 5

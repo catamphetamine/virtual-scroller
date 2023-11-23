@@ -217,25 +217,22 @@ export default function() {
 		})
 	}
 
-	function getVisibleArea() {
-		const visibleArea = this.scroll.getVisibleAreaBounds()
-		this.latestLayoutVisibleArea = visibleArea
+	function getCoordinatesOfVisibleAreaInsideTheList() {
+		const visibleAreaBounds = this.scroll.getVisibleAreaBounds()
+		this.latestLayoutVisibleArea = visibleAreaBounds
 
 		// Subtract the top offset of the list inside the scrollable container.
 		const listTopOffsetInsideScrollableContainer = this.getListTopOffsetInsideScrollableContainer()
 		return {
-			top: visibleArea.top - listTopOffsetInsideScrollableContainer,
-			bottom: visibleArea.bottom - listTopOffsetInsideScrollableContainer
+			top: visibleAreaBounds.top - listTopOffsetInsideScrollableContainer,
+			bottom: visibleAreaBounds.bottom - listTopOffsetInsideScrollableContainer
 		}
 	}
 
 	function getShownItemIndexes() {
 		const itemsCount = this.getItemsCount()
 
-		const {
-			top: visibleAreaTop,
-			bottom: visibleAreaBottom
-		} = getVisibleArea.call(this)
+		const visibleAreaInsideTheList = getCoordinatesOfVisibleAreaInsideTheList.call(this)
 
 		if (this.bypass) {
 			return {
@@ -254,7 +251,7 @@ export default function() {
 		// then it would also require listening for "scroll" events on the screen.
 		// Overall, I suppose that such "actual visibility" feature would be
 		// a very minor optimization and not something I'd deal with.
-		const isVisible = visibleAreaTop < this.itemsContainer.getHeight() && visibleAreaBottom > 0
+		const isVisible = visibleAreaInsideTheList.top < this.itemsContainer.getHeight() + this.layout.getPrerenderMargin() && visibleAreaInsideTheList.bottom > 0 - this.layout.getPrerenderMargin()
 		if (!isVisible) {
 			log('The entire list is off-screen. No items are visible.')
 			return this.layout.getNonVisibleListShownItemIndexes()
@@ -263,8 +260,7 @@ export default function() {
 		// Get shown item indexes.
 		return this.layout.getShownItemIndexes({
 			itemsCount: this.getItemsCount(),
-			visibleAreaTop,
-			visibleAreaBottom
+			visibleAreaInsideTheList
 		})
 	}
 

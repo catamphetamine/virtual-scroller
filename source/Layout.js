@@ -356,14 +356,12 @@ export default class Layout {
 	 */
 	getShownItemIndexes({
 		itemsCount,
-		visibleAreaTop,
-		visibleAreaBottom
+		visibleAreaInsideTheList
 	}) {
 		let indexes = this._getShownItemIndex({
 			itemsCount,
 			fromIndex: 0,
-			visibleAreaTop,
-			visibleAreaBottom,
+			visibleAreaInsideTheList,
 			findFirstShownItemIndex: true
 		})
 
@@ -381,8 +379,7 @@ export default class Layout {
 			itemsCount,
 			fromIndex: firstShownItemIndex,
 			beforeItemsHeight,
-			visibleAreaTop,
-			visibleAreaBottom,
+			visibleAreaInsideTheList,
 			findLastShownItemIndex: true
 		})
 
@@ -406,8 +403,7 @@ export default class Layout {
 		const {
 			beforeResize,
 			itemsCount,
-			visibleAreaTop,
-			visibleAreaBottom,
+			visibleAreaInsideTheList,
 			findFirstShownItemIndex,
 			findLastShownItemIndex,
 			// backwards
@@ -441,7 +437,8 @@ export default class Layout {
 		// If "previously calculated layout" would be used then it would first find
 		// `firstShownItemIndex` and then find `lastShownItemIndex` as part of two
 		// separate calls of this function, each with or without `backwards` flag,
-		// depending on whether `visibleAreaTop` and `visibleAreBottom` have shifted up or down.
+		// depending on whether `visibleAreaInsideTheList.top` and `visibleAreaInsideTheList.top`
+		// have shifted up or down.
 
 		let firstShownItemIndex
 		let lastShownItemIndex
@@ -525,7 +522,7 @@ export default class Layout {
 						itemsCount,
 						firstShownItemIndex: findLastShownItemIndex ? fromIndex : undefined,
 						indexOfTheFirstItemInTheRow: currentRowFirstItemIndex,
-						nonMeasuredAreaHeight: (visibleAreaBottom + this.getPrerenderMargin()) - beforeItemsHeight
+						nonMeasuredAreaHeight: (visibleAreaInsideTheList.bottom + this.getPrerenderMargin()) - beforeItemsHeight
 					})
 				}
 
@@ -537,8 +534,8 @@ export default class Layout {
 
 			const itemsHeightFromFirstRowToThisRow = beforeItemsHeight + currentRowHeight
 
-			const rowStepsIntoVisibleAreaTop = itemsHeightFromFirstRowToThisRow > visibleAreaTop - this.getPrerenderMargin()
-			const rowStepsOutOfVisibleAreaBottomOrIsAtTheBorder = itemsHeightFromFirstRowToThisRow + verticalSpacingAfterCurrentRow >= visibleAreaBottom + this.getPrerenderMargin()
+			const rowStepsIntoVisibleAreaTop = itemsHeightFromFirstRowToThisRow > visibleAreaInsideTheList.top - this.getPrerenderMargin()
+			const rowStepsOutOfVisibleAreaBottomOrIsAtTheBorder = itemsHeightFromFirstRowToThisRow + verticalSpacingAfterCurrentRow >= visibleAreaInsideTheList.bottom + this.getPrerenderMargin()
 
 			// if (backwards) {
 			// 	if (findFirstShownItemIndex) {
