@@ -33,7 +33,7 @@ export default function getVerticalSpacing({ itemsContainer, renderedItemsCount 
 			// To work around that bug, it rounds up to the closest higher `1px`
 			// and only then performs the `>=` comparison to detect same/next row.
 			//
-			if (Math.ceil(itemTopOffset) >= Math.floor(firstShownRowTopOffset) + Math.floor(firstShownRowHeight)) {
+			if (itemTopOffset + PAGE_ZOOM_ROUNDING_PRECISION_FIX_INCREMENT >= firstShownRowTopOffset + firstShownRowHeight) {
 				// Next row is detected. Measure inter-row spacing.
 				// Can't be "negative" with the current `if` condition.
 				return itemTopOffset - (firstShownRowTopOffset + firstShownRowHeight)
@@ -50,3 +50,17 @@ export default function getVerticalSpacing({ itemsContainer, renderedItemsCount 
 		}
 	}
 }
+
+// There's a rounding precision error when a web browser has a non-100% scale
+// when viewing a page. I dunno what's the source of the imprecision.
+// The thing is: previousRow.top + previousRow.height !== nextRow.top.
+// The two parts of the equation above differ by a magnitude of 0.0001.
+// To fix that, when performing a `>=` comparison, an additional increment is added.
+//
+// This value of the increment is set to `0.9px` for no real reason.
+// It could be `1px` or `0.99px` and it would most likely work the same way.
+// The rationale for the `0.9px` value is that a minimum height of a DOM element
+// is assumed to be `1px` so having a value less than `1px` would theoretically be
+// less buggy in a way that it wouldn't skip the rows that're `1px` high.
+//
+const PAGE_ZOOM_ROUNDING_PRECISION_FIX_INCREMENT = 0.9
