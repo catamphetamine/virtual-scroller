@@ -1,6 +1,6 @@
-import { State, NoItemState, VirtualScrollerCommonOptions, SetItemsOptions } from '../index.d.ts';
+import { State, NoItemState, VirtualScrollerCommonOptions, SetItemsOptions } from '../index.d.js';
 
-export { State } from '../index.d.ts';
+export { State } from '../index.d.js';
 
 import * as React from 'react';
 

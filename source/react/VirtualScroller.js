@@ -27,7 +27,7 @@ import { warn } from '../utility/debug.js'
 // * The React component re-renders itself the second time.
 
 function VirtualScroller({
-	as: AsComponent,
+	as: AsComponent = 'div',
 	items: itemsProperty,
 	itemComponent: Component,
 	itemComponentProps,
@@ -50,6 +50,7 @@ function VirtualScroller({
 	getColumnsCount,
 	getItemId,
 	className,
+	readyToStart,
 	onMount,
 	// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 	onItemFirstRender,
@@ -122,7 +123,7 @@ function VirtualScroller({
 
 	// Start `VirtualScroller` on mount.
 	// Stop `VirtualScroller` on unmount.
-	useVirtualScrollerStartStop(virtualScroller)
+	useVirtualScrollerStartStop(virtualScroller, { readyToStart })
 
 	// List items are rendered with `key`s so that React doesn't
 	// "reuse" `itemComponent`s in cases when `items` are changed.
@@ -233,6 +234,10 @@ function VirtualScroller({
 					//   The new property name is `setState`.
 					//   The old property name `onStateChange` is deprecated.
 					//
+					// * Passing `onHeightChange` property for legacy reasons.
+					//   The new property name is `onHeightDidChange`.
+					//   The old property name `onHeightChange` is deprecated.
+					//
 					return (
 						<Component
 							item={item}
@@ -291,6 +296,7 @@ VirtualScroller.propTypes = {
 	getColumnsCount: PropTypes.func,
 	getItemId: PropTypes.func,
 	className: PropTypes.string,
+	readyToStart: PropTypes.bool,
 	onMount: PropTypes.func,
 	onItemInitialRender: PropTypes.func,
 	// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
@@ -310,8 +316,4 @@ VirtualScroller.propTypes = {
 		verticalSpacing: PropTypes.number
 	}),
 	getInitialItemState: PropTypes.func
-}
-
-VirtualScroller.defaultProps = {
-	as: 'div'
 }

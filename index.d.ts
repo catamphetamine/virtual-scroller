@@ -21,7 +21,7 @@ export interface State<Item, ItemState> {
 	beforeResize?: BeforeResizeState;
 }
 
-export interface ItemsContainer<Element> {
+export class ItemsContainer<Element> {
 	constructor(getElement: () => Element);
 	getNthRenderedItemTopOffset(renderedElementIndex: number): number;
 	getNthRenderedItemHeight(renderedElementIndex: number): number;
@@ -29,7 +29,7 @@ export interface ItemsContainer<Element> {
 	clear(): void;
 }
 
-export interface ScrollableContainer<Element> {
+export class ScrollableContainer<Element> {
 	constructor(element: Element, getItemsContainerElement: () => Element);
 	getWidth(): number;
 	getHeight(): number;
@@ -51,7 +51,7 @@ interface ScrollableContainerArgument {
 
 export interface VirtualScrollerCommonOptions<Item, ItemState> {
 	bypass?: boolean;
-	onStateChange?(newState: State<Item, ItemState>);
+	onStateChange?(newState: State<Item, ItemState>): void;
 	getInitialItemState?: (item: Item) => ItemState;
 	measureItemsBatchSize?: number;
 	getEstimatedItemHeight?: () => number;

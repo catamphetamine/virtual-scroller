@@ -35,8 +35,10 @@ export default function getVerticalSpacing({ itemsContainer, renderedItemsCount 
 			//
 			if (itemTopOffset + PAGE_ZOOM_ROUNDING_PRECISION_FIX_INCREMENT >= firstShownRowTopOffset + firstShownRowHeight) {
 				// Next row is detected. Measure inter-row spacing.
-				// Can't be "negative" with the current `if` condition.
-				return itemTopOffset - (firstShownRowTopOffset + firstShownRowHeight)
+				const verticalSpacing = itemTopOffset - (firstShownRowTopOffset + firstShownRowHeight)
+				// The measured inter-row spacing can be slightly "negative" due to the scaling
+				// rounding errors described above. Example: `-0.00000762939453125`.
+				return Math.max(0, verticalSpacing)
 			}
 
 			// Not at the next row yet. Re-measure the current row height.

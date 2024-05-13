@@ -1,6 +1,6 @@
-import { State, NoItemState, VirtualScrollerCommonOptions } from '../index.d.ts';
+import { State, NoItemState, VirtualScrollerCommonOptions } from '../index.d.js';
 
-export { State } from '../index.d.ts';
+export { State } from '../index.d.js';
 
 import * as React from 'react';
 
@@ -48,25 +48,38 @@ export type PolymorphicComponentProps<
 	Props = {}
 	> = InheritableElementProps<C, Props & AsProp<C>>
 
-interface ItemComponentPassedProps<Item, ItemState> {
+export interface ItemComponentVirtualScrollerProps<Item, ItemState> {
 	item: Item;
 	state: ItemState;
 	setState: (newState: ItemState) => void;
-	onHeightChange: () => void;
+	onHeightDidChange: () => void;
 }
 
-interface Props<ItemComponentProps extends object, Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
+interface PropsBase<ItemComponentProps extends object, Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
 	items: Item[];
-	itemComponent: React.ElementType<ItemComponentProps & ItemComponentPassedProps<Item, ItemState>>;
+	itemComponent: React.ElementType<ItemComponentProps & ItemComponentVirtualScrollerProps<Item, ItemState>>;
 	itemComponentProps?: ItemComponentProps;
 	initialState?: State<Item, ItemState>;
 	preserveScrollPositionOnPrependItems?: boolean;
+	readyToStart?: boolean;
 
 	getScrollableContainer?(): HTMLElement;
 }
 
-declare function VirtualScroller<ItemComponentProps extends object = {}, Item = any, ItemState = NoItemState, AsElement extends React.ElementType = 'div'>(
-	props: PolymorphicComponentProps<AsElement, Props<ItemComponentProps, Item, ItemState>>
+export type Props<
+	ItemComponentProps extends object = {},
+	Item = any,
+	ItemState = NoItemState,
+	AsElement extends React.ElementType = 'div'
+> = PolymorphicComponentProps<AsElement, PropsBase<ItemComponentProps, Item, ItemState>>
+
+declare function VirtualScroller<
+	ItemComponentProps extends object = {},
+	Item = any,
+	ItemState = NoItemState,
+	AsElement extends React.ElementType = 'div'
+>(
+	props: Props<ItemComponentProps, Item, ItemState, AsElement>
 ): JSX.Element;
 
 export default VirtualScroller;

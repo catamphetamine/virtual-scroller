@@ -414,7 +414,18 @@ export default function() {
 
 		const previousHeight = itemHeights[i]
 		if (previousHeight === undefined) {
-			return reportError(`"onItemHeightDidChange()" has been called for item index ${i} but the item hasn't been rendered before.`)
+			// There're valid cases when the item still hasn't been measured and `onItemHeightDidChange()`
+			// function was called for it. That's because measuring items is only done after the `VirtualScroller`
+			// has `start()`ed. But it's not neccessarily `start()`ed by the time it has been rendered (mounted).
+			// For example, the React component `<VirtualScroller/>` provides an `readyToStart={false}` property
+			// in order to let the application finish initializing itself before starting the `VirtualScroller`.
+			// So there're legitimate cases when a `VirtualScroller` is already rendered but is not `start()`ed yet.
+			// In those cases, not re-measuring the item's height when it changes would not result in any bug
+			// because the item height will be re-measured anyway the first time it's rendered.
+			// So in such situations, re-measuring the item's height can be skipped without any consequence.
+			//
+			// return reportError(`"onItemHeightDidChange()" has been called for item index ${i} but the item hasn't been rendered before.`)
+			return
 		}
 
 		log('~ Re-measure item height ~')
