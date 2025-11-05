@@ -3,7 +3,7 @@ import ScrollableContainerNotReadyError from './ScrollableContainerNotReadyError
 
 export default class Layout {
 	constructor({
-		bypass,
+		isInBypassMode,
 		getInitialEstimatedItemHeight,
 		getInitialEstimatedVisibleItemRowsCount,
 		measureItemsBatchSize,
@@ -19,7 +19,7 @@ export default class Layout {
 		getMaxVisibleAreaHeight,
 		getPreviouslyCalculatedLayout
 	}) {
-		this.bypass = bypass
+		this.isInBypassMode = isInBypassMode
 		this.getInitialEstimatedItemHeight = getInitialEstimatedItemHeight
 		this.getInitialEstimatedVisibleItemRowsCount = getInitialEstimatedVisibleItemRowsCount
 		this.measureItemsBatchSize = measureItemsBatchSize
@@ -100,7 +100,7 @@ export default class Layout {
 		columnsCount,
 		firstShownItemIndex
 	}) {
-		if (this.bypass) {
+		if (this.isInBypassMode()) {
 			return itemsCount - 1
 		}
 		// On server side, at initialization time,

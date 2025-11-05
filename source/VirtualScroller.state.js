@@ -166,6 +166,14 @@ export default function createStateHelpers({
 		setInitialState(this.getInitialState())
 	}
 
+	this.setUpState = () => {
+		// If no custom state storage has been configured, use the default one.
+		// Also sets the initial state.
+		if (!this._usesCustomStateStorage) {
+			this.useDefaultStateStorage()
+		}
+	}
+
 	function defaultGetState() {
 		return this.state
 	}

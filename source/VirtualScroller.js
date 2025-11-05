@@ -1,11 +1,17 @@
 import VirtualScrollerConstructor from './VirtualScroller.constructor.js'
-import { hasTbodyStyles, addTbodyStyles } from './DOM/tbody.js'
 import { LAYOUT_REASON } from './Layout.js'
-import log, { warn } from './utility/debug.js'
+import log, { warn, reportError } from './utility/debug.js'
+
+import {
+	supportsTbody,
+	hasTbodyStyles,
+	addTbodyStyles,
+	BROWSER_NOT_SUPPORTED_ERROR
+} from './DOM/tbody.js'
 
 export default class VirtualScroller {
 	/**
-	 * @param  {function} getItemsContainerElement — Returns the container DOM `Element`.
+	 * @param  {function} getItemsContainerElement — Returns the items container DOM `Element`.
 	 * @param  {any[]} items — The list of items.
 	 * @param  {Object} [options] — See README.md.
 	 * @return {VirtualScroller}
@@ -35,13 +41,8 @@ export default class VirtualScroller {
 		const isRestart = this._isActive === false
 
 		if (!isRestart) {
+			this.setUpState()
 			this.waitingForRender = true
-
-			// If no custom state storage has been configured, use the default one.
-			// Also sets the initial state.
-			if (!this._usesCustomStateStorage) {
-				this.useDefaultStateStorage()
-			}
 			// If `render()` function parameter was passed,
 			// perform an initial render.
 			if (this._render) {
@@ -67,11 +68,23 @@ export default class VirtualScroller {
 		// Reset `_isSettingNewItems` flag just in case it has some "leftover" value.
 		this._isSettingNewItems = undefined
 
-		// Work around `<tbody/>` not being able to have `padding`.
+		// When `<tbody/>` is used as an items container element,
+		// `virtual-scroller` has to work around the HTML bug of
+		// `padding` not working on a `<tbody/>` element.
 		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
-		if (this.tbody) {
-			if (!hasTbodyStyles(this.getItemsContainerElement())) {
-				addTbodyStyles(this.getItemsContainerElement())
+		if (!this.isInBypassMode()) {
+			if (this.isItemsContainerElementTableBody()) {
+				if (supportsTbody()) {
+					if (!hasTbodyStyles(this.getItemsContainerElement())) {
+						log('~ <tbody/> container ~')
+						addTbodyStyles(this.getItemsContainerElement())
+					}
+				} else {
+					log('~ <tbody/> container not supported ~')
+					reportError(BROWSER_NOT_SUPPORTED_ERROR)
+					log('~ enter "bypass" mode ~')
+					this._bypass = true
+				}
 			}
 		}
 

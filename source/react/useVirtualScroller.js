@@ -11,7 +11,6 @@ export default function useVirtualScroller({
 	getEstimatedVisibleItemRowsCount,
 	bypass,
 	// bypassBatchSize,
-	tbody,
 	onItemInitialRender,
 	// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 	onItemFirstRender,
@@ -44,7 +43,6 @@ export default function useVirtualScroller({
 				getEstimatedVisibleItemRowsCount,
 				bypass,
 				// bypassBatchSize,
-				tbody,
 				onItemInitialRender,
 				// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 				onItemFirstRender,
@@ -57,7 +55,6 @@ export default function useVirtualScroller({
 				getScrollableContainer,
 				getColumnsCount,
 				getItemId,
-				tbody: AsComponent === 'tbody',
 				state: initialState,
 				getInitialItemState,
 				onStateChange

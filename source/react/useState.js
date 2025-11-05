@@ -9,8 +9,7 @@ import useLayoutEffectDontMountTwiceInStrictMode from './useLayoutEffectDontMoun
 // Creates state management functions.
 export default function _useState({
 	initialState,
-	onRender,
-	itemsProperty
+	onRender
 }) {
 	// This is a state variable that is used to re-render the component.
 	// Right after the component has finished re-rendering,

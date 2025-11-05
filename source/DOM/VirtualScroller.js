@@ -5,34 +5,46 @@ import px from '../utility/px.js'
 
 export default class VirtualScroller {
   constructor(itemsContainerElement, items, renderItem, options = {}) {
-    this.container = itemsContainerElement
+    this.getItemsContainerElement = typeof itemsContainerElement === 'function'
+      ? itemsContainerElement
+      : () => itemsContainerElement
+
     this.renderItem = renderItem
 
     const {
       onMount,
       onItemUnmount,
+      readyToStart,
+      readyToRender,
       ...restOptions
     } = options
 
+    // `onMount()` option is deprecated due to no longer being used.
+    // If someone thinks there's a valid use case for it, create an issue.
+    this._onMount = onMount
+
     this.onItemUnmount = onItemUnmount
-    this.tbody = this.container.tagName === 'TBODY'
 
     this.virtualScroller = new VirtualScrollerCore(
-      () => this.container,
+      this.getItemsContainerElement,
       items,
       {
         ...restOptions,
-        render: this.render,
-        tbody: this.tbody
+        render: this.render
       }
     )
 
-    this.start()
-
-    // `onMount()` option is deprecated due to no longer being used.
-    // If someone thinks there's a valid use case for it, create an issue.
-    if (onMount) {
-      onMount()
+    if (readyToRender === false) {
+      // Don't automatically perform the initial render of the list.
+      // This means that neither `this.render()` nor `this.start()` methods should be called.
+    } else if (readyToStart === false) {
+      // Don't automatically call the `.start()` method of the "core" component.
+      // Still, perform the initial render of the list.
+      this.render(this.virtualScroller.getInitialState())
+    } else {
+      // Calls the `.start()` method of the "core" component.
+      // It performs the initial render of the list and starts listening to scroll events.
+      this.start()
     }
   }
 
@@ -45,18 +57,24 @@ export default class VirtualScroller {
       afterItemsHeight
     } = state
 
+    const itemsContainerElement = this.getItemsContainerElement()
+
     // log('~ On state change ~')
     // log('Previous state', prevState)
     // log('New state', state)
 
-    // Set container padding top and bottom.
-    // Work around `<tbody/>` not being able to have `padding`.
+    // Set items container's padding-top and padding-bottom.
+    // But only do that for a non-`<tbody/>` item container
+    // because, strangely, CSS `padding` doesn't work on a `<tbody/>` element.
     // https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
+    //
     // `this.virtualScroller` hasn't been initialized yet at this stage,
-    // so using `this.tbody` instead of `this.virtualScroller.tbody`.
-    if (!this.tbody) {
-      this.container.style.paddingTop = px(beforeItemsHeight)
-      this.container.style.paddingBottom = px(afterItemsHeight)
+    // so this code can't use `this.virtualScroller.isItemsContainerElementTableBody()` function yet.
+    // Instead, it uses its own method of detecting the use of a `<tbody/>` container.
+    //
+    if (!this.virtualScroller.isItemsContainerElementTableBody()) {
+      itemsContainerElement.style.paddingTop = px(beforeItemsHeight)
+      itemsContainerElement.style.paddingBottom = px(afterItemsHeight)
     }
 
     // Perform an intelligent "diff" re-render if the `items` are the same.
@@ -64,7 +82,7 @@ export default class VirtualScroller {
     // Remove no longer visible items from the DOM.
     if (diffRender) {
       // Decrement instead of increment here because
-      // `this.container.removeChild()` changes indexes.
+      // `itemsContainerElement.removeChild()` changes indexes.
       let i = prevState.lastShownItemIndex
       while (i >= prevState.firstShownItemIndex) {
         if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
@@ -72,20 +90,20 @@ export default class VirtualScroller {
         } else {
           log('DOM: Remove element for item index', i)
           // The item is no longer visible. Remove it.
-          this.unmountItem(this.container.childNodes[i - prevState.firstShownItemIndex])
+          this.unmountItem(itemsContainerElement.childNodes[i - prevState.firstShownItemIndex])
         }
         i--
       }
     } else {
       log('DOM: Rerender the list from scratch')
-      while (this.container.firstChild) {
-        this.unmountItem(this.container.firstChild)
+      while (itemsContainerElement.firstChild) {
+        this.unmountItem(itemsContainerElement.firstChild)
       }
     }
 
     // Add newly visible items to the DOM.
     let shouldPrependItems = diffRender
-    const prependBeforeItemElement = shouldPrependItems && this.container.firstChild
+    const prependBeforeItemElement = shouldPrependItems && itemsContainerElement.firstChild
     let i = firstShownItemIndex
     while (i <= lastShownItemIndex) {
       if (diffRender && i >= prevState.firstShownItemIndex && i <= prevState.lastShownItemIndex) {
@@ -98,15 +116,27 @@ export default class VirtualScroller {
         const item = this.renderItem(items[i])
         if (shouldPrependItems) {
           log('DOM: Prepend element for item index', i)
-          // Append `item` to `this.container` before the retained items.
-          this.container.insertBefore(item, prependBeforeItemElement)
+          // Append `item` to `itemsContainerElement` before the retained items.
+          itemsContainerElement.insertBefore(item, prependBeforeItemElement)
         } else {
           log('DOM: Append element for item index', i)
-          // Append `item` to `this.container`.
-          this.container.appendChild(item)
+          // Append `item` to `itemsContainerElement`.
+          itemsContainerElement.appendChild(item)
         }
       }
       i++
+    }
+
+    // Call `onMount()` function when the list has rendered for the first time.
+    //
+    // `onMount()` option is deprecated due to no longer being used.
+    // If someone thinks there's a valid use case for it, create an issue.
+    //
+    if (!this._isMounted) {
+      this._isMounted = true
+      if (this._onMount) {
+        this._onMount()
+      }
     }
   }
 
@@ -135,7 +165,8 @@ export default class VirtualScroller {
   }
 
   unmountItem(itemElement) {
-    this.container.removeChild(itemElement)
+    this.getItemsContainerElement().removeChild(itemElement)
+
     if (this.onItemUnmount) {
       this.onItemUnmount(itemElement)
     }

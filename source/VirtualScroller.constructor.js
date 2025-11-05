@@ -1,8 +1,3 @@
-import {
-	supportsTbody,
-	BROWSER_NOT_SUPPORTED_ERROR
-} from './DOM/tbody.js'
-
 import DOMEngine from './DOM/Engine.js'
 
 import Layout, { LAYOUT_REASON } from './Layout.js'
@@ -12,7 +7,7 @@ import Scroll from './Scroll.js'
 import ListHeightMeasurement from './ListHeightMeasurement.js'
 import ItemHeights from './ItemHeights.js'
 
-import log, { warn, isDebug, reportError } from './utility/debug.js'
+import log, { warn } from './utility/debug.js'
 
 import createStateHelpers from './VirtualScroller.state.js'
 import createVerticalSpacingHelpers from './VirtualScroller.verticalSpacing.js'
@@ -34,6 +29,7 @@ export default function VirtualScrollerConstructor(
 	options = {}
 ) {
 	const {
+		bypass,
 		render,
 		state,
 		getInitialItemState = () => {},
@@ -46,7 +42,6 @@ export default function VirtualScrollerConstructor(
 		measureItemsBatchSize = 50,
 		getColumnsCount,
 		getItemId,
-		tbody,
 		// `estimatedItemHeight` is deprecated, use `getEstimatedItemHeight()` instead.
 		estimatedItemHeight,
 		getEstimatedVisibleItemRowsCount,
@@ -59,7 +54,6 @@ export default function VirtualScrollerConstructor(
 	} = options
 
 	let {
-		bypass,
 		getEstimatedItemHeight,
 		getScrollableContainer
 	} = options
@@ -104,21 +98,6 @@ export default function VirtualScrollerConstructor(
 		throw new Error('[virtual-scroller] `getState`/`setState` options usage has changed in the new version. See the readme for more details.')
 	}
 
-	// Work around `<tbody/>` not being able to have `padding`.
-	// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
-	if (tbody) {
-		if (this.engine !== DOMEngine) {
-			throw new Error('[virtual-scroller] `tbody` option is only supported for DOM rendering engine')
-		}
-		log('~ <tbody/> detected ~')
-		this.tbody = true
-		if (!supportsTbody()) {
-			log('~ <tbody/> not supported ~')
-			reportError(BROWSER_NOT_SUPPORTED_ERROR)
-			bypass = true
-		}
-	}
-
 	if (bypass) {
 		log('~ "bypass" mode ~')
 	}
@@ -133,7 +112,7 @@ export default function VirtualScrollerConstructor(
 	// It turned out that unmounting large React component trees
 	// is a very long process, so `VirtualScroller` does seem to
 	// make sense when used in a React application.
-	this.bypass = bypass
+	this._bypass = bypass
 	// this.bypassBatchSize = bypassBatchSize || 10
 
 	// Using `setTimeout()` in render loop is a workaround
@@ -238,6 +217,13 @@ function createHelpers({
 		this.itemsContainer.clear()
 	}
 
+	this.isItemsContainerElementTableBody = () => {
+		return this.engine === DOMEngine &&
+			this.getItemsContainerElement().tagName === 'TBODY'
+	}
+
+	this.isInBypassMode = () => this._bypass
+
 	this.scrollableContainer = this.engine.createScrollableContainer(
 		getScrollableContainer,
 		this.getItemsContainerElement
@@ -251,7 +237,7 @@ function createHelpers({
 	})
 
 	this.layout = new Layout({
-		bypass: this.bypass,
+		isInBypassMode: this.isInBypassMode,
 		getInitialEstimatedItemHeight: getEstimatedItemHeight,
 		getInitialEstimatedVisibleItemRowsCount: getEstimatedVisibleItemRowsCount,
 		measureItemsBatchSize,
@@ -278,7 +264,7 @@ function createHelpers({
 	})
 
 	this.scrollableContainerResizeHandler = new ScrollableContainerResizeHandler({
-		bypass: this.bypass,
+		isInBypassMode: this.isInBypassMode,
 		getWidth: () => this.scrollableContainer.getWidth(),
 		getHeight: () => this.scrollableContainer.getHeight(),
 		listenForResize: (listener) => this.scrollableContainer.onResize(listener),
@@ -308,7 +294,7 @@ function createHelpers({
 	})
 
 	this.scroll = new Scroll({
-		bypass: this.bypass,
+		isInBypassMode: this.isInBypassMode,
 		scrollableContainer: this.scrollableContainer,
 		itemsContainer: this.itemsContainer,
 		waitForScrollingToStop,

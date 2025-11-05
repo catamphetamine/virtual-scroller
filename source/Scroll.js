@@ -8,7 +8,7 @@ import log from './utility/debug.js'
 
 export default class Scroll {
 	constructor({
-		bypass,
+		isInBypassMode,
 		scrollableContainer,
 		itemsContainer,
 		onScroll,
@@ -23,7 +23,7 @@ export default class Scroll {
 		onScrolledToTop,
 		waitForScrollingToStop
 	}) {
-		this.bypass = bypass
+		this.isInBypassMode = isInBypassMode
 		this.scrollableContainer = scrollableContainer
 		this.itemsContainer = itemsContainer
 		this.onScroll = onScroll
@@ -98,7 +98,7 @@ export default class Scroll {
 			}
 		}
 
-		if (this.bypass) {
+		if (this.isInBypassMode()) {
 			return
 		}
 

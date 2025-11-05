@@ -67,7 +67,6 @@ interface Options<Element, Item, ItemState> extends VirtualScrollerCommonOptions
 	state?: State<Item, ItemState>;
 	render?(state: State<Item, ItemState>, previousState?: State<Item, ItemState>): void;
 	engine?: Engine<Element>;
-	tbody?: boolean;
 	scrollableContainer?: Element;
 	getScrollableContainer?(): Element;
 }

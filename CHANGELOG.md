@@ -1,5 +1,18 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.14.0 / 05.11.2025
+===================
+
+* Rewrote the readme.
+* Added new options to `virtual-scroller/dom`:
+  * `readyToStart: boolean` — Disables the automatic calling of `.start()` method at creation time.
+  * `readyToRender: boolean` — Disables the automatic calling of `.start()` method at creation time, and also disables the automatic initial render of the list at creation time.
+  * The first parameter of `virtual-scroller/dom` class constructor — `itemsContainerElement: Element` — can now be a function that returns a container element. Theoretically, this could support hypothetical edge cases when the container element is not available yet at the time of constructing a `DOMVirtualScroller` class instance.
+  * Added `getScrollableContainer()` option that complements the existing `scrollableContainer` option. Theoretically, this could support hypothetical edge cases when the scrollable container element is not available yet at the time of constructing a `DOMVirtualScroller` class instance.
+* Deprecated `tbody` option:
+  * Deprecated `tbody` property of the `<VirtualScroller/>` React component. It turns out that this property was partially ignored since May 2022. Now, instead of a developer having to specify it manually, it is automatically derived from the `as` property value: `tbody = as === "tbody"`.
+  * Removed `tbody` option of the "core" `VirtualScroller` class: it turns out that it can be detected automatically rather than specified manually.
+
 1.12.3 / 23.03.2023
 ==================
 

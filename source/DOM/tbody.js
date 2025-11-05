@@ -5,17 +5,18 @@ import px from '../utility/px.js'
 
 export const BROWSER_NOT_SUPPORTED_ERROR = 'It looks like you\'re using Internet Explorer which doesn\'t support CSS variables required for a <tbody/> container. VirtualScroller has been switched into "bypass" mode (render all items). See: https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1'
 
-export function supportsTbody() {
-	// Detect Internet Explorer.
+function isInternetExplorer() {
+	// This function detects Internet Explorer using `documentMode` IE-only property.
 	// https://stackoverflow.com/questions/19999388/check-if-user-is-using-ie
-	// `documentMode` is an IE-only property.
-	// Supports IE 9-11. Maybe even IE 8.
+	// The `documentMode` property exists in IE 9-11. Maybe even IE 8.
 	// http://msdn.microsoft.com/en-us/library/ie/cc196988(v=vs.85).aspx
-	if (typeof window !== 'undefined' && window.document.documentMode) {
-		// CSS variables aren't supported in Internet Explorer.
-		return false
-	}
-	return true
+	return typeof window !== 'undefined' && Boolean(window.document.documentMode)
+}
+
+export function supportsTbody() {
+	// Internet Explorer doesn't support CSS Variables
+	// and therefore it will not be able to apply the `<tbody/>` workaround.
+	return !isInternetExplorer()
 }
 
 export const TBODY_CLASS_NAME = 'VirtualScroller'

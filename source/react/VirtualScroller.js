@@ -37,6 +37,8 @@ function VirtualScroller({
 	getEstimatedItemHeight,
 	getEstimatedVisibleItemRowsCount,
 	bypass,
+	// `tbody` property is deprecated.
+	// Pass `as: "tbody"` property instead.
 	tbody,
 	// `preserveScrollPosition` property name is deprecated,
 	// use `preserveScrollPositionOnPrependItems` property instead.
@@ -62,6 +64,16 @@ function VirtualScroller({
 	getInitialItemState,
 	...rest
 }, ref) {
+	// It turns out that since May 2022, `useVirtualScroller()` hook completely ignored the `tbody` property.
+	// Instead, it always derived `tbody` property value from `as` property value by comparing it to `"tbody"` string.
+	// As a result, it seemed like the explicit passing of `tbody` property didn't really work as intended.
+	// In the end, it was decided that perhaps `tbody` property value should always be derived from `as` property
+	// without a developer having to manually specify it. So the `tbody` property was deprecated.
+	// It still exists though for backwards compatibility with the older versions of the package.
+	if (tbody === undefined) {
+		tbody = AsComponent === 'tbody'
+	}
+
 	// List items "container" DOM Element reference.
 	const container = useRef()
 
@@ -75,7 +87,6 @@ function VirtualScroller({
 		getEstimatedVisibleItemRowsCount,
 		bypass,
 		// bypassBatchSize,
-		tbody,
 		onItemInitialRender,
 		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 		onItemFirstRender,
@@ -109,8 +120,7 @@ function VirtualScroller({
 		stateToRender
 	} = useState({
 		initialState: _initialState,
-		onRender: virtualScroller.onRender,
-		itemsProperty
+		onRender: virtualScroller.onRender
 	})
 
 	// Use custom (external) state storage in the `VirtualScroller`.
@@ -283,7 +293,9 @@ VirtualScroller.propTypes = {
 	getEstimatedVisibleItemRowsCount: PropTypes.func,
 	bypass: PropTypes.bool,
 	// bypassBatchSize: PropTypes.number,
-	tbody: PropTypes.bool,
+	// `tbody` property is deprecated.
+	// Pass `as: "tbody"` property instead.
+	// tbody: PropTypes.bool,
 	preserveScrollPositionOnPrependItems: PropTypes.bool,
 	// `preserveScrollPosition` property name is deprecated,
 	// use `preserveScrollPositionOnPrependItems` instead.

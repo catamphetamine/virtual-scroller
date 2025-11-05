@@ -1,9 +1,9 @@
 import debounce from './utility/debounce.js'
-import log from './utility/debug.js'
+// import log from './utility/debug.js'
 
 export default class ScrollableContainerResizeHandler {
 	constructor({
-		bypass,
+		isInBypassMode,
 		getWidth,
 		getHeight,
 		listenForResize,
@@ -13,7 +13,7 @@ export default class ScrollableContainerResizeHandler {
 		onWidthChange,
 		onNoChange
 	}) {
-		this.bypass = bypass
+		this.isInBypassMode = isInBypassMode
 
 		this.onHeightChange = onHeightChange
 		this.onWidthChange = onWidthChange
@@ -35,7 +35,7 @@ export default class ScrollableContainerResizeHandler {
 
 	start() {
 		this.isActive = true
-		if (this.bypass) {
+		if (this.isInBypassMode()) {
 			return
 		}
 		this.width = this.getWidth()

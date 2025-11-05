@@ -122,7 +122,7 @@ export default function() {
 		const layoutDuration = Date.now() - startedAt
 
 		// Debugging.
-		log('~ Calculated Layout' + (this.bypass ? ' (bypass)' : '') + ' ~')
+		log('~ Calculated Layout' + (this.isInBypassMode() ? ' (bypass)' : '') + ' ~')
 		if (layoutDuration < SLOW_LAYOUT_DURATION) {
 			// log('Calculated in', layoutDuration, 'ms')
 		} else {
@@ -234,7 +234,7 @@ export default function() {
 
 		const visibleAreaInsideTheList = getCoordinatesOfVisibleAreaInsideTheList.call(this)
 
-		if (this.bypass) {
+		if (this.isInBypassMode()) {
 			return {
 				firstShownItemIndex: 0,
 				lastShownItemIndex: itemsCount - 1,

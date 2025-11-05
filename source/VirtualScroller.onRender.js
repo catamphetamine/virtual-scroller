@@ -27,7 +27,7 @@ export default function() {
 		// Update `<tbody/>` `padding`.
 		// (`<tbody/>` is different in a way that it can't have `margin`, only `padding`).
 		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1
-		if (this.tbody) {
+		if (this.isItemsContainerElementTableBody()) {
 			setTbodyPadding(
 				this.getItemsContainerElement(),
 				newState.beforeItemsHeight,

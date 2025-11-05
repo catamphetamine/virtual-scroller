@@ -2,17 +2,18 @@ import { State, NoItemState, VirtualScrollerCommonOptions, SetItemsOptions } fro
 
 export { State } from '../index.d.js';
 
-import * as React from 'react';
-
 interface Options<Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
 	state?: State<Item, ItemState>;
 	scrollableContainer?: HTMLElement;
-	onItemUnmount?(): void;
+	getScrollableContainer?(): HTMLElement;
+	onItemUnmount?(itemElement: HTMLElement): void;
+	readyToStart?: boolean;
+	readyToRender?: boolean;
 }
 
 export default class VirtualScroller<Item, ItemState = NoItemState> {
 	constructor(
-		itemsContainerElement: HTMLElement,
+		itemsContainerElement: HTMLElement | (() => HTMLElement),
 		items: Item[],
 		renderItem: (item: Item) => HTMLElement,
 		options?: Options<Item, ItemState>
