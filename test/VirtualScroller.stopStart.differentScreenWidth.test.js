@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		const ROWS_COUNT = 8
@@ -17,6 +17,12 @@ describe('VirtualScroller', function() {
 
 		// 16 items, 8 rows.
 		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
+
+		// Don't `throw` `VirtualScroller` errors but rather collect them in an array.
+		const errors = []
+		global.VirtualScrollerCatchError = (error) => {
+			errors.push(error)
+		}
 
 		const virtualScroller = new VirtualScroller({
 			items,
@@ -69,12 +75,11 @@ describe('VirtualScroller', function() {
 
 		SCREEN_WIDTH /= 2
 
-		// Resize.
-		virtualScroller.resize({
+		// Screen width has changed while the `virtualScroller` was stopped.
+		virtualScroller.updateScreenDimensions({
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
-			columnsCount: COLUMNS_COUNT,
-			verticalSpacing: VERTICAL_SPACING
+			columnsCount: COLUMNS_COUNT
 		})
 
 		// Screen size mismatch detected. Reset layout.
@@ -89,6 +94,7 @@ describe('VirtualScroller', function() {
 			scrollableContainerWidth: SCREEN_WIDTH
 		})
 
+		// Layout has been reset.
 		virtualScroller.expectStateUpdate({
 			beforeItemsHeight: 0,
 			afterItemsHeight: (ITEM_HEIGHT + VERTICAL_SPACING) * 10,
@@ -99,6 +105,18 @@ describe('VirtualScroller', function() {
 
 		// Start listening to scroll events.
 		virtualScroller.start()
+
+		// Stop collecting `VirtualScroller` errors in the `errors` array.
+		// Use the default behavior of just `throw`-ing such errors.
+		global.VirtualScrollerCatchError = undefined
+		// Verify the errors that have been `throw`-n.
+		errors.length.should.equal(6)
+		errors[0].message.should.include('[virtual-scroller] Item index 0 height changed unexpectedly: it was 200 before, but now it is 400')
+		errors[1].message.should.include('[virtual-scroller] Item index 1 height changed unexpectedly: it was 200 before, but now it is 400')
+		errors[2].message.should.include('[virtual-scroller] Item index 2 height changed unexpectedly: it was 200 before, but now it is 400')
+		errors[3].message.should.include('[virtual-scroller] Item index 3 height changed unexpectedly: it was 200 before, but now it is 400')
+		errors[4].message.should.include('[virtual-scroller] Item index 4 height changed unexpectedly: it was 200 before, but now it is 400')
+		errors[5].message.should.include('[virtual-scroller] Item index 5 height changed unexpectedly: it was 200 before, but now it is 400')
 
 		// Stop listening to scroll events.
 		virtualScroller.stop()

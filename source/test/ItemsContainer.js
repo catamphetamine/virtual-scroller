@@ -32,21 +32,21 @@ export default class ItemsContainer {
 
 		let i = 0
 		while (i <= renderedElementIndex) {
-			if (startNewRow || rowWidth + children[i].width > maxWidth) {
+			if (startNewRow || rowWidth + children[i].getWidth() > maxWidth) {
 				if (i > 0) {
 					topOffset += rowHeight
-					topOffset += children[i].marginTop
+					topOffset += children[i].getMarginTop()
 				}
-				rowWidth = children[i].width
-				rowHeight = children[i].height
+				rowWidth = children[i].getWidth()
+				rowHeight = children[i].getHeight()
 				if (rowWidth > maxWidth) {
 					startNewRow = true
 				} else {
 					startNewRow = false
 				}
 			} else {
-				rowWidth += children[i].width
-				rowHeight = Math.max(rowHeight, children[i].height)
+				rowWidth += children[i].getWidth()
+				rowHeight = Math.max(rowHeight, children[i].getHeight())
 			}
 			i++
 		}
@@ -69,7 +69,7 @@ export default class ItemsContainer {
 			})
 		}
 
-		return children[renderedElementIndex].height
+		return children[renderedElementIndex].getHeight()
 	}
 
 	/**
@@ -86,11 +86,11 @@ export default class ItemsContainer {
 			let rowHeight = 0
 			while (rowWidth <= maxWidth && i < children.length) {
 				if (rowWidth === 0 && i > 0) {
-					const verticalSpacing = children[i].marginTop
+					const verticalSpacing = children[i].getMarginTop()
 					contentHeight += verticalSpacing
 				}
-				rowWidth += children[i].width
-				rowHeight = Math.max(rowHeight, children[i].height)
+				rowWidth += children[i].getWidth()
+				rowHeight = Math.max(rowHeight, children[i].getHeight())
 				i++
 			}
 			contentHeight += rowHeight

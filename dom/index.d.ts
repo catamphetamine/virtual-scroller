@@ -1,9 +1,10 @@
-import { State, NoItemState, VirtualScrollerCommonOptions, SetItemsOptions } from '../index.d.js';
+import { State, VirtualScrollerCommonOptions, SetItemsOptions } from '../index.d.js';
 
-export { State } from '../index.d.js';
+export { State, NoItemState } from '../index.d.js';
 
 interface Options<Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
 	state?: State<Item, ItemState>;
+	// `scrollableContainer` is deprecated, use `getScrollableContainer()` instead.
 	scrollableContainer?: HTMLElement;
 	getScrollableContainer?(): HTMLElement;
 	onItemUnmount?(itemElement: HTMLElement): void;
@@ -11,7 +12,7 @@ interface Options<Item, ItemState> extends VirtualScrollerCommonOptions<Item, It
 	readyToRender?: boolean;
 }
 
-export default class VirtualScroller<Item, ItemState = NoItemState> {
+export default class VirtualScroller<Item, ItemState = unknown> {
 	constructor(
 		itemsContainerElement: HTMLElement | (() => HTMLElement),
 		items: Item[],
@@ -22,6 +23,6 @@ export default class VirtualScroller<Item, ItemState = NoItemState> {
 	// start(): void;
 	stop(): void;
 	setItems(newItems: Item[], options?: SetItemsOptions): void;
-  onItemHeightDidChange(i: number): void;
-  setItemState(i: number, newState: ItemState): void;
+  onItemHeightDidChange(item: Item): void;
+  setItemState(item: Item, newState: ItemState): void;
 }

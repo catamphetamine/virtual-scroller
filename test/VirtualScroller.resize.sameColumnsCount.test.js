@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		const ROWS_COUNT = 8
@@ -30,7 +30,7 @@ describe('VirtualScroller', function() {
 		virtualScroller.start()
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Shows rows 2 to 5.
 		virtualScroller.verifyState({
@@ -104,7 +104,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Scroll down.
-		virtualScroller.scrollTo(2 * (ITEM_HEIGHT + MARGIN))
+		virtualScroller.scrollTo(2 * (ITEM_HEIGHT + PRERENDER_MARGIN))
 
 		virtualScroller.verifyState({
 			beforeResize: {
@@ -124,7 +124,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// Scroll up so that the first row of items is visible.
-		virtualScroller.scrollTo(PREV_ITEM_HEIGHT + MARGIN - 1)
+		virtualScroller.scrollTo(PREV_ITEM_HEIGHT + PRERENDER_MARGIN - 1)
 
 		virtualScroller.verifyState({
 			beforeResize: undefined,
@@ -142,7 +142,7 @@ describe('VirtualScroller', function() {
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
 		virtualScroller.getScrollY().should.equal(
-			(PREV_ITEM_HEIGHT + MARGIN - 1) + (ITEM_HEIGHT - PREV_ITEM_HEIGHT)
+			(PREV_ITEM_HEIGHT + PRERENDER_MARGIN - 1) + (ITEM_HEIGHT - PREV_ITEM_HEIGHT)
 		)
 
 		// Stop listening to scroll events.

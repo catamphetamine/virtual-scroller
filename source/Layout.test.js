@@ -158,9 +158,11 @@ describe('Layout', function() {
 
 		let shouldResetGridLayout
 
+		// Don't `throw` `VirtualScroller` errors but rather collect them in an array.
 		const errors = []
-
-		global.VirtualScrollerCatchError = (error) => errors.push(error)
+		global.VirtualScrollerCatchError = (error) => {
+			errors.push(error)
+		}
 
 		layout.getLayoutUpdateForItemsDiff(
 			{
@@ -185,7 +187,10 @@ describe('Layout', function() {
 			afterItemsHeight: 5 * (ITEM_HEIGHT + VERTICAL_SPACING)
 		})
 
+		// Stop collecting `VirtualScroller` errors in the `errors` array.
+		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
+		// Verify the errors that have been `throw`-n.
 		errors.length.should.equal(2)
 		errors[0].message.should.equal('[virtual-scroller] ~ Prepended items count 5 is not divisible by Columns Count 4 ~')
 		errors[1].message.should.equal('[virtual-scroller] Layout reset required')

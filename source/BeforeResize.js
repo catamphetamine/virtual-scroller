@@ -171,8 +171,7 @@ export default class BeforeResize {
 	//
 	snapshotBeforeResizeItemHeights({
 		firstShownItemIndex,
-		newFirstShownItemIndex,
-		newColumnsCount
+		newFirstShownItemIndex
 	}) {
 		const columnsCount = this.getColumnsCount()
 		const verticalSpacing = this.getVerticalSpacing()

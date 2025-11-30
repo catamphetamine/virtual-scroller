@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		let COLUMNS_COUNT = 2
 		let ROWS_COUNT = 8
@@ -14,6 +14,10 @@ describe('VirtualScroller', function() {
 		let ITEM_HEIGHT = 200
 
 		const VERTICAL_SPACING = 100
+
+		const getRenderedItemRowsCountNotIncludingPrerenderMarginOnTop = () => {
+			return Math.ceil((SCREEN_HEIGHT + PRERENDER_MARGIN) / ITEM_HEIGHT)
+		}
 
 		// 16 items, 8 rows.
 		let items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
@@ -30,7 +34,7 @@ describe('VirtualScroller', function() {
 		virtualScroller.start()
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Shows rows 2 to 5.
 		virtualScroller.verifyState({
@@ -54,9 +58,11 @@ describe('VirtualScroller', function() {
 
 		const PREV_ITEM_HEIGHT = ITEM_HEIGHT
 
-		const {
-			firstShownItemIndex: prevFirstShownItemIndex
-		} = virtualScroller.getState()
+		const PREV_RENDERED_ITEM_ROWS_COUNT_NOT_INCLUDING_PRERENDER_MARGIN_ON_TOP = getRenderedItemRowsCountNotIncludingPrerenderMarginOnTop()
+
+		// const {
+		// 	firstShownItemIndex: prevFirstShownItemIndex
+		// } = virtualScroller.getState()
 
 		SCREEN_WIDTH /= 4
 		COLUMNS_COUNT /= 2
@@ -78,6 +84,11 @@ describe('VirtualScroller', function() {
 		items = new Array(PREPENDED_ITEMS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT }).concat(items)
 		virtualScroller.setItems(items)
 
+		const firstShownItemIndex = 1 * COLUMNS_COUNT - COLUMNS_COUNT
+		const lastShownItemIndex = firstShownItemIndex + PREV_RENDERED_ITEM_ROWS_COUNT_NOT_INCLUDING_PRERENDER_MARGIN_ON_TOP * COLUMNS_COUNT - 1
+		const beforeItemsHeight = 0
+		const afterItemsHeight = (PREV_ITEM_HEIGHT + VERTICAL_SPACING) * Math.ceil((items.length - (lastShownItemIndex + 1)) / COLUMNS_COUNT)
+
 		// Combined state update.
 		virtualScroller.expectStateUpdate({
 			beforeResize: undefined,
@@ -87,10 +98,10 @@ describe('VirtualScroller', function() {
 			items,
 			itemHeights: new Array(items.length),
 			itemStates: new Array(items.length),
-			firstShownItemIndex: 1 * COLUMNS_COUNT - COLUMNS_COUNT,
-			lastShownItemIndex: 3 * COLUMNS_COUNT - 1,
-			beforeItemsHeight: 0,
-			afterItemsHeight: 0
+			firstShownItemIndex,
+			lastShownItemIndex,
+			beforeItemsHeight,
+			afterItemsHeight
 		})
 
 		virtualScroller.resumeStateUpdates()

@@ -1,10 +1,53 @@
-import log, { isDebug } from './utility/debug.js'
+import log, { reportError } from './utility/debug.js'
 import getItemsDiff from './getItemsDiff.js'
 import fillArray from './utility/fillArray.js'
 
 export default function() {
 	this.getItemsCount = () => {
 		return this.getState().items.length
+	}
+
+	this._getItemIndexByItemOrIndex = (itemOrIndex) => {
+		const item = itemOrIndex
+		const { items } = this.getState()
+		// Find the `item`'s index in the `items` array.
+		//
+		// Performance notes:
+		// Doing an `.indexOf()` operation on a very large array could be inefficient
+		// because it would have to check every element of the array.
+		// In case of any hypothetical performance-related issues,
+		// the code could use a `new Map()` as an "index" for finding individual items.
+		const i = items.indexOf(item)
+		// validate that the `item` exists in the `items` array.
+		if (i >= 0) {
+			return i
+		}
+
+		// Legacy behavior: some functions used to accept an `i: number` item index as an argument.
+		// Later the argument was changed to `item: Item`.
+		//
+		// The old way of passing an `i: number` argument would only result in weird application behavior
+		// when all of the below circumstances are true, which is assumed extremely unlikely:
+		//
+		// BOTH use a previous version of `virtual-scroller` (ones before December 2025, with downloads count that is not very high)
+		// AND to be used with an `items` array of type `number[]`
+		// AND to use any of the "advanced" functions:
+    // * `setItemState(i, newState)`
+    // * `onItemHeightDidChange(i)`
+    // * `getItemScrollPosition(i)`
+		//
+		// The code below handles the legacy compatibility aspect of the old type of argument
+		// except maybe for those "extremely unlikely" cases in which the app is still unlikely to crash.
+		//
+		if (typeof itemOrIndex === 'number') {
+			const i = itemOrIndex
+			// Validate the item index argument.
+			if (i >= 0 && i < items.length) {
+				return i
+			}
+		}
+
+		reportError(`Item not found: ${JSON.stringify(item)}`)
 	}
 
 	/**
@@ -81,7 +124,9 @@ export default function() {
 			if (prependedItemsCount > 0) {
 				log('Prepend', prependedItemsCount, 'items')
 
-				itemHeights = new Array(prependedItemsCount).concat(itemHeights)
+				itemHeights = new Array(prependedItemsCount)
+					.concat(itemHeights)
+
 				itemStates = fillArray(
 					new Array(prependedItemsCount),
 					(i) => this.getInitialItemState(newItems[i])

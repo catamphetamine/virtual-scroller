@@ -65,17 +65,15 @@ export default class TestVirtualScroller {
 				lastShownItemIndex
 			} = this.virtualScroller.getState()
 
-			console.log('~ Render List ~')
-
 			containerElement.paddingTop = beforeItemsHeight
 			containerElement.paddingBottom = afterItemsHeight
 
 			containerElement.children = items
 				.slice(firstShownItemIndex, lastShownItemIndex + 1)
 				.map((item) => ({
-					width: getItemWidth(),
-					height: item.area / getItemWidth(),
-					marginTop: verticalSpacing
+					getWidth: () => getItemWidth(),
+					getHeight: () => (item.getArea ? item.getArea() : item.area) / getItemWidth(),
+					getMarginTop: () => verticalSpacing
 				}))
 		}
 
@@ -165,7 +163,7 @@ export default class TestVirtualScroller {
 		this.virtualScroller.scrollableContainer.scrollToY(scrollPosition)
 	}
 
-	resize({
+	updateScreenDimensions({
 		screenWidth: scrollableContainerWidth,
 		screenHeight: scrollableContainerHeight,
 		columnsCount
@@ -185,7 +183,7 @@ export default class TestVirtualScroller {
 		columnsCount,
 		verticalSpacing
 	}) {
-		this.resize({
+		this.updateScreenDimensions({
 			screenWidth,
 			screenHeight,
 			columnsCount,
@@ -218,12 +216,20 @@ export default class TestVirtualScroller {
 		this.virtualScroller.updateLayout()
 	}
 
-	getItemScrollPosition(i) {
-		return this.virtualScroller.getItemScrollPosition(i)
+	getItemScrollPosition(itemOrIndex) {
+		return this.virtualScroller.getItemScrollPosition(itemOrIndex)
+	}
+
+	onItemHeightDidChange(itemOrIndex) {
+		this.virtualScroller.onItemHeightDidChange(itemOrIndex)
+	}
+
+	setItemState(itemOrIndex, newState) {
+		this.virtualScroller.setItemState(itemOrIndex, newState)
 	}
 
 	getAverageItemHeight() {
-		return this.virtualScroller.itemHeights.getAverage()
+		return this.virtualScroller.getAverageItemHeight()
 	}
 
 	setItems(newItems, options) {

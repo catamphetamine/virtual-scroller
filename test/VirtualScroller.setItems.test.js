@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		const SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		let ROWS_COUNT = 8
@@ -30,7 +30,7 @@ describe('VirtualScroller', function() {
 		virtualScroller.start()
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Shows rows 2 to 5.
 		virtualScroller.verifyState({
@@ -82,9 +82,9 @@ describe('VirtualScroller', function() {
 
 		virtualScroller.expectStateUpdate({
 			firstShownItemIndex: 0,
-			lastShownItemIndex: 3 * COLUMNS_COUNT - 1,
+			lastShownItemIndex: 4 * COLUMNS_COUNT - 1,
 			beforeItemsHeight: 0,
-			afterItemsHeight: 0,
+			afterItemsHeight: (ITEM_HEIGHT + VERTICAL_SPACING) * (ROWS_COUNT - 4),
 			items,
 			itemHeights: new Array(1 * COLUMNS_COUNT).concat(
 				new Array(5 * COLUMNS_COUNT).fill(ITEM_HEIGHT).concat(

@@ -1,11 +1,11 @@
 import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
-	it('should get an item\'s scroll position', async function() {
+	it('should get an item\'s scroll position (after a resize: old item heights on hidden items and new item heights on visible items)', async function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 4
 		const ROWS_COUNT = 8
@@ -17,7 +17,16 @@ describe('VirtualScroller', function() {
 		const VERTICAL_SPACING = 100
 
 		// 16 items, 8 rows.
-		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
+		const items = new Array(ROWS_COUNT * COLUMNS_COUNT)
+
+		// Fill the `items` array.
+		// Each `item` must have a unique object "reference"
+		// because it will be used as an argument of `.getItemScrollPosition()` method.
+		let i = 0
+		while (i < items.length) {
+			items[i] = { area: ITEM_WIDTH * ITEM_HEIGHT }
+			i++
+		}
 
 		const virtualScroller = new VirtualScroller({
 			items,
@@ -31,7 +40,7 @@ describe('VirtualScroller', function() {
 		virtualScroller.start()
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Shows rows 2 to 5.
 		virtualScroller.verifyState({
@@ -69,28 +78,42 @@ describe('VirtualScroller', function() {
 			afterItemsHeight: (ROWS_COUNT - 4) * (ITEM_HEIGHT + VERTICAL_SPACING)
 		})
 
-		// First row (hidden).
+		// First row (hidden) (old item heights).
+		// New method signature: `item` argument instead of `itemIndex` argument.
+		virtualScroller.getItemScrollPosition(items[1 * COLUMNS_COUNT - COLUMNS_COUNT]).should.equal(0)
+
+		// Second row.
+		// New method signature: `item` argument instead of `itemIndex` argument.
+		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(PREV_ITEM_HEIGHT + VERTICAL_SPACING)
+		virtualScroller.getItemScrollPosition(items[2 * COLUMNS_COUNT - COLUMNS_COUNT]).should.equal(PREV_ITEM_HEIGHT + VERTICAL_SPACING)
+
+		// First row (hidden) (old item heights).
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(0)
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT + 1).should.equal(0)
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT + 2).should.equal(0)
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT + 3).should.equal(0)
 
 		// Second row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(PREV_ITEM_HEIGHT + VERTICAL_SPACING)
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT + 1).should.equal(PREV_ITEM_HEIGHT + VERTICAL_SPACING)
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT + 2).should.equal(PREV_ITEM_HEIGHT + VERTICAL_SPACING)
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT + 3).should.equal(PREV_ITEM_HEIGHT + VERTICAL_SPACING)
 
 		// Third row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(1 * (ITEM_HEIGHT + VERTICAL_SPACING) + (PREV_ITEM_HEIGHT + VERTICAL_SPACING))
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT + 1).should.equal(1 * (ITEM_HEIGHT + VERTICAL_SPACING) + (PREV_ITEM_HEIGHT + VERTICAL_SPACING))
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT + 2).should.equal(1 * (ITEM_HEIGHT + VERTICAL_SPACING) + (PREV_ITEM_HEIGHT + VERTICAL_SPACING))
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT + 3).should.equal(1 * (ITEM_HEIGHT + VERTICAL_SPACING) + (PREV_ITEM_HEIGHT + VERTICAL_SPACING))
 
 		// Sixth row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(6 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(4 * (ITEM_HEIGHT + VERTICAL_SPACING) + (PREV_ITEM_HEIGHT + VERTICAL_SPACING))
 
 		// Seventh row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		expect(virtualScroller.getItemScrollPosition(7 * COLUMNS_COUNT - COLUMNS_COUNT)).to.be.undefined
 
 		// Resize back to the original window width.
@@ -122,28 +145,33 @@ describe('VirtualScroller', function() {
 			afterItemsHeight: (ROWS_COUNT - 5) * (ITEM_HEIGHT + VERTICAL_SPACING)
 		})
 
-		// First row (hidden).
+		// First row (hidden) (item heights before any of the resizes).
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(0)
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT + 1).should.equal(0)
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT + 2).should.equal(0)
 		virtualScroller.getItemScrollPosition(1 * COLUMNS_COUNT - COLUMNS_COUNT + 3).should.equal(0)
 
 		// Second row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(ITEM_HEIGHT + VERTICAL_SPACING)
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT + 1).should.equal(ITEM_HEIGHT + VERTICAL_SPACING)
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT + 2).should.equal(ITEM_HEIGHT + VERTICAL_SPACING)
 		virtualScroller.getItemScrollPosition(2 * COLUMNS_COUNT - COLUMNS_COUNT + 3).should.equal(ITEM_HEIGHT + VERTICAL_SPACING)
 
 		// Third row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(2 * (ITEM_HEIGHT + VERTICAL_SPACING))
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT + 1).should.equal(2 * (ITEM_HEIGHT + VERTICAL_SPACING))
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT + 2).should.equal(2 * (ITEM_HEIGHT + VERTICAL_SPACING))
 		virtualScroller.getItemScrollPosition(3 * COLUMNS_COUNT - COLUMNS_COUNT + 3).should.equal(2 * (ITEM_HEIGHT + VERTICAL_SPACING))
 
 		// Sixth row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		virtualScroller.getItemScrollPosition(7 * COLUMNS_COUNT - COLUMNS_COUNT).should.equal(6 * (ITEM_HEIGHT + VERTICAL_SPACING))
 
 		// Seventh row.
+		// Old method signature: `itemIndex` argument instead of `item` argument.
 		expect(virtualScroller.getItemScrollPosition(8 * COLUMNS_COUNT - COLUMNS_COUNT)).to.be.undefined
 
 		// Stop listening to scroll events.

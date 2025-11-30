@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- Fix encoding. -->
+		<meta charset="utf-8">
+		<!-- Fix document width for mobile devices. -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>VirtualScroller (React) (<tbody/>)</title>
+
+		<script src="./lib/react.development.js"></script>
+		<script src="./lib/react-dom.development.js"></script>
+		<script src="./lib/prop-types.min.js"></script>
+		<script src="./lib/babel.min.js"></script>
+
+		<script src="./virtual-scroller-react.js"></script>
+
+		<link rel="stylesheet" href="./style.base.css"/>
+
+		<style>
+			table {
+				width: 100%;
+			}
+
+			tr {
+				background: #fff
+			}
+
+			th, td {
+				padding-left: 1em;
+				padding-right: 1em;
+				padding-top: 0.2em;
+				padding-bottom: 0.2em;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="root"></div>
+
+		<script>
+			// Enable debug output to console.
+			window.VirtualScrollerDebug = true
+		</script>
+
+		<script type="text/babel">
+			const rows = []
+			for (var i = 1; i <= 10000; i++) {
+				rows.push(i)
+			}
+
+			function Item({ item }) {
+				return (
+					<tr>
+						<td>
+							{item}
+						</td>
+					</tr>
+				)
+			}
+
+			class Demo extends React.Component {
+				render() {
+					return (
+						<table>
+							<VirtualScroller
+								items={rows}
+								itemComponent={Item}
+								as="tbody"
+							/>
+						</table>
+					)
+				}
+			}
+
+			const root = ReactDOM.createRoot(document.getElementById('root'))
+			root.render(<Demo/>)
+		</script>
+	</body>
+</html>

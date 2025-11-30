@@ -2,7 +2,7 @@ import { useRef, useState, useCallback } from 'react'
 
 // This hook fixes any weird intermediate inconsistent/invalid/stale state values.
 // https://github.com/facebook/react/issues/25023#issuecomment-1480463544
-export default function useStateNoStaleBug(initialState) {
+export default function useStateWithRepeatableRead(initialState) {
   // const latestValidState = useRef(initialState)
   const latestWrittenState = useRef(initialState)
   const [_state, _setState] = useState(initialState)

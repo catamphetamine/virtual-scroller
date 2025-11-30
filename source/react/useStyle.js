@@ -1,11 +1,11 @@
 import px from '../utility/px.js'
 
-export default function useStyle({
+export default function useStyle(style, {
 	tbody,
 	state
 }) {
 	if (tbody) {
-		return
+		return style
 	}
 
 	const {
@@ -14,6 +14,7 @@ export default function useStyle({
 	} = state
 
 	return {
+		...style,
 		paddingTop: px(beforeItemsHeight),
 		paddingBottom: px(afterItemsHeight)
 	}

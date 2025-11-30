@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- Fix encoding. -->
+		<meta charset="utf-8">
+		<!-- Fix document width for mobile devices. -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>VirtualScroller (DOM) (<tbody/>)</title>
+
+		<script src="./virtual-scroller-dom.js"></script>
+
+		<link rel="stylesheet" href="./style.base.css"/>
+
+		<style>
+			table {
+				width: 100%;
+			}
+
+			tr {
+				background: #fff
+			}
+
+			th, td {
+				padding-left: 1em;
+				padding-right: 1em;
+				padding-top: 0.2em;
+				padding-bottom: 0.2em;
+			}
+		</style>
+	</head>
+
+	<body>
+		<table>
+			<tbody id="table-rows-container">
+			</tbody>
+		</table>
+
+		<script>
+			// Enable debug output to console.
+			window.VirtualScrollerDebug = true
+		</script>
+
+    <script>
+			const rows = []
+			for (var i = 1; i <= 10000; i++) {
+				rows.push(i)
+			}
+
+			function renderRow(i) {
+				var tr = document.createElement('tr')
+				var td = document.createElement('td')
+				td.innerText = i
+				tr.appendChild(td)
+				return tr
+			}
+
+			new VirtualScroller(
+				document.getElementById('table-rows-container'),
+				rows,
+				renderRow
+			)
+		</script>
+	</body>
+</html>

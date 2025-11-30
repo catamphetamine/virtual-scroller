@@ -1,6 +1,7 @@
 import DOMEngine from './DOM/Engine.js'
 
 import Layout, { LAYOUT_REASON } from './Layout.js'
+import { DEFAULT_ITEM_HEIGHT } from './Layout.defaults.js'
 import ScrollableContainerResizeHandler from './ScrollableContainerResizeHandler.js'
 import BeforeResize from './BeforeResize.js'
 import Scroll from './Scroll.js'
@@ -45,6 +46,7 @@ export default function VirtualScrollerConstructor(
 		// `estimatedItemHeight` is deprecated, use `getEstimatedItemHeight()` instead.
 		estimatedItemHeight,
 		getEstimatedVisibleItemRowsCount,
+		getEstimatedInterItemVerticalSpacing,
 		onItemInitialRender,
 		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 		onItemFirstRender,
@@ -167,7 +169,7 @@ export default function VirtualScrollerConstructor(
 
 	createStateHelpers.call(this, { state, getInitialItemState, onStateChange, render, items })
 
-	createVerticalSpacingHelpers.call(this)
+	createVerticalSpacingHelpers.call(this, { getEstimatedInterItemVerticalSpacing })
 	createColumnsHelpers.call(this, { getColumnsCount })
 
 	createLayoutHelpers.call(this)
@@ -236,12 +238,33 @@ function createHelpers({
 		setItemHeight: (i, height) => this.getState().itemHeights[i] = height
 	})
 
+	this.getAverageItemHeight = () => {
+		const averageItemHeight = this.itemHeights.getAverageItemHeight()
+		if (typeof averageItemHeight === 'number') {
+			return averageItemHeight
+		}
+		return this.getEstimatedItemHeight()
+	}
+
+	this.getEstimatedItemHeight = () => {
+		if (getEstimatedItemHeight) {
+			const estimatedItemHeight = getEstimatedItemHeight()
+			if (typeof estimatedItemHeight === 'number') {
+				return estimatedItemHeight
+			}
+			throw new Error('[virtual-scroller] `getEstimatedItemHeight()` must return a number')
+		}
+		// `DEFAULT_ITEM_HEIGHT` will be used in server-side render
+		// unless `getEstimatedItemHeight()` parameter is specified.
+		return DEFAULT_ITEM_HEIGHT
+	}
+
 	this.layout = new Layout({
 		isInBypassMode: this.isInBypassMode,
-		getInitialEstimatedItemHeight: getEstimatedItemHeight,
-		getInitialEstimatedVisibleItemRowsCount: getEstimatedVisibleItemRowsCount,
+		getEstimatedVisibleItemRowsCountForInitialRender: getEstimatedVisibleItemRowsCount,
 		measureItemsBatchSize,
 		getPrerenderMargin: () => this.getPrerenderMargin(),
+		getPrerenderMarginRatio: () => this.getPrerenderMarginRatio(),
 		getVerticalSpacing: () => this.getVerticalSpacing(),
 		getVerticalSpacingBeforeResize: () => this.getVerticalSpacingBeforeResize(),
 		getColumnsCount: () => this.getColumnsCount(),
@@ -249,7 +272,7 @@ function createHelpers({
 		getItemHeight: (i) => this.getState().itemHeights[i],
 		getItemHeightBeforeResize: (i) => this.getState().beforeResize && this.getState().beforeResize.itemHeights[i],
 		getBeforeResizeItemsCount: () => this.getState().beforeResize ? this.getState().beforeResize.itemHeights.length : 0,
-		getAverageItemHeight: () => this.itemHeights.getAverage(),
+		getAverageItemHeight: () => this.getAverageItemHeight(),
 		// `this.scrollableContainer` is gonna be `undefined` during server-side rendering.
 		// https://gitlab.com/catamphetamine/virtual-scroller/-/issues/30
 		getMaxVisibleAreaHeight: () => this.scrollableContainer && this.scrollableContainer.getHeight(),

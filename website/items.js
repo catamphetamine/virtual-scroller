@@ -1,4 +1,4 @@
-window.messages = [
+window.ITEMS = [
 	{
 		username: 'realdonaldtrump',
 		date: new Date(2019, 4, 10),

@@ -1,15 +1,15 @@
-import log, { warn, isDebug, reportError } from './utility/debug.js'
+import log, { warn } from './utility/debug.js'
 
 export default class ItemHeights {
 	constructor({
 		container,
-		itemHeights,
 		getItemHeight,
 		setItemHeight
 	}) {
 		this.container = container
 		this._get = getItemHeight
 		this._set = setItemHeight
+
 		this.reset()
 	}
 
@@ -20,9 +20,9 @@ export default class ItemHeights {
 		// is called, some items might get prepended, in which case
 		// `this.lastMeasuredItemIndex` is updated. If there was no
 		// `this.firstMeasuredItemIndex`, then the average item height
-		// calculated in `.getAverage()` would be incorrect in the timeframe
+		// calculated in `.getAverageItemHeight()` would be incorrect in the timeframe
 		// between `.setItems()` is called and those changes have been rendered.
-		// And in that timeframe, `.getAverage()` is used to calculate the "layout":
+		// And in that timeframe, `.getAverageItemHeight()` is used to calculate the "layout":
 		// stuff like "before/after items height" and "estimated items count on screen".
 		this.firstMeasuredItemIndex = undefined
 		this.lastMeasuredItemIndex = undefined
@@ -64,7 +64,7 @@ export default class ItemHeights {
 	// 		this._set(i, itemHeight)
 	// 		return itemHeight
 	// 	}
-	// 	return this.getAverage()
+	// 	return this.getAverageItemHeight()
 	// }
 
 	_measureItemHeight(i, firstShownItemIndex) {
@@ -169,7 +169,7 @@ export default class ItemHeights {
 				const previousHeight = this._get(i)
 				const height = this._measureItemHeight(i, firstShownItemIndex)
 				if (previousHeight !== height) {
-					warn('Item index', i, 'height changed unexpectedly: it was', previousHeight, 'before, but now it is', height, '. Whenever an item\'s height changes for whatever reason, a developer must call `onItemHeightDidChange(i)` right after that change. If you are calling `onItemHeightDidChange(i)` correctly, then there\'re several other possible causes. For example, perhaps you forgot to persist the item\'s "state" by calling `setItemState(i, newState)` when that "state" did change, and so the item\'s "state" got lost when the item element was unmounted, which resulted in a different item height when the item was shown again with no previous "state". Or perhaps you\'re running your application in "devleopment" mode and `VirtualScroller` has initially rendered the list before your CSS styles or custom fonts have loaded, resulting in different item height measurements "before" and "after" the page has fully loaded.')
+					warn('Item index', i, 'height changed unexpectedly: it was', previousHeight, 'before, but now it is', height, '. Whenever an item\'s height changes for whatever reason, a developer must call `onItemHeightDidChange(item)` right after that change. If you are calling `onItemHeightDidChange(item)` correctly, then there\'re several other possible causes. For example, perhaps you forgot to persist the item\'s "state" by calling `setItemState(item, newState)` when that "state" did change, and so the item\'s "state" got lost when the item element was unmounted, which resulted in a different item height when the item was shown again with no previous "state". Or perhaps you\'re running your application in "devleopment" mode and `VirtualScroller` has initially rendered the list before your CSS styles or custom fonts have loaded, resulting in different item height measurements "before" and "after" the page has fully loaded.')
 					// Update the item's height as an attempt to fix things.
 					this._set(i, height)
 				}
@@ -231,7 +231,7 @@ export default class ItemHeights {
 	//  * Public API: is called by `VirtualScroller`.
 	//  * @return {number}
 	//  */
-	// getAverage() {
+	// getAvergetAverageItemHeightage() {
 	// 	// Previously measured average item height might still be
 	// 	// more precise if it contains more measured items ("samples").
 	// 	if (this.previousAverageItemHeight) {
@@ -244,13 +244,12 @@ export default class ItemHeights {
 
 	/**
 	 * Public API: is called by `VirtualScroller`.
-	 * @return {number}
+	 * @return {number} [averageItemHeight] Returns `undefined` until at least one item has been rendered.
 	 */
-	getAverage() {
-		if (this.lastMeasuredItemIndex === undefined) {
-			return 0
+	getAverageItemHeight() {
+		if (this.lastMeasuredItemIndex !== undefined) {
+			return this.measuredItemsHeight / (this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1)
 		}
-		return this.measuredItemsHeight / (this.lastMeasuredItemIndex - this.firstMeasuredItemIndex + 1)
 	}
 
 	onPrepend(count) {

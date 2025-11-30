@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		const SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		let ROWS_COUNT = 8
@@ -44,7 +44,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Shows rows 2 to 5.
 		virtualScroller.verifyState({
@@ -68,11 +68,22 @@ describe('VirtualScroller', function() {
 		items = new Array(1 * COLUMNS_COUNT - 1).fill({ area: ITEM_WIDTH * ITEM_HEIGHT }).concat(items)
 		ROWS_COUNT++
 
+		const getRenderedItemRowsCountNotIncludingPrerenderMarginOnTop = () => {
+			return Math.ceil((SCREEN_HEIGHT + PRERENDER_MARGIN) / ITEM_HEIGHT)
+		}
+
+		const RENDERED_ITEM_ROWS_COUNT_NOT_INCLUDING_PRERENDER_MARGIN_ON_TOP = getRenderedItemRowsCountNotIncludingPrerenderMarginOnTop()
+
+		const firstShownItemIndex = 0
+		const lastShownItemIndex = firstShownItemIndex + RENDERED_ITEM_ROWS_COUNT_NOT_INCLUDING_PRERENDER_MARGIN_ON_TOP * COLUMNS_COUNT - 1 // + 3 * COLUMNS_COUNT - 1
+		const beforeItemsHeight = 0
+		const afterItemsHeight = (ITEM_HEIGHT + VERTICAL_SPACING) * Math.ceil((items.length - (lastShownItemIndex + 1)) / COLUMNS_COUNT)
+
 		virtualScroller.expectStateUpdate({
-			firstShownItemIndex: 0,
-			lastShownItemIndex: 3 * COLUMNS_COUNT - 1,
-			beforeItemsHeight: 0,
-			afterItemsHeight: 0,
+			firstShownItemIndex,
+			lastShownItemIndex,
+			beforeItemsHeight,
+			afterItemsHeight,
 			items,
 			itemHeights: new Array(1 * COLUMNS_COUNT - 1).concat(
 				new Array(5 * COLUMNS_COUNT).concat(
@@ -82,14 +93,20 @@ describe('VirtualScroller', function() {
 			itemStates: new Array(items.length)
 		})
 
+		// Don't `throw` `VirtualScroller` errors but rather collect them in an array.
 		const errors = []
-		global.VirtualScrollerCatchError = (error) => errors.push(error)
+		global.VirtualScrollerCatchError = (error) => {
+			errors.push(error)
+		}
 
 		virtualScroller.setItems(items, {
 			preserveScrollPositionOnPrependItems: true
 		})
 
+		// Stop collecting `VirtualScroller` errors in the `errors` array.
+		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
+		// Verify the errors that have been `throw`-n.
 		errors.length.should.equal(2)
 		errors[0].message.should.equal('[virtual-scroller] ~ Prepended items count 1 is not divisible by Columns Count 2 ~')
 		errors[1].message.should.equal('[virtual-scroller] Layout reset required')

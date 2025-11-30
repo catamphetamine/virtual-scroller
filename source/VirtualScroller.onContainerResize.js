@@ -134,8 +134,7 @@ export default function() {
 				columnsCount,
 				itemHeights: this.beforeResize.snapshotBeforeResizeItemHeights({
 					firstShownItemIndex,
-					newFirstShownItemIndex,
-					newColumnsCount
+					newFirstShownItemIndex
 				})
 			}
 		}

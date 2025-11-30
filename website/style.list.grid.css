@@ -1,0 +1,23 @@
+.container {
+	max-width: 1280px;
+}
+
+#list {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.list-item {
+	flex-basis: 33.333333%;
+	box-sizing: border-box;
+	border: 2px solid rgb(230, 236, 240);
+}
+
+@media screen and (max-width: 1280px) {
+	.container {
+		max-width: 720px;
+	}
+	.list-item {
+		flex-basis: 100%;
+	}
+}

@@ -2,7 +2,7 @@ import log, { isDebug } from '../utility/debug.js'
 import getStateSnapshot from '../utility/getStateSnapshot.js'
 
 import { useRef, useCallback } from 'react'
-import useStateNoStaleBug from './useStateNoStaleBug.js'
+import useStateWithRepeatableRead from './useStateWithRepeatableRead.js'
 import useInsertionEffectDontMountTwiceInStrictMode from './useInsertionEffectDontMountTwiceInStrictMode.js'
 import useLayoutEffectDontMountTwiceInStrictMode from './useLayoutEffectDontMountTwiceInStrictMode.js'
 
@@ -16,7 +16,7 @@ export default function _useState({
 	// `VirtualScroller` state gets updated from this variable.
 	// The reason for that is that `VirtualScroller` state must always
 	// correspond exactly to what's currently rendered on the screen.
-	const [_newState, _setNewState] = useStateNoStaleBug(initialState)
+	const [_newState, _setNewState] = useStateWithRepeatableRead(initialState)
 
 	// This `state` reference is what `VirtualScroller` uses internally.
 	// It's the "source of truth" on the actual `VirtualScroller` state.
@@ -38,11 +38,11 @@ export default function _useState({
 	// called `onHeightDidChange()` from its own `useLayoutEffect()`.
 	// In those cases, the `itemCompoent`'s effect would run before
 	// the `<VirtualScroller/>`'s effect, resulting in
-	// `VirtualScroller.onItemHeightDidChange(i)` being run at a moment in time
+	// `VirtualScroller.onItemHeightDidChange(item)` being run at a moment in time
 	// when the DOM has already been updated for the next `VirtualScroller` state
 	// but the actual `VirtualScroller` state is still a previous ("stale") one
 	// containing "stale" first/last shown item indexes, which would result in an
-	// "index out of bounds" error when `onItemHeightDidChange(i)` tries to access
+	// "index out of bounds" error when `onItemHeightDidChange(item)` tries to access
 	// and measure the DOM element from item index `i` which doesn't already/yet exist.
 	//
 	// An example of such situation could be seen from a `VirtualScroller` debug log
@@ -98,11 +98,11 @@ export default function _useState({
 	// ~ Rendered ~
 
 	// "~ Rendered ~" is what gets output when `onRender()` function gets called.
-	// It means that `useLayoutEffect()` was triggered after `onItemHeightDidChange(i)`
+	// It means that `useLayoutEffect()` was triggered after `onItemHeightDidChange(item)`
 	// was called and after the "ERROR" happened.
 	//
 	// The "ERROR" happened because new item indexes 4…5 were actually rendered instead of
-	// item indexes 2…5 by the time the application called `onItemHeightDidChange(i)` function
+	// item indexes 2…5 by the time the application called `onItemHeightDidChange(item)` function
 	// inside `itemComponent`'s `useLayoutEffect()`.
 	// Item indexes 4…5 is what was requested in a `setState()` call, which called `_setNewState()`.
 	// This means that `_newState` changes have been applied to the DOM

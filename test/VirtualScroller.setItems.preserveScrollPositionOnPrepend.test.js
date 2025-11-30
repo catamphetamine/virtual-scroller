@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		const SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		let ROWS_COUNT = 8

@@ -101,7 +101,7 @@ export default function() {
 		// or an "Expand YouTube video" button, which would result
 		// in the actual height of the list item being different
 		// from what has been initially measured in `this.itemHeights[i]`,
-		// if the developer didn't call `.setItemState(i, newState)` and `.onItemHeightDidChange(i)`.
+		// if the developer didn't call `.setItemState(item, newState)` and `.onItemHeightDidChange(item)`.
 		if (!validateWillBeHiddenItemHeightsAreAccurate.call(this, firstShownItemIndex, lastShownItemIndex)) {
 			log('~ Because some of the will-be-hidden item heights (listed above) have changed since they\'ve last been measured, redo layout. ~')
 			// Redo layout, now with the correct item heights.
@@ -135,7 +135,7 @@ export default function() {
 		log('Last shown item index', lastShownItemIndex)
 		log('Before items height', beforeItemsHeight)
 		log('After items height (actual or estimated)', afterItemsHeight)
-		log('Average item height (used for estimated after items height calculation)', this.itemHeights.getAverage())
+		log('Average item height (used for estimated after items height calculation)', this.getAverageItemHeight())
 		if (isDebug()) {
 			log('Item heights', this.getState().itemHeights.slice())
 			log('Item states', this.getState().itemStates.slice())
@@ -177,9 +177,9 @@ export default function() {
 			// Instead of using a `this.previouslyCalculatedLayout` instance variable,
 			// this code could use `this.getState()` because it reflects what's currently on screen,
 			// but there's a single edge case when it could go out of sync —
-			// updating item heights externally via `.onItemHeightDidChange(i)`.
+			// updating item heights externally via `.onItemHeightDidChange(item)`.
 			//
-			// If, for example, an item height was updated externally via `.onItemHeightDidChange(i)`
+			// If, for example, an item height was updated externally via `.onItemHeightDidChange(item)`
 			// then `this.getState().itemHeights` would get updated immediately but
 			// `this.getState().beforeItemsHeight` or `this.getState().afterItemsHeight`
 			// would still correspond to the previous item height, so those would be "stale".
@@ -270,7 +270,7 @@ export default function() {
 	 * or an "Expand YouTube video" button, which would result
 	 * in the actual height of the list item being different
 	 * from what has been initially measured in `this.itemHeights[i]`,
-	 * if the developer didn't call `.setItemState(i, newState)` and `.onItemHeightDidChange(i)`.
+	 * if the developer didn't call `.setItemState(item, newState)` and `.onItemHeightDidChange(item)`.
 	 */
 	function validateWillBeHiddenItemHeightsAreAccurate(firstShownItemIndex, lastShownItemIndex) {
 		let isValid = true
@@ -282,26 +282,26 @@ export default function() {
 				// The item will be hidden. Re-measure its height.
 				// The rationale is that there could be a situation when an item's
 				// height has changed, and the developer has properly added an
-				// `.onItemHeightDidChange(i)` call to notify `VirtualScroller`
+				// `.onItemHeightDidChange(item)` call to notify `VirtualScroller`
 				// about that change, but at the same time that wouldn't work.
 				// For example, suppose there's a list of several items on a page,
 				// and those items are in "minimized" state (having height 100px).
 				// Then, a user clicks an "Expand all items" button, and all items
 				// in the list are expanded (expanded item height is gonna be 700px).
-				// `VirtualScroller` demands that `.onItemHeightDidChange(i)` is called
+				// `VirtualScroller` demands that `.onItemHeightDidChange(item)` is called
 				// in such cases, and the developer has properly added the code to do that.
 				// So, if there were 10 "minimized" items visible on a page, then there
-				// will be 10 individual `.onItemHeightDidChange(i)` calls. No issues so far.
-				// But, as the first `.onItemHeightDidChange(i)` call executes, it immediately
+				// will be 10 individual `.onItemHeightDidChange(item)` calls. No issues so far.
+				// But, as the first `.onItemHeightDidChange(item)` call executes, it immediately
 				// ("synchronously") triggers a re-layout, and that re-layout finds out
 				// that now, because the first item is big, it occupies most of the screen
 				// space, and only the first 3 items are visible on screen instead of 10,
 				// and so it leaves the first 3 items mounted and unmounts the rest 7.
 				// Then, after `VirtualScroller` has rerendered, the code returns to
-				// where it was executing, and calls `.onItemHeightDidChange(i)` for the
+				// where it was executing, and calls `.onItemHeightDidChange(item)` for the
 				// second item. It also triggers an immediate re-layout that finds out
 				// that only the first 2 items are visible on screen, and it unmounts
-				// the third one too. After that, it calls `.onItemHeightDidChange(i)`
+				// the third one too. After that, it calls `.onItemHeightDidChange(item)`
 				// for the third item, but that item is no longer rendered, so its height
 				// can't be measured, and the same's for all the rest of the original 10 items.
 				// So, even though the developer has written their code properly, the
@@ -319,7 +319,7 @@ export default function() {
 						updatePreviouslyCalculatedLayoutOnItemHeightChange.call(this, i, previouslyMeasuredItemHeight, actualItemHeight)
 					}
 					isValid = false
-					warn('Item index', i, 'is no longer visible and will be unmounted. Its height has changed from', previouslyMeasuredItemHeight, 'to', actualItemHeight, 'since it was last measured. This is not necessarily a bug, and could happen, for example, on screen width change, or when there\'re several `onItemHeightDidChange(i)` calls issued at the same time, and the first one triggers a re-layout before the rest of them have had a chance to be executed.')
+					warn('Item index', i, 'is no longer visible and will be unmounted. Its height has changed from', previouslyMeasuredItemHeight, 'to', actualItemHeight, 'since it was last measured. This is not necessarily a bug, and could happen, for example, on screen width change, or when there\'re several `onItemHeightDidChange(item)` calls issued at the same time, and the first one triggers a re-layout before the rest of them have had a chance to be executed.')
 				}
 			}
 			i++
@@ -372,9 +372,15 @@ export default function() {
 		return listTopOffset
 	}
 
-	this._onItemHeightDidChange = (i) => {
-		log('~ On Item Height Did Change was called ~')
-		log('Item index', i)
+	this._onItemHeightDidChange = (itemOrIndex) => {
+		// Item index.
+		const i = this._getItemIndexByItemOrIndex(itemOrIndex)
+
+		// If the item wasn't found, the error was already reported,
+		// so just don't do anything else.
+		if (i === undefined) {
+			return
+		}
 
 		const {
 			itemHeights,
@@ -382,39 +388,42 @@ export default function() {
 			lastShownItemIndex
 		} = this.getState()
 
+		log('~ On Item Height Did Change was called ~')
+		log('Item index', i)
+
 		// Check if the item is still rendered.
 		if (!(i >= firstShownItemIndex && i <= lastShownItemIndex)) {
 			// There could be valid cases when an item is no longer rendered
-			// by the time `.onItemHeightDidChange(i)` gets called.
+			// by the time `.onItemHeightDidChange(item)` gets called.
 			// For example, suppose there's a list of several items on a page,
 			// and those items are in "minimized" state (having height 100px).
 			// Then, a user clicks an "Expand all items" button, and all items
 			// in the list are expanded (expanded item height is gonna be 700px).
-			// `VirtualScroller` demands that `.onItemHeightDidChange(i)` is called
+			// `VirtualScroller` demands that `.onItemHeightDidChange(item)` is called
 			// in such cases, and the developer has properly added the code to do that.
 			// So, if there were 10 "minimized" items visible on a page, then there
-			// will be 10 individual `.onItemHeightDidChange(i)` calls. No issues so far.
-			// But, as the first `.onItemHeightDidChange(i)` call executes, it immediately
+			// will be 10 individual `.onItemHeightDidChange(item)` calls. No issues so far.
+			// But, as the first `.onItemHeightDidChange(item)` call executes, it immediately
 			// ("synchronously") triggers a re-layout, and that re-layout finds out
 			// that now, because the first item is big, it occupies most of the screen
 			// space, and only the first 3 items are visible on screen instead of 10,
 			// and so it leaves the first 3 items mounted and unmounts the rest 7.
 			// Then, after `VirtualScroller` has rerendered, the code returns to
-			// where it was executing, and calls `.onItemHeightDidChange(i)` for the
+			// where it was executing, and calls `.onItemHeightDidChange(item)` for the
 			// second item. It also triggers an immediate re-layout that finds out
 			// that only the first 2 items are visible on screen, and it unmounts
-			// the third one too. After that, it calls `.onItemHeightDidChange(i)`
+			// the third one too. After that, it calls `.onItemHeightDidChange(item)`
 			// for the third item, but that item is no longer rendered, so its height
 			// can't be measured, and the same's for all the rest of the original 10 items.
 			// So, even though the developer has written their code properly, there're
 			// still situations when the item could be no longer rendered by the time
-			// `.onItemHeightDidChange(i)` gets called.
-			return warn('The item is no longer rendered. This is not necessarily a bug, and could happen, for example, when when a developer calls `onItemHeightDidChange(i)` while looping through a batch of items.')
+			// `.onItemHeightDidChange(item)` gets called.
+			return warn('The item is no longer rendered. This is not necessarily a bug, and could happen, for example, when when a developer calls `onItemHeightDidChange(item)` while looping through a batch of items.')
 		}
 
 		const previousHeight = itemHeights[i]
 		if (previousHeight === undefined) {
-			// There're valid cases when the item still hasn't been measured and `onItemHeightDidChange()`
+			// There're valid cases when the item still hasn't been measured and `onItemHeightDidChange(item)`
 			// function was called for it. That's because measuring items is only done after the `VirtualScroller`
 			// has `start()`ed. But it's not neccessarily `start()`ed by the time it has been rendered (mounted).
 			// For example, the React component `<VirtualScroller/>` provides an `readyToStart={false}` property
@@ -435,7 +444,7 @@ export default function() {
 		try {
 			newHeight = remeasureItemHeight.call(this, i)
 		} catch (error) {
-			// Successfully finishing an `onItemHeightDidChange(i)` call is not considered
+			// Successfully finishing an `onItemHeightDidChange(item)` call is not considered
 			// critical for `VirtualScroller`'s operation, so such errors could be ignored.
 			if (error instanceof ItemNotRenderedError) {
 				return reportError(`"onItemHeightDidChange()" has been called for item index ${i} but the item is not currently rendered and can\'t be measured. The exact error was: ${error.message}`)
@@ -460,7 +469,7 @@ export default function() {
 			// Recalculate layout.
 			//
 			// If the `VirtualScroller` is already waiting for a state update to be rendered,
-			// delay `onItemHeightDidChange(i)`'s re-layout until that state update is rendered.
+			// delay `onItemHeightDidChange(item)`'s re-layout until that state update is rendered.
 			// The reason is that React `<VirtualScroller/>`'s `onHeightDidChange()` is meant to
 			// be called inside `useLayoutEffect()` hook. Due to how React is implemented internally,
 			// that might happen in the middle of the currently pending `setState()` operation
@@ -503,8 +512,12 @@ export default function() {
 		// scroll past the screen height, because they'd stop to read through
 		// the newly visible items first, and when they do stop scrolling, that's
 		// when layout gets recalculated).
-		const renderAheadMarginRatio = 1 // in scrollable container heights.
-		return this.scrollableContainer.getHeight() * renderAheadMarginRatio
+		return this.scrollableContainer.getHeight() * this.getPrerenderMarginRatio()
+	}
+
+	this.getPrerenderMarginRatio = () => {
+		// See the readme for the description of `prerenderMarginRatio` option.
+		return 1 // in scrollable container heights.
 	}
 
 	/**

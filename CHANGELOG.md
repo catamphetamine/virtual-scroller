@@ -1,5 +1,28 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.15.0 / 30.11.2025
+===================
+
+* Added properties in `virtual-scroller/react` component:
+  * `itemsContainerComponent` — Replaces `as` property which is now deprecated.
+  * `itemsContainerComponentProps`
+  * `itemsContainerRef` — Can be used to get access to the items container `Element`.
+* Added a new option — `getEstimatedInterItemVerticalSpacing()`. It is similar to the two existing ones: `getEstimatedVisibleItemRowsCount()` and `getEstimatedItemHeight()`.
+  * Added same property in `virtual-scroller/react` component.
+* Refactored TypeScript definitions of `virtual-scroller/react` component.
+  * The "generics" of the exported `Props` interface have changed.
+* (very unlikely to be a semi-breaking change) As [requested](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/43), changed the argument of some "advanced" functions from `i: number` to `item: Item`.
+  * "Advanced" functions:
+    * `setItemState(i, newState)`
+    * `onItemHeightDidChange(i)`
+    * `getItemScrollPosition(i)`
+  * Apps that're affected:
+    * If your app doesn't call these functions then it won't be affected.
+    * If your app does call these functions:
+      * If the `items` is an array of numbers then those function calls will not really work, but the app is unlikely to crash or anything.
+      * If the `items` isn't an array of numbers then the app is unlikely to experience any weird behavior.
+      * Regardless, in places where the app calls those "advanced" functions, update the argument from `i: number` to `item: Item`.
+
 1.14.0 / 05.11.2025
 ===================
 

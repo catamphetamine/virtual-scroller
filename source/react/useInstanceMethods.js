@@ -8,17 +8,25 @@ export default function useInstanceMethods(ref, {
 }) {
 	useImperativeHandle(ref, () => ({
 		// This is a proxy for `VirtualScroller`'s `.updateLayout` instance method.
-		updateLayout: () => virtualScroller.updateLayout(),
+		updateLayout: () => {
+			virtualScroller.updateLayout()
+		},
 
 		// (deprecated)
 		// `.layout()` method name is deprecated, use `.updateLayout()` instead.
-    layout: () => virtualScroller.updateLayout(),
+    layout: () => {
+			virtualScroller.updateLayout()
+		},
 
 		// (deprecated)
-		updateItem: (i) => reportError(`[virtual-scroller] ".updateItem(i)" method of React <VirtualScroller/> has been removed`),
+		updateItem: (i) => {
+			reportError(`[virtual-scroller] ".updateItem(i)" method of React <VirtualScroller/> has been removed`)
+		},
 
 		// (deprecated)
-		renderItem: (i) => reportError(`[virtual-scroller] ".renderItem(i)" method of React <VirtualScroller/> has been removed`)
+		renderItem: (i) => {
+			reportError(`[virtual-scroller] ".renderItem(i)" method of React <VirtualScroller/> has been removed`)
+		}
 	}), [
 		virtualScroller
 	])

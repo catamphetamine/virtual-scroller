@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		let COLUMNS_COUNT = 2
 		let ROWS_COUNT = 8
@@ -30,7 +30,7 @@ describe('VirtualScroller', function() {
 		virtualScroller.start()
 
 		// The first 4 rows of items are hidden.
-		virtualScroller.scrollTo(MARGIN + 4 * (ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING)
+		virtualScroller.scrollTo(PRERENDER_MARGIN + 4 * (ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING)
 
 		// Shows rows 5 to 8.
 		virtualScroller.verifyState({
@@ -110,7 +110,7 @@ describe('VirtualScroller', function() {
 		// Scroll up to the original scroll position before resize, minus one pixel,
 		// so that a new "upper" row becomes visible.
 		virtualScroller.scrollTo(
-			MARGIN + 4 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING - 1
+			PRERENDER_MARGIN + 4 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING - 1
 		)
 
 		// Shows rows 2 to 4.
@@ -133,14 +133,14 @@ describe('VirtualScroller', function() {
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
 		virtualScroller.getScrollY().should.equal(
-			(MARGIN + 4 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING - 1) +
+			(PRERENDER_MARGIN + 4 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING) - VERTICAL_SPACING - 1) +
 			(
 				(ITEM_HEIGHT + VERTICAL_SPACING) - 2 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING)
 			)
 		)
 
 		// Scroll to the top.
-		virtualScroller.scrollTo(MARGIN)
+		virtualScroller.scrollTo(PRERENDER_MARGIN)
 
 		// Shows rows 1 to 3.
 		virtualScroller.verifyState({
@@ -155,7 +155,7 @@ describe('VirtualScroller', function() {
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
 		virtualScroller.getScrollY().should.equal(
-			(MARGIN) +
+			(PRERENDER_MARGIN) +
 			(
 				(ITEM_HEIGHT + VERTICAL_SPACING) - 2 * (PREV_ITEM_HEIGHT + VERTICAL_SPACING)
 			)

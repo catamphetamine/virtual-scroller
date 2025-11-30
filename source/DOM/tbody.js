@@ -19,17 +19,17 @@ export function supportsTbody() {
 	return !isInternetExplorer()
 }
 
-export const TBODY_CLASS_NAME = 'VirtualScroller'
+export const CLASS_NAME_FOR_TBODY_WORKAROUND = 'VirtualScroller'
 const STYLE_ELEMENT_ID = 'VirtualScrollerStyle'
 
 export function hasTbodyStyles(tbody) {
-	return tbody.classList.contains(TBODY_CLASS_NAME) &&
+	return tbody.classList.contains(CLASS_NAME_FOR_TBODY_WORKAROUND) &&
 		Boolean(document.getElementById(STYLE_ELEMENT_ID))
 }
 
 export function addTbodyStyles(tbody) {
 	// `classList.add` is supported in Internet Explorer 10+.
-	tbody.classList.add(TBODY_CLASS_NAME)
+	tbody.classList.add(CLASS_NAME_FOR_TBODY_WORKAROUND)
 
 	// Create a `<style/>` element.
 	const style = document.createElement('style')
@@ -37,12 +37,12 @@ export function addTbodyStyles(tbody) {
 
 	// CSS variables aren't supported in Internet Explorer.
 	style.innerText = `
-		tbody.${TBODY_CLASS_NAME}:before {
+		tbody.${CLASS_NAME_FOR_TBODY_WORKAROUND}:before {
 			content: '';
 			display: table-row;
 			height: var(--VirtualScroller-paddingTop);
 		}
-		tbody.${TBODY_CLASS_NAME}:after {
+		tbody.${CLASS_NAME_FOR_TBODY_WORKAROUND}:after {
 			content: '';
 			display: table-row;
 			height: var(--VirtualScroller-paddingBottom);

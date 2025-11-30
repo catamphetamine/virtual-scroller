@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		const SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		const ROWS_COUNT = 8
@@ -18,8 +18,11 @@ describe('VirtualScroller', function() {
 		// 16 items, 8 rows.
 		const items = new Array(ROWS_COUNT * COLUMNS_COUNT).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 
+		// Don't `throw` `VirtualScroller` errors but rather collect them in an array.
 		const errors = []
-		global.VirtualScrollerCatchError = (error) => errors.push(error)
+		global.VirtualScrollerCatchError = (error) => {
+			errors.push(error)
+		}
 
 		const virtualScroller = new VirtualScroller({
 			// The `items` option will be overridden by the `items` from the restored state.
@@ -41,7 +44,10 @@ describe('VirtualScroller', function() {
 			}
 		})
 
+		// Stop collecting `VirtualScroller` errors in the `errors` array.
+		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
+		// Verify the errors that have been `throw`-n.
 		errors.length.should.equal(2)
 		errors[0].message.should.equal('[virtual-scroller] ~ Columns Count changed from 1 to 2 ~')
 		errors[1].message.should.equal('[virtual-scroller] Reset Layout')

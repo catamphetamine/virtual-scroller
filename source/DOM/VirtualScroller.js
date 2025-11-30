@@ -176,17 +176,17 @@ export default class VirtualScroller {
    * @deprecated
    * `.onItemHeightChange()` has been renamed to `.onItemHeightDidChange()`.
    */
-  onItemHeightChange(i) {
-    warn('`.onItemHeightChange(i)` method was renamed to `.onItemHeightDidChange(i)`')
-    this.onItemHeightDidChange(i)
+  onItemHeightChange(itemOrIndex) {
+    warn('`.onItemHeightChange(item)` method was renamed to `.onItemHeightDidChange(item)`')
+    this.onItemHeightDidChange(itemOrIndex)
   }
 
-  onItemHeightDidChange(i) {
-    this.virtualScroller.onItemHeightDidChange(i)
+  onItemHeightDidChange(itemOrIndex) {
+    this.virtualScroller.onItemHeightDidChange(itemOrIndex)
   }
 
-  setItemState(i, newState) {
-    this.virtualScroller.setItemState(i, newState)
+  setItemState(itemOrIndex, newState) {
+    this.virtualScroller.setItemState(itemOrIndex, newState)
   }
 
   /**
@@ -201,10 +201,4 @@ export default class VirtualScroller {
   setItems(newItems, options) {
     this.virtualScroller.setItems(newItems, options)
   }
-
-  /*
-  getItemCoordinates(i) {
-    return this.virtualScroller.getItemCoordinates(i)
-  }
-  */
 }

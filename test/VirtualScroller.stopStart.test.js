@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		const SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		const COLUMNS_COUNT = 2
 		const ROWS_COUNT = 8
@@ -79,7 +79,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The first row of items is almost hidden.
-		virtualScroller.scrollTo((ITEM_HEIGHT - 1) + MARGIN)
+		virtualScroller.scrollTo((ITEM_HEIGHT - 1) + PRERENDER_MARGIN)
 
 		// Shows the first 5 rows of items.
 		virtualScroller.verifyState({
@@ -90,7 +90,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Doesn't show the first row of items.
 		virtualScroller.verifyState({

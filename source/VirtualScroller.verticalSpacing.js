@@ -1,20 +1,46 @@
 import log from './utility/debug.js'
 import getVerticalSpacing from './getVerticalSpacing.js'
+import { DEFAULT_INTER_ITEM_VERTICAL_SPACING } from './Layout.defaults.js'
 
-export default function createVerticalSpacingHelpers() {
+export default function createVerticalSpacingHelpers({
+	getEstimatedInterItemVerticalSpacing
+}) {
 	// Bind to `this` in order to prevent bugs when this function is passed by reference
 	// and then called with its `this` being unintentionally `window` resulting in
 	// the `if` condition being "falsy".
 	this.getVerticalSpacing = () => {
-		return this.verticalSpacing || 0
+		const { verticalSpacing } = this
+		if (typeof verticalSpacing === 'number') {
+			return verticalSpacing
+		}
+		return this.getEstimatedInterItemVerticalSpacing()
 	}
 
 	this.getVerticalSpacingBeforeResize = () => {
-		// `beforeResize.verticalSpacing` can be `undefined`.
-		// For example, if `this.updateState({ verticalSpacing })` call hasn't been applied
-		// before the resize happened (in case of an "asynchronous" state update).
 		const { beforeResize } = this.getState()
-		return beforeResize && beforeResize.verticalSpacing || 0
+		if (beforeResize) {
+			const { verticalSpacing } = beforeResize
+			// `beforeResize.verticalSpacing` can be `undefined`.
+			// For example, if `this.updateState({ verticalSpacing })` call hasn't been applied
+			// before the resize happened (in case of an "asynchronous" state update).
+			if (typeof verticalSpacing === 'number') {
+				return verticalSpacing
+			}
+			return this.getEstimatedInterItemVerticalSpacing()
+		}
+	}
+
+	this.getEstimatedInterItemVerticalSpacing = () => {
+		if (getEstimatedInterItemVerticalSpacing) {
+			const estimatedVerticalSpacing = getEstimatedInterItemVerticalSpacing()
+			if (typeof estimatedVerticalSpacing === 'number') {
+				return estimatedVerticalSpacing
+			}
+			throw new Error('[virtual-scroller] `getEstimatedInterItemVerticalSpacing()` must return a number')
+		}
+		// `DEFAULT_INTER_ITEM_VERTICAL_SPACING` will be used in server-side render
+		// unless `getEstimatedInterItemVerticalSpacing()` parameter is specified.
+		return DEFAULT_INTER_ITEM_VERTICAL_SPACING
 	}
 
 	/**

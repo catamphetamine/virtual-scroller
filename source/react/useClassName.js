@@ -1,4 +1,4 @@
-import { TBODY_CLASS_NAME } from '../DOM/tbody.js'
+import { CLASS_NAME_FOR_TBODY_WORKAROUND } from '../DOM/tbody.js'
 
 export default function useClassName(className, { tbody }) {
 	// For `<tbody/>`, a workaround is used which uses CSS variables
@@ -6,9 +6,9 @@ export default function useClassName(className, { tbody }) {
 	// See `addTbodyStyles()` function in `../DOM/tbody.js` for more details.
 	if (tbody) {
 		if (className) {
-			return className + ' ' + TBODY_CLASS_NAME
+			return className + ' ' + CLASS_NAME_FOR_TBODY_WORKAROUND
 		}
-		return TBODY_CLASS_NAME
+		return CLASS_NAME_FOR_TBODY_WORKAROUND
 	}
 	return className
 }

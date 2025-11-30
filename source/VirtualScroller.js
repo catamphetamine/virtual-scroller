@@ -206,10 +206,19 @@ export default class VirtualScroller {
 
 	/**
 	 * Returns the items's top offset relative to the scrollable container's top edge.
-	 * @param {number} i — Item index
+	 * @param {any} item — Item
 	 * @return {[number]} Returns the item's scroll Y position. Returns `undefined` if any of the previous items haven't been rendered yet.
 	 */
-	getItemScrollPosition(i) {
+	getItemScrollPosition(itemOrIndex) {
+		// Item index.
+		const i = this._getItemIndexByItemOrIndex(itemOrIndex)
+
+		// If the item wasn't found, the error was already reported,
+		// so just return some "sensible" default value.
+		if (i === undefined) {
+			return
+		}
+
 		const itemTopOffsetInList = this.layout.getItemTopOffset(i)
 		if (itemTopOffsetInList === undefined) {
 			return
@@ -221,28 +230,28 @@ export default class VirtualScroller {
 	 * @deprecated
 	 * `.onItemHeightChange()` has been renamed to `.onItemHeightDidChange()`.
 	 */
-	onItemHeightChange(i) {
-		warn('`.onItemHeightChange(i)` method was renamed to `.onItemHeightDidChange(i)`')
-		this.onItemHeightDidChange(i)
+	onItemHeightChange(item) {
+		warn('`.onItemHeightChange(item)` method was renamed to `.onItemHeightDidChange(item)`')
+		this.onItemHeightDidChange(item)
 	}
 
 	/**
 	 * Forces a re-measure of an item's height.
-	 * @param  {number} i — Item index
+	 * @param {any} item — Item. Legacy argument variant: Item index.
 	 */
-	onItemHeightDidChange(i) {
+	onItemHeightDidChange(itemOrIndex) {
 		// See the comments in the `setItemState()` function below for the rationale
 		// on why the `hasToBeStarted()` check was commented out.
 		// this.hasToBeStarted()
-		this._onItemHeightDidChange(i)
+		this._onItemHeightDidChange(itemOrIndex)
 	}
 
 	/**
 	 * Updates an item's state in `state.itemStates[]`.
-	 * @param  {number} i — Item index
-	 * @param  {any} i — Item's new state
+	 * @param  {any} item — Item. Legacy argument variant: Item index.
+	 * @param  {any} newItemState — Item's new state
 	 */
-	setItemState(i, newItemState) {
+	setItemState(itemOrIndex, newItemState) {
 		// There is an issue in React 18.2.0 when `useInsertionEffect()` doesn't run twice
 		// on mount unlike `useLayoutEffect()` in "strict" mode. That causes a bug in a React
 		// implementation of the `virtual-scroller`.
@@ -285,13 +294,13 @@ export default class VirtualScroller {
 		// Commenting it out wouldn't result in any potential bugs because the code would work correctly
 		// in both cases.
 		// this.hasToBeStarted()
-		this._setItemState(i, newItemState)
+		this._setItemState(itemOrIndex, newItemState)
 	}
 
 	// (deprecated)
 	// Use `.setItemState()` method name instead.
-	onItemStateChange(i, newItemState) {
-		this.setItemState(i, newItemState)
+	onItemStateChange(item, newItemState) {
+		this.setItemState(item, newItemState)
 	}
 
 	/**

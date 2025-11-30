@@ -37,7 +37,16 @@ export default function createStateHelpers({
 
 	this.getInitialItemState = getInitialItemState
 
-	this._setItemState = (i, newItemState) => {
+	this._setItemState = (itemOrIndex, newItemState) => {
+		// Item index.
+		const i = this._getItemIndexByItemOrIndex(itemOrIndex)
+
+		// If the item wasn't found, the error was already reported,
+		// so just return some "sensible" default value.
+		if (i === undefined) {
+			return
+		}
+
 		if (isDebug()) {
 			log('~ Item state changed ~')
 			log('Item index', i)
@@ -283,16 +292,6 @@ export default function createStateHelpers({
 
 	function getInitialLayoutState(items, { beforeStart }) {
 		const itemsCount = items.length
-
-		const getColumnsCount = () => this.getActualColumnsCount()
-
-		const columnsCount = beforeStart
-			? this.layout.getInitialLayoutValueWithFallback(
-				'columnsCount',
-				getColumnsCount,
-				1
-			)
-			: getColumnsCount()
 
 		const {
 			firstShownItemIndex,

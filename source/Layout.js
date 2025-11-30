@@ -1,13 +1,14 @@
 import log, { warn } from './utility/debug.js'
 import ScrollableContainerNotReadyError from './ScrollableContainerNotReadyError.js'
+import { DEFAULT_VISIBLE_ITEM_ROWS_COUNT } from './Layout.defaults.js'
 
 export default class Layout {
 	constructor({
 		isInBypassMode,
-		getInitialEstimatedItemHeight,
-		getInitialEstimatedVisibleItemRowsCount,
+		getEstimatedVisibleItemRowsCountForInitialRender,
 		measureItemsBatchSize,
 		getPrerenderMargin,
+		getPrerenderMarginRatio,
 		getVerticalSpacing,
 		getVerticalSpacingBeforeResize,
 		getColumnsCount,
@@ -20,10 +21,10 @@ export default class Layout {
 		getPreviouslyCalculatedLayout
 	}) {
 		this.isInBypassMode = isInBypassMode
-		this.getInitialEstimatedItemHeight = getInitialEstimatedItemHeight
-		this.getInitialEstimatedVisibleItemRowsCount = getInitialEstimatedVisibleItemRowsCount
+		this.getEstimatedVisibleItemRowsCountForInitialRender = getEstimatedVisibleItemRowsCountForInitialRender
 		this.measureItemsBatchSize = measureItemsBatchSize
 		this.getPrerenderMargin = getPrerenderMargin
+		this.getPrerenderMarginRatio = getPrerenderMarginRatio
 		this.getVerticalSpacing = getVerticalSpacing
 		this.getVerticalSpacingBeforeResize = getVerticalSpacingBeforeResize
 		this.getColumnsCount = getColumnsCount
@@ -69,6 +70,10 @@ export default class Layout {
 	}) {
 		let firstShownItemIndex
 		let lastShownItemIndex
+
+		let beforeItemsHeight = 0
+		let afterItemsHeight = 0
+
 		// If there're no items then `firstShownItemIndex` stays `undefined`.
 		if (itemsCount > 0) {
 			const getLastShownItemIndex = () => {
@@ -78,18 +83,30 @@ export default class Layout {
 					firstShownItemIndex
 				})
 			}
+
 			firstShownItemIndex = 0
+
 			lastShownItemIndex = beforeStart
 				? this.getInitialLayoutValueWithFallback(
 					'lastShownItemIndex',
 					getLastShownItemIndex,
-					0
+					firstShownItemIndex
 				)
 				: getLastShownItemIndex()
+
+			const averageItemHeight = this.getAverageItemHeight()
+			const verticalSpacing = this.getVerticalSpacing()
+
+			const beforeItemsCount = firstShownItemIndex
+			const afterItemsCount = itemsCount - (lastShownItemIndex + 1)
+
+			beforeItemsHeight = Math.ceil(beforeItemsCount / columnsCount) * (verticalSpacing + averageItemHeight)
+			afterItemsHeight = Math.ceil(afterItemsCount / columnsCount) * (verticalSpacing + averageItemHeight)
 		}
+
 		return {
-			beforeItemsHeight: 0,
-			afterItemsHeight: 0,
+			beforeItemsHeight,
+			afterItemsHeight,
 			firstShownItemIndex,
 			lastShownItemIndex
 		}
@@ -103,54 +120,47 @@ export default class Layout {
 		if (this.isInBypassMode()) {
 			return itemsCount - 1
 		}
-		// On server side, at initialization time,
-		// `scrollableContainer` is `undefined`,
-		// so default to `1` estimated rows count.
-		let estimatedRowsCount = 1
-		if (this.getMaxVisibleAreaHeight()) {
-			estimatedRowsCount = this.getEstimatedRowsCountForHeight(this.getMaxVisibleAreaHeight() + this.getPrerenderMargin())
-		} else if (this.getInitialEstimatedVisibleItemRowsCount) {
-			estimatedRowsCount = this.getInitialEstimatedVisibleItemRowsCount()
-			if (isNaN(estimatedRowsCount)) {
-				throw new Error('[virtual-scroller] `getEstimatedVisibleItemRowsCount()` must return a number')
-			}
-		}
 		return Math.min(
-			firstShownItemIndex + (estimatedRowsCount * columnsCount - 1),
+			firstShownItemIndex + (this.getInitialRenderedRowsCount() * columnsCount - 1),
 			itemsCount - 1
 		)
 	}
 
-	getEstimatedRowsCountForHeight(height) {
-		const estimatedItemHeight = this.getEstimatedItemHeight()
-		const verticalSpacing = this.getVerticalSpacing()
-		if (estimatedItemHeight) {
-			return Math.ceil((height + verticalSpacing) / (estimatedItemHeight + verticalSpacing))
-		} else {
-			// If no items have been rendered yet, and no `estimatedItemHeight` option
-			// has been passed, then default to `1` estimated rows count in any `height`.
-			return 1
+	getInitialRenderedRowsCount() {
+		const estimatedVisibleItemRowsCount = this.getEstimatedVisibleItemRowsCount()
+		if (typeof estimatedVisibleItemRowsCount === 'number') {
+			return Math.ceil(estimatedVisibleItemRowsCount * (1 + this.getPrerenderMarginRatio()))
+		}
+		// `DEFAULT_VISIBLE_ITEM_ROWS_COUNT` will be used in server-side render
+		// unless `getEstimatedVisibleItemRowsCount()` parameter is specified.
+		return DEFAULT_VISIBLE_ITEM_ROWS_COUNT
+	}
+
+	getEstimatedVisibleItemRowsCount() {
+		const maxVisibleAreaHeight = this.getMaxVisibleAreaHeight()
+		if (typeof maxVisibleAreaHeight === 'number') {
+			const estimatedRowsCount = this.getEstimatedRowsCountForHeight(maxVisibleAreaHeight)
+			if (typeof estimatedRowsCount === 'number') {
+				return estimatedRowsCount
+			}
+		}
+		if (this.getEstimatedVisibleItemRowsCountForInitialRender) {
+			const estimatedRowsCount = this.getEstimatedVisibleItemRowsCountForInitialRender()
+			if (typeof estimatedRowsCount === 'number') {
+				return estimatedRowsCount
+			}
+			throw new Error('[virtual-scroller] `getEstimatedVisibleItemRowsCount()` must return a number')
 		}
 	}
 
-	/**
-	 * Returns estimated list item height.
-	 * (depends on which items have been previously rendered and measured).
-	 * @return {number}
-	 */
-	getEstimatedItemHeight() {
+	getEstimatedRowsCountForHeight(height) {
 		const averageItemHeight = this.getAverageItemHeight()
-		if (averageItemHeight) {
-			return averageItemHeight
+		const verticalSpacing = this.getVerticalSpacing()
+		// `estimatedItemHeight` will most likely be `0` if it hasn't been specified explicitly.
+		// In that case, it can't divide by `0`.
+		if (averageItemHeight + verticalSpacing > 0) {
+			return Math.ceil((height + verticalSpacing) / (averageItemHeight + verticalSpacing))
 		}
-		if (this.getInitialEstimatedItemHeight) {
-			const estimatedItemHeight = this.getInitialEstimatedItemHeight()
-			if (isNaN(estimatedItemHeight)) {
-				throw new Error('[virtual-scroller] `getInitialEstimatedItemHeight()` must return a number')
-			}
-			return estimatedItemHeight
-		}
-		return 0
 	}
 
 	getLayoutUpdateForItemsDiff({
@@ -328,8 +338,17 @@ export default class Layout {
 
 		const columnsCount = this.getColumnsCount()
 
+		const getNonMeasuredItemRowsCount = () => {
+			const estimatedRowsCount = this.getEstimatedRowsCountForHeight(nonMeasuredAreaHeight)
+			if (typeof estimatedRowsCount === 'number') {
+				return estimatedRowsCount
+			}
+			// Render all available item rows as a sensible fallback behavior.
+			return Math.ceil(itemsCount / columnsCount)
+		}
+
 		const itemsCountToRenderForMeasurement = Math.min(
-			this.getEstimatedRowsCountForHeight(nonMeasuredAreaHeight) * columnsCount,
+			getNonMeasuredItemRowsCount() * columnsCount,
 			this.measureItemsBatchSize || Infinity,
 		)
 
@@ -434,14 +453,11 @@ export default class Layout {
 		// then `shownItemsHeight` would also have to be returned from this function:
 		// the total height of all shown items including vertical spacing between them.
 		//
-		// If "previously calculated layout" would be used then it would first find
-		// `firstShownItemIndex` and then find `lastShownItemIndex` as part of two
+		// If "previously calculated layout" would be used then it would first calculate
+		// `firstShownItemIndex` and then calculate `lastShownItemIndex` as part of two
 		// separate calls of this function, each with or without `backwards` flag,
 		// depending on whether `visibleAreaInsideTheList.top` and `visibleAreaInsideTheList.top`
 		// have shifted up or down.
-
-		let firstShownItemIndex
-		let lastShownItemIndex
 
 		// It's not always required to pass `beforeItemsHeight` parameter:
 		// when `fromIndex` is `0`, it's also assumed to be `0`.
@@ -678,8 +694,6 @@ export default class Layout {
 		const verticalSpacing = beforeResize ? this.getVerticalSpacingBeforeResize() : this.getVerticalSpacing()
 
 		while (i < beforeItemsCount) {
-			const currentRowFirstItemIndex = i
-
 			let rowHeight = 0
 			let columnIndex = 0
 			// Not checking for `itemsCount` overflow here because `i = beforeItemsCount`
@@ -734,7 +748,6 @@ export default class Layout {
 		// Which becomes negligible in my project's use case (a couple thousands items max).
 
 		const columnsCount = this.getColumnsCount()
-		const lastShownRowIndex = Math.floor(lastShownItemIndex / columnsCount)
 
 		let afterItemsHeight = 0
 

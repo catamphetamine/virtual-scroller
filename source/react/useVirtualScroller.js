@@ -9,6 +9,7 @@ export default function useVirtualScroller({
 	estimatedItemHeight,
 	getEstimatedItemHeight,
 	getEstimatedVisibleItemRowsCount,
+	getEstimatedInterItemVerticalSpacing,
 	bypass,
 	// bypassBatchSize,
 	onItemInitialRender,
@@ -23,17 +24,16 @@ export default function useVirtualScroller({
 	getScrollableContainer,
 	getColumnsCount,
 	getItemId,
-	AsComponent,
 	initialState,
 	getInitialItemState,
 	onStateChange
 }, {
-	container
+	itemsContainer
 }) {
 	return useMemo(() => {
 		// Create `virtual-scroller` instance.
 		return new VirtualScroller(
-			() => container.current,
+			() => itemsContainer.current,
 			items,
 			{
 				_useTimeoutInRenderLoop: true,
@@ -41,6 +41,7 @@ export default function useVirtualScroller({
 				estimatedItemHeight,
 				getEstimatedItemHeight,
 				getEstimatedVisibleItemRowsCount,
+				getEstimatedInterItemVerticalSpacing,
 				bypass,
 				// bypassBatchSize,
 				onItemInitialRender,

@@ -1,0 +1,33 @@
+body {
+	margin: 0;
+	font-family: sans-serif;
+	font-size: 20px;
+	color: rgb(20, 23, 26);
+	background-color: rgb(230, 236, 240);
+}
+
+h1 {
+	display: flex;
+	align-items: center;
+	margin-left: 40px;
+	margin-right: 40px;
+	font-weight: normal;
+}
+
+p {
+	line-height: 1.35;
+}
+
+
+footer {
+	margin-top: 40px;
+	margin-bottom: 30px;
+	text-align: center;
+	color: #a0a0a0;
+}
+
+.twitter-logo {
+	width: 28px;
+	height: 28px;
+	margin-right: 0.5em;
+}

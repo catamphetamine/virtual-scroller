@@ -56,10 +56,11 @@ export interface VirtualScrollerCommonOptions<Item, ItemState> {
 	measureItemsBatchSize?: number;
 	getEstimatedItemHeight?: () => number;
 	getEstimatedVisibleItemRowsCount?: () => number;
+	getEstimatedInterItemVerticalSpacing?: () => number;
 	initialScrollPosition?: number;
 	onScrollPositionChange?(scrollY: number): void;
 	onItemInitialRender?(item: Item): void;
-	getItemId?(item: Item): any;
+	getItemId?: ((item: Item) => number) | ((item: Item) => string);
 	getColumnsCount?(scrollableContainer: ScrollableContainerArgument): number;
 }
 
@@ -67,20 +68,30 @@ interface Options<Element, Item, ItemState> extends VirtualScrollerCommonOptions
 	state?: State<Item, ItemState>;
 	render?(state: State<Item, ItemState>, previousState?: State<Item, ItemState>): void;
 	engine?: Engine<Element>;
+	// `scrollableContainer` is deprecated, use `getScrollableContainer()` instead.
 	scrollableContainer?: Element;
 	getScrollableContainer?(): Element;
 }
 
-interface UseStateOptions<Item, ItemState> {
-	getState?(): State<Item, ItemState>;
-	updateState?(stateUpdate: Partial<State<Item, ItemState>>): void;
+interface UseStateOptionsWithSetStateFunction<Item, ItemState> {
+	getState(): State<Item, ItemState>;
+	setState(newState: State<Item, ItemState>): void;
 }
+
+interface UseStateOptionsWithUpdateStateFunction<Item, ItemState> {
+	getState(): State<Item, ItemState>;
+	updateState(stateUpdate: Partial<State<Item, ItemState>>): void;
+}
+
+type UseStateOptions<Item, ItemState> =
+	UseStateOptionsWithSetStateFunction<Item, ItemState> |
+	UseStateOptionsWithUpdateStateFunction<Item, ItemState>
 
 export interface SetItemsOptions {
 	preserveScrollPositionOnPrependItems?: boolean;
 }
 
-export default class VirtualScroller<Element, Item, ItemState = NoItemState> {
+export default class VirtualScroller<Element, Item, ItemState = unknown> {
 	constructor(
 		getItemsContainerElement: () => Element,
 		items: Item[],
@@ -92,9 +103,9 @@ export default class VirtualScroller<Element, Item, ItemState = NoItemState> {
 	updateLayout(): void;
 	onRender(): void;
 	setItems(newItems: Item[], options?: SetItemsOptions): void;
-  onItemHeightDidChange(i: number): void;
-  setItemState(i: number, itemState?: object): void;
-  getItemScrollPosition(i: number): number | undefined;
+  onItemHeightDidChange(item: Item): void;
+  setItemState(item: Item, itemState?: object): void;
+  getItemScrollPosition(item: Item): number | undefined;
   getInitialState(): State<Item, ItemState>;
   useState(options: UseStateOptions<Item, ItemState>): void;
 }

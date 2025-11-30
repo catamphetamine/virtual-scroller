@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- Fix encoding. -->
+		<meta charset="utf-8">
+		<!-- Fix document width for mobile devices. -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>VirtualScroller (DOM) (Scrollable Container) (<tbody/>)</title>
+
+		<script src="./virtual-scroller-dom.js"></script>
+
+		<link rel="stylesheet" href="./style.base.css"/>
+
+		<style>
+			#scrollable-container {
+				margin-top: 20vh;
+				margin-bottom: 20vh;
+				max-height: 60vh;
+				overflow: auto;
+			}
+		</style>
+
+		<style>
+			table {
+				width: 100%;
+			}
+
+			tr {
+				background: #fff
+			}
+
+			th, td {
+				padding-left: 1em;
+				padding-right: 1em;
+				padding-top: 0.2em;
+				padding-bottom: 0.2em;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="scrollable-container">
+			<table>
+				<tbody id="table-rows-container">
+				</tbody>
+			</table>
+		</div>
+
+		<script>
+			// Enable debug output to console.
+			window.VirtualScrollerDebug = true
+		</script>
+
+		<script>
+			const rows = []
+			for (var i = 1; i <= 10000; i++) {
+				rows.push(i)
+			}
+
+			function renderRow(i) {
+				var tr = document.createElement('tr')
+				var td = document.createElement('td')
+				td.innerText = i
+				tr.appendChild(td)
+				return tr
+			}
+
+			function getScrollableContainer() {
+				return document.getElementById('scrollable-container')
+			}
+
+			new VirtualScroller(
+				document.getElementById('table-rows-container'),
+				rows,
+				renderRow,
+				{ getScrollableContainer }
+			)
+		</script>
+	</body>
+</html>

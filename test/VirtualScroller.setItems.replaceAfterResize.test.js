@@ -5,7 +5,7 @@ describe('VirtualScroller', function() {
 		let SCREEN_WIDTH = 800
 		const SCREEN_HEIGHT = 400
 
-		const MARGIN = SCREEN_HEIGHT
+		const PRERENDER_MARGIN = SCREEN_HEIGHT
 
 		let COLUMNS_COUNT = 2
 		let ROWS_COUNT = 8
@@ -30,7 +30,7 @@ describe('VirtualScroller', function() {
 		virtualScroller.start()
 
 		// The first row of items is hidden.
-		virtualScroller.scrollTo(ITEM_HEIGHT + MARGIN)
+		virtualScroller.scrollTo(ITEM_HEIGHT + PRERENDER_MARGIN)
 
 		// Shows rows 2 to 5.
 		virtualScroller.verifyState({
@@ -49,14 +49,20 @@ describe('VirtualScroller', function() {
 
 		// Resize the window.
 
-		const PREV_COLUMNS_COUNT = COLUMNS_COUNT
-		const PREV_ROWS_COUNT = ROWS_COUNT
+		const getRenderedItemRowsCountNotIncludingPrerenderMarginOnTop = () => {
+			return Math.ceil((SCREEN_HEIGHT + PRERENDER_MARGIN) / ITEM_HEIGHT)
+		}
+
+		const PREV_RENDERED_ITEM_ROWS_COUNT_NOT_INCLUDING_PRERENDER_MARGIN_ON_TOP = getRenderedItemRowsCountNotIncludingPrerenderMarginOnTop()
+
+		// const PREV_COLUMNS_COUNT = COLUMNS_COUNT
+		// const PREV_ROWS_COUNT = ROWS_COUNT
 
 		const PREV_ITEM_HEIGHT = ITEM_HEIGHT
 
-		const {
-			firstShownItemIndex: prevFirstShownItemIndex
-		} = virtualScroller.getState()
+		// const {
+		// 	firstShownItemIndex: prevFirstShownItemIndex
+		// } = virtualScroller.getState()
 
 		SCREEN_WIDTH /= 4
 		COLUMNS_COUNT /= 2
@@ -77,6 +83,11 @@ describe('VirtualScroller', function() {
 		items = new Array(items.length).fill({ area: ITEM_WIDTH * ITEM_HEIGHT })
 		virtualScroller.setItems(items)
 
+		const firstShownItemIndex = 0
+		const lastShownItemIndex = firstShownItemIndex + PREV_RENDERED_ITEM_ROWS_COUNT_NOT_INCLUDING_PRERENDER_MARGIN_ON_TOP * COLUMNS_COUNT - 1 // + 3 * COLUMNS_COUNT - 1
+		const beforeItemsHeight = 0
+		const afterItemsHeight = (PREV_ITEM_HEIGHT + VERTICAL_SPACING) * Math.ceil((items.length - (lastShownItemIndex + 1)) / COLUMNS_COUNT)
+
 		// Combined state update.
 		virtualScroller.expectStateUpdate({
 			beforeResize: undefined,
@@ -86,10 +97,10 @@ describe('VirtualScroller', function() {
 			items,
 			itemHeights: new Array(items.length),
 			itemStates: new Array(items.length),
-			firstShownItemIndex: 1 * COLUMNS_COUNT - COLUMNS_COUNT,
-			lastShownItemIndex: 3 * COLUMNS_COUNT - 1,
-			beforeItemsHeight: 0,
-			afterItemsHeight: 0
+			firstShownItemIndex,
+			lastShownItemIndex,
+			beforeItemsHeight,
+			afterItemsHeight
 		})
 
 		virtualScroller.resumeStateUpdates()
