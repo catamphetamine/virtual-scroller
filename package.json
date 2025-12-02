@@ -1,6 +1,6 @@
 {
   "name": "virtual-scroller",
-  "version": "1.15.0",
+  "version": "1.15.2",
   "description": "A component for efficiently rendering large lists of variable height items",
   "main": "index.cjs",
   "module": "index.js",
@@ -46,6 +46,9 @@
     "mocha": "^10.0.0",
     "npm-run-all": "^4.1.5",
     "nyc": "^15.1.0",
+    "prop-types": "^15.8.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "regenerator-runtime": "^0.13.9",
     "rimraf": "^3.0.2",
     "rollup": "^2.73.0",

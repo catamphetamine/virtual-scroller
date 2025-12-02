@@ -78,6 +78,7 @@
 				const { toIndex } = getState()
 				fromIndex = Math.max(fromIndex - BATCH_SIZE, 0)
 				setState({
+					...getState(),
 					fromIndex,
 					items: items.slice(fromIndex, toIndex + 1)
 				})
@@ -88,6 +89,7 @@
 				let { toIndex } = getState()
 				toIndex = Math.min(toIndex + BATCH_SIZE, items.length - 1)
 				setState({
+					...getState(),
 					toIndex,
 					items: items.slice(fromIndex, toIndex + 1)
 				})
@@ -165,10 +167,7 @@
 
 				setState = (newState) => {
 					const prevState = this.state
-					this.state = {
-						...this.state,
-						...newState
-					}
+					this.state = newState
 					this.onStateChange(this.state, prevState)
 				}
 

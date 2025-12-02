@@ -1,4 +1,4 @@
-import { State, VirtualScrollerCommonOptions } from '../index.d.js';
+import { default as VirtualScrollerCore, State, VirtualScrollerCommonOptions } from '../index.d.js';
 
 // `as` property is now deprecated, so `WithAsProperty` type is a legacy one.
 // Use `itemsContainerComponent` property instead.
@@ -39,6 +39,29 @@ export interface VirtualScrollerRefValue {
 // // This is a type of a `ref` that will be passed to a given `Component`.
 // type ComponentRef<Component extends React.ElementType> = React.ComponentPropsWithRef<Component>['ref']
 
+// These props are shared between `useVirtualScroller()` hook and `<VirtualScroller/>` component.
+interface PropsBase<
+	// `Item` is the type of an element of the `items` array.
+	Item,
+
+	// `ItemComponentState` is the type of an item component state.
+	// Example: `interface ItemComponentState { expanded?: boolean }`.
+	//
+	// In most cases, a developer won't even have to bother about item component state
+	// because `ItemComponent` won't have any state.
+	// In such cases, type `unknown` is used as a "dummy" placeholder
+	// just so that TypeScript doesn't complain about this "generic" being unspecified.
+	//
+	ItemComponentState = unknown
+> extends VirtualScrollerCommonOptions<Item, ItemComponentState> {
+	items: Item[];
+	initialState?: State<Item, ItemComponentState>;
+	preserveScrollPositionOnPrependItems?: boolean;
+	readyToStart?: boolean;
+	tbody?: boolean;
+	getScrollableContainer?(): HTMLElement;
+}
+
 // These are `<VirtualScroller/>` props except the deprecated `as` property.
 // When `as` property is removed in some future, `PropsWithoutAs` could be renamed to just `export Props`.
 interface PropsWithoutAs<
@@ -65,11 +88,10 @@ interface PropsWithoutAs<
 	// New applications should always specify `itemsContainerComponent` property value.
 	//
 	ItemsContainerComponent extends React.ElementType = 'div'
-> extends VirtualScrollerCommonOptions<Item, ItemComponentState> {
+> extends PropsBase<Item, ItemComponentState> {
 	ref: React.Ref<VirtualScrollerRefValue>;
 	// If `ref` was just "forwarded" to the `ItemsContainerComponent`, its type would have been this:
 	// ref: ComponentRef<ItemsContainerComponent>;
-	items: Item[];
 	itemComponent: ItemComponent;
 	itemComponentProps?: Partial<
 		Omit<
@@ -84,10 +106,6 @@ interface PropsWithoutAs<
 		React.ComponentPropsWithoutRef<ItemsContainerComponent>
 	>;
 	itemsContainerRef?: React.ComponentPropsWithRef<ItemsContainerComponent>['ref'];
-	initialState?: State<Item, ItemComponentState>;
-	preserveScrollPositionOnPrependItems?: boolean;
-	readyToStart?: boolean;
-	getScrollableContainer?(): HTMLElement;
 }
 
 // These are `<VirtualScroller/>` props including the deprecated `as` property.
@@ -174,6 +192,32 @@ declare function VirtualScroller<
 ): JSX.Element;
 
 export default VirtualScroller;
+
+export function useVirtualScroller<
+	// `Item` is the type of an element of the `items` array.
+	Item,
+
+	// `ItemComponentState` is the type of an item component state.
+	// Example: `interface ItemComponentState { expanded?: boolean }`.
+	//
+	// In most cases, a developer won't even have to bother about item component state
+	// because `ItemComponent` won't have any state.
+	// In such cases, type `unknown` is used as a "dummy" placeholder
+	// just so that TypeScript doesn't complain about this "generic" being unspecified.
+	//
+	ItemComponentState = unknown
+>(
+	props: PropsBase<Item, ItemComponentState>
+): UseVirtualScrollerResult<Item, ItemComponentState>;
+
+interface UseVirtualScrollerResult<Item, ItemComponentState> {
+	// Use this `state` instead of `virtualScroller.getState()`.
+	state: State<Item, ItemComponentState>;
+	style?: React.CSSProperties;
+	className?: string;
+	itemsContainerRef: React.Ref<HTMLElement>;
+	virtualScroller: VirtualScrollerCore<HTMLElement, Item, ItemComponentState>;
+}
 
 // The props that're passed by `<VirtualScroller/>` to `ItemComponent`.
 export interface VirtualScrollerItemComponentProps<Item, ItemComponentState> {

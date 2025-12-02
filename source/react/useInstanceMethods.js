@@ -20,12 +20,12 @@ export default function useInstanceMethods(ref, {
 
 		// (deprecated)
 		updateItem: (i) => {
-			reportError(`[virtual-scroller] ".updateItem(i)" method of React <VirtualScroller/> has been removed`)
+			reportError(`".updateItem(i)" method of React <VirtualScroller/> has been removed`)
 		},
 
 		// (deprecated)
 		renderItem: (i) => {
-			reportError(`[virtual-scroller] ".renderItem(i)" method of React <VirtualScroller/> has been removed`)
+			reportError(`".renderItem(i)" method of React <VirtualScroller/> has been removed`)
 		}
 	}), [
 		virtualScroller

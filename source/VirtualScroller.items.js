@@ -45,6 +45,20 @@ export default function() {
 			if (i >= 0 && i < items.length) {
 				return i
 			}
+		} else {
+			// It is also possible that the `item` is stale and that items have already been updated
+			// via `.setItems()`. In that case, a developer could supply a `getItemId(item)` function
+			// in order for this library to be able to detect the items that have stayed even when
+			// their "reference" has changed. To support such case, here it has to also attempt a search
+			// for the `item` by its `id` rather than just its "reference".
+			const getItemId = this._getItemId
+			if (getItemId) {
+				const itemId = getItemId(item)
+				const i = items.findIndex((item) => getItemId(item) === itemId)
+				if (i >= 0) {
+					return i
+				}
+			}
 		}
 
 		reportError(`Item not found: ${JSON.stringify(item)}`)

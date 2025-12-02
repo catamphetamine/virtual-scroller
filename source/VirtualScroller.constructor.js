@@ -125,6 +125,9 @@ export default function VirtualScrollerConstructor(
 	//  React limits the number of nested updates to prevent infinite loops."
 	this._useTimeoutInRenderLoop = _useTimeoutInRenderLoop
 
+	// `_getItemId()` function is used in `_getItemIndexByItemOrIndex()` function.
+	this._getItemId = getItemId
+
 	if (getItemId) {
 		this.isItemEqual = (a, b) => getItemId(a) === getItemId(b)
 	} else {

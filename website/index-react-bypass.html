@@ -64,6 +64,7 @@
 				const { toIndex } = getState()
 				fromIndex = Math.max(fromIndex - BATCH_SIZE, 0)
 				setState({
+					...getState(),
 					fromIndex,
 					items: items.slice(fromIndex, toIndex + 1)
 				})
@@ -74,64 +75,59 @@
 				let { toIndex } = getState()
 				toIndex = Math.min(toIndex + BATCH_SIZE, items.length - 1)
 				setState({
+					...getState(),
 					toIndex,
 					items: items.slice(fromIndex, toIndex + 1)
 				})
 			}
 
-			class VirtualScrollerDemo extends React.Component {
-				constructor(props) {
-					super(props)
+			function VirtualScrollerDemo() {
+				const [state, setState] = React.useState(getInitialState(ITEMS))
 
-					this.state = getInitialState(ITEMS)
+				const getState = () => state
+
+				const onShowPrevious_ = () => {
+					onShowPrevious(ITEMS, getState, setState)
 				}
 
-				getState = () => this.state
-
-				onShowPrevious = () => {
-					onShowPrevious(ITEMS, this.getState, this.setState.bind(this))
+				const onShowNext_ = () => {
+					onShowNext(ITEMS, getState, setState)
 				}
 
-				onShowNext = () => {
-					onShowNext(ITEMS, this.getState, this.setState.bind(this))
-				}
+				const {
+					fromIndex,
+					toIndex,
+					items
+				} = state
 
-				render() {
-					const {
-						fromIndex,
-						toIndex,
-						items
-					} = this.state
-
-					return (
-						<React.Fragment>
-							{window.PAGINATION && fromIndex > 0 &&
-								<button
-									type="button"
-									onClick={this.onShowPrevious}
-									className="load-items-button">
-									Show previous
-								</button>
-							}
-							<VirtualScroller
-								bypass
-								id="list"
-								items={items}
-								itemComponent={Item}
-								preserveScrollPositionOnPrependItems
-								getColumnsCount={getColumnsCount}
-							/>
-							{window.PAGINATION && toIndex < ITEMS.length - 1 &&
-								<button
-									type="button"
-									onClick={this.onShowNext}
-									className="load-items-button">
-									Show next
-								</button>
-							}
-						</React.Fragment>
-					)
-				}
+				return (
+					<React.Fragment>
+						{window.PAGINATION && fromIndex > 0 &&
+							<button
+								type="button"
+								onClick={onShowPrevious_}
+								className="load-items-button">
+								Show previous
+							</button>
+						}
+						<VirtualScroller
+							bypass
+							id="list"
+							items={items}
+							itemComponent={Item}
+							preserveScrollPositionOnPrependItems
+							getColumnsCount={getColumnsCount}
+						/>
+						{window.PAGINATION && toIndex < ITEMS.length - 1 &&
+							<button
+								type="button"
+								onClick={onShowNext_}
+								className="load-items-button">
+								Show next
+							</button>
+						}
+					</React.Fragment>
+				)
 			}
 
 			const item = PropTypes.shape({
@@ -168,21 +164,19 @@
 				children: item.isRequired
 			}
 
-			class Demo extends React.Component {
-				render() {
-					return (
-						<section className="container">
-							<h1>
-								<TwitterLogo/>
-								Latest Tweets on #politics
-							</h1>
-							<VirtualScrollerDemo/>
-							<footer>
-								© Twitter Inc., 2019
-							</footer>
-						</section>
-					)
-				}
+			function Demo() {
+				return (
+					<section className="container">
+						<h1>
+							<TwitterLogo/>
+							Latest Tweets on #politics
+						</h1>
+						<VirtualScrollerDemo/>
+						<footer>
+							© Twitter Inc., 2019
+						</footer>
+					</section>
+				)
 			}
 
 			function TwitterLogo() {

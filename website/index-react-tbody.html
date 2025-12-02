@@ -59,18 +59,16 @@
 				)
 			}
 
-			class Demo extends React.Component {
-				render() {
-					return (
-						<table>
-							<VirtualScroller
-								items={rows}
-								itemComponent={Item}
-								as="tbody"
-							/>
-						</table>
-					)
-				}
+			function Demo() {
+				return (
+					<table>
+						<VirtualScroller
+							items={rows}
+							itemComponent={Item}
+							as="tbody"
+						/>
+					</table>
+				)
 			}
 
 			const root = ReactDOM.createRoot(document.getElementById('root'))

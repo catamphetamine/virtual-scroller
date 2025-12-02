@@ -35,6 +35,7 @@ describe('VirtualScroller', function() {
 			// Work around javascript "closure" bug.
 			const j = i
 			items[i] = {
+				id: j + 1,
 				getArea: () => itemAreas[j]
 			}
 			i++
@@ -42,6 +43,7 @@ describe('VirtualScroller', function() {
 
 		const virtualScroller = new VirtualScroller({
 			items,
+			getItemId: item => item.id,
 			screenWidth: SCREEN_WIDTH,
 			screenHeight: SCREEN_HEIGHT,
 			columnsCount: COLUMNS_COUNT,
@@ -85,6 +87,21 @@ describe('VirtualScroller', function() {
 		virtualScroller.verifyState({
 			firstShownItemIndex: 1 * COLUMNS_COUNT - COLUMNS_COUNT,
 			lastShownItemIndex: 2 * COLUMNS_COUNT - 1
+		})
+
+		// Change the height of the first item in the first row.
+		itemAreas[1 * COLUMNS_COUNT - COLUMNS_COUNT] = ITEM_WIDTH * ITEM_HEIGHT * 4
+
+		// Notify that the height of the first item in the first row has changed.
+		// Find the item by its `id` rather than by "reference", because the
+		// item "references" have changed.
+		virtualScroller.onItemHeightDidChange({ id: 1 })
+
+		// Verify the updated item state.
+		// Shows rows 1 to 1.
+		virtualScroller.verifyState({
+			firstShownItemIndex: 1 * COLUMNS_COUNT - COLUMNS_COUNT,
+			lastShownItemIndex: 1 * COLUMNS_COUNT - 1
 		})
 
 		// Stop listening to scroll events.

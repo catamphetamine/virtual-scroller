@@ -10,8 +10,17 @@ export default class TestVirtualScroller {
 		columnsCount,
 		verticalSpacing,
 		items,
-		state: initialState
+		getItemId,
+		state: initialState,
+		...rest
 	}) {
+		// Validate that no unknown properties are passed.
+		// This prevents the cases when a developer confuses
+		// `TestVirtualScroller` options for `VirtualScroller` options.
+		if (Object.keys(rest).length > 0) {
+			throw new Error(`Unknown options: ${Object.keys(rest).join(', ')}`)
+		}
+
 		this.expectedStateUpdates = []
 
 		const scrollableContainerElement = {
@@ -81,6 +90,7 @@ export default class TestVirtualScroller {
 			scrollableContainer: scrollableContainerElement,
 			engine: Engine,
 			_waitForScrollingToStop: false,
+			getItemId,
 			getColumnsCount,
 			state: initialState,
 			onStateChange(state) {

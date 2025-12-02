@@ -1,32 +1,15 @@
-import React, { useMemo, useLayoutEffect } from 'react'
+import React, { useLayoutEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import useState from './useState.js'
 import useVirtualScroller from './useVirtualScroller.js'
-import useVirtualScrollerStartStop from './useVirtualScrollerStartStop.js'
-import useInstanceMethods from './useInstanceMethods.js'
 import useItemKeys from './useItemKeys.js'
 import useSetItemState from './useSetItemState.js'
 import useOnItemHeightDidChange from './useOnItemHeightDidChange.js'
-import useSetNewItemsOnItemsPropertyChange from './useSetNewItemsOnItemsPropertyChange.js'
+import useMergeRefs from './useMergeRefs.js'
+import useInstanceMethods from './useInstanceMethods.js'
 import useUpdateItemKeysOnItemsChange from './useUpdateItemKeysOnItemsChange.js'
-import useValidateTableBodyItemsContainer from './useValidateTableBodyItemsContainer.js'
-import useForwardedRef from './useForwardedRef.js'
-import useClassName from './useClassName.js'
-import useStyle from './useStyle.js'
 
 import { warn } from '../utility/debug.js'
-
-// When `items` property changes:
-// * A new `items` property is supplied to the React component.
-// * The React component re-renders itself.
-// * `useSetNewItemsOnItemsPropertyChange()` hook is run.
-// * `useSetNewItemsOnItemsPropertyChange()` hook detects that the `items` property
-//   has changed and calls `VirtualScroller.setItems(items)`.
-// * `VirtualScroller.setItems(items)` calls `VirtualScroller.setState()`.
-// * `VirtualScroller.setState()` calls the `setState()` function.
-// * The `setState()` function calls a setter from a `useState()` hook.
-// * The React component re-renders itself the second time.
 
 function VirtualScroller({
 	// The following are `<VirtualScroller/>` properties.
@@ -38,16 +21,8 @@ function VirtualScroller({
 	itemComponentProps,
 	itemsContainerComponent: ItemsContainerComponent,
 	itemsContainerComponentProps,
-	itemsContainerRef,
-	// `estimatedItemHeight` property name is deprecated,
-	// use `getEstimatedItemHeight` property instead.
-	estimatedItemHeight,
-	getEstimatedItemHeight,
-	getEstimatedVisibleItemRowsCount,
-	getEstimatedInterItemVerticalSpacing,
+	itemsContainerRef: itemsContainerRefProperty,
 	onMount,
-	// `tbody` property is deprecated.
-	// Pass `as: "tbody"` property instead.
 	tbody,
 	readyToStart,
 	className: classNameProperty,
@@ -74,6 +49,12 @@ function VirtualScroller({
 	initialState,
 	getInitialItemState,
 	onStateChange,
+	// `estimatedItemHeight` property name is deprecated,
+	// use `getEstimatedItemHeight` property instead.
+	estimatedItemHeight,
+	getEstimatedItemHeight,
+	getEstimatedVisibleItemRowsCount,
+	getEstimatedInterItemVerticalSpacing,
 
 	// "Rest" properties that will be passed through to the `itemsContainerComponent`.
 	...rest
@@ -86,46 +67,39 @@ function VirtualScroller({
 		ItemsContainerComponent = as || 'div'
 	}
 
-	// It turns out that since May 2022, `useVirtualScroller()` hook completely ignored the `tbody` property.
-	// Instead, it always derived `tbody` property value from `as` property value by comparing it to `"tbody"` string.
-	// As a result, it seemed like the explicit passing of `tbody` property didn't really work as intended.
-	// In the end, it was decided that perhaps `tbody` property value should always be derived from `as` property
-	// without a developer having to manually specify it. So the `tbody` property was deprecated.
-	// It still exists though for backwards compatibility with the older versions of the package.
+	// In simple cases, the use of a `<tbody/>` tag as an items container component could be auto-detected.
 	if (tbody === undefined) {
-		// `tbody` should be somehow detected before any DOM Elements have been mounted.
+		// `tbody` auto-detection should happen before any DOM Elements have been mounted,
+		// i.e. it can't rely on the trivial `getItemsContainerElement().tagName === 'TBODY'` check.
 		// This is because during Server-Side Render there's no DOM Elements tree at all.
 		// And server-sider render result is required to be exactly the same as client-side render result.
 		// This means that `tbody` detection for the purposes of getting the initial
 		// `className` or `style` property values must not rely on any DOM Elements at all,
 		// and should use some other means such as explicitly passing a `tbody: true` property
-		// (as it used to be in the past) or detecting `<tbody/>` tag usage from the
-		// `itemsContainerCompoent` property value.
+		// or detecting `<tbody/>` tag usage from the `itemsContainerCompoent` property value.
 		tbody = ItemsContainerComponent === 'tbody'
 	}
 
-	// List items "container" DOM Element reference.
 	const {
-		setRef: setItemsContainerRef,
-		internalRef: itemsContainer
-	} = useForwardedRef(itemsContainerRef)
-
-	// Create a `VirtualScroller` instance.
-	const virtualScroller = useVirtualScroller({
+		state: stateToRender,
+		style,
+		className,
+		itemsContainerRef,
+		virtualScroller
+	} = useVirtualScroller({
 		items: itemsProperty,
-		// `estimatedItemHeight` property name is deprecated,
-		// use `getEstimatedItemHeight` property instead.
-		estimatedItemHeight,
-		getEstimatedItemHeight,
-		getEstimatedVisibleItemRowsCount,
-		getEstimatedInterItemVerticalSpacing,
+		tbody,
+		readyToStart,
+		style: itemsContainerComponentProps && itemsContainerComponentProps.style,
+		className: classNameProperty || itemsContainerComponentProps && itemsContainerComponentProps.className,
+
+		// The following are the "core" component options.
+		//
 		bypass,
-		// bypassBatchSize,
-		onItemInitialRender,
-		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
-		onItemFirstRender,
-		initialScrollPosition,
-		onScrollPositionChange,
+		// `preserveScrollPosition` property name is deprecated,
+		// use `preserveScrollPositionOnPrependItems` property instead.
+		preserveScrollPosition,
+		preserveScrollPositionOnPrependItems,
 		measureItemsBatchSize,
 		// `scrollableContainer` property is deprecated.
 		// Use `getScrollableContainer()` property instead.
@@ -133,40 +107,24 @@ function VirtualScroller({
 		getScrollableContainer,
 		getColumnsCount,
 		getItemId,
+		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
+		onItemFirstRender,
+		onItemInitialRender,
+		initialScrollPosition,
+		onScrollPositionChange,
 		initialState,
 		getInitialItemState,
-		onStateChange
-	}, {
-		itemsContainer
+		onStateChange,
+		getEstimatedItemHeight: getEstimatedItemHeight ||
+			// `estimatedItemHeight` property name is deprecated,
+			// use `getEstimatedItemHeight` property instead.
+			(typeof estimatedItemHeight === 'number' ? () => estimatedItemHeight : undefined),
+		getEstimatedVisibleItemRowsCount,
+		getEstimatedInterItemVerticalSpacing
 	})
 
-	// Only compute the initial state once.
-	const _initialState = useMemo(() => {
-		return virtualScroller.getInitialState()
-	}, [])
-
-	// Use React's `useState()` hook for managing `VirtualScroller`'s state lifecycle.
-	// This way, React will re-render the component on every state update.
-	const {
-		getState,
-		setState,
-		stateToRender
-	} = useState({
-		initialState: _initialState,
-		onRender: virtualScroller.onRender
-	})
-
-	// Use custom (external) state storage in the `VirtualScroller`.
-	useMemo(() => {
-		virtualScroller.useState({
-			getState,
-			setState
-		})
-	}, [])
-
-	// Start `VirtualScroller` on mount.
-	// Stop `VirtualScroller` on unmount.
-	useVirtualScrollerStartStop(virtualScroller, { readyToStart })
+	// List items "container" DOM Element reference.
+	const setItemsContainerRef = useMergeRefs(itemsContainerRef, itemsContainerRefProperty)
 
 	// List items are rendered with `key`s so that React doesn't
 	// "reuse" `itemComponent`s in cases when `items` are changed.
@@ -177,6 +135,13 @@ function VirtualScroller({
 		updateItemKeysForNewItems
 	} = useItemKeys({
 		getItemId
+	})
+
+	// Updates `key`s if item indexes have changed.
+	useUpdateItemKeysOnItemsChange(stateToRender.items, {
+		virtualScroller,
+		usesAutogeneratedItemKeys,
+		updateItemKeysForNewItems
 	})
 
 	// Cache per-item `setItemState` functions' "references"
@@ -195,22 +160,6 @@ function VirtualScroller({
 		virtualScroller
 	})
 
-	// Calls `.setItems()` if `items` property has changed.
-	useSetNewItemsOnItemsPropertyChange(itemsProperty, {
-		virtualScroller,
-		// `preserveScrollPosition` property name is deprecated,
-		// use `preserveScrollPositionOnPrependItems` property instead.
-		preserveScrollPosition,
-		preserveScrollPositionOnPrependItems
-	})
-
-	// Updates `key`s if item indexes have changed.
-	useUpdateItemKeysOnItemsChange(stateToRender.items, {
-		virtualScroller,
-		usesAutogeneratedItemKeys,
-		updateItemKeysForNewItems
-	})
-
 	// Add instance methods to the React component.
 	useInstanceMethods(ref, {
 		virtualScroller
@@ -226,14 +175,6 @@ function VirtualScroller({
 		}
 	}, [])
 
-	// A developer might "forget" to pass `itemsContainerComponent="tbody"` property
-	// when using a `<tbody/>` as a container for list items.
-	// This hook validates that the developer didn't "forget" to do that in such case.
-	useValidateTableBodyItemsContainer({
-		virtualScroller,
-		tbody
-	})
-
 	// `willRender()` function is no longer used.
 	//
 	// // `getSnapshotBeforeUpdate()` is called right before `componentDidUpdate()`.
@@ -248,19 +189,6 @@ function VirtualScroller({
 	// 	// "A snapshot value (or null) must be returned. You have returned undefined".
 	// 	return null
 	// }
-
-	const classNamePassThrough = classNameProperty || itemsContainerComponentProps && itemsContainerComponentProps.className
-
-	const className = useClassName(classNamePassThrough, {
-		tbody
-	})
-
-	const stylePassThrough = itemsContainerComponentProps && itemsContainerComponentProps.style
-
-	const style = useStyle(stylePassThrough, {
-		tbody,
-		state: stateToRender
-	})
 
 	const {
 		items: currentItems,
@@ -356,9 +284,7 @@ VirtualScroller.propTypes = {
 	getEstimatedInterItemVerticalSpacing: PropTypes.func,
 	bypass: PropTypes.bool,
 	// bypassBatchSize: PropTypes.number,
-	// `tbody` property is deprecated.
-	// Pass `as: "tbody"` property instead.
-	// tbody: PropTypes.bool,
+	tbody: PropTypes.bool,
 	preserveScrollPositionOnPrependItems: PropTypes.bool,
 	// `preserveScrollPosition` property name is deprecated,
 	// use `preserveScrollPositionOnPrependItems` instead.
@@ -392,3 +318,16 @@ VirtualScroller.propTypes = {
 	}),
 	getInitialItemState: PropTypes.func
 }
+
+// Legacy compatibility:
+//
+// Originally, the default export of the `virtual-scroller/react` subpackage
+// was only the `VirtualScroller` component, and there were no other exports.
+//
+// Later, `useVirtualScroller()` hook export was added.
+// In order to maintain legacy compatibility, the new exports shouldn't "break"
+// the existing environments that were using the old versions of the package.
+// This means that in non-ES6-import environments, any additional exports
+// should be added directly to the default `VirtualScroller` export.
+//
+VirtualScroller.useVirtualScroller = useVirtualScroller

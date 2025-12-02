@@ -29,6 +29,8 @@ A universal open-source implementation of Twitter's [`VirtualScroller`](https://
 * [Table in a scrollable container](https://catamphetamine.gitlab.io/virtual-scroller/index-react-tbody-scrollableContainer.html)
 * [Grid](https://catamphetamine.gitlab.io/virtual-scroller/index-react-grid.html)
 * [Paginated Grid](https://catamphetamine.gitlab.io/virtual-scroller/index-react-grid.html?pagination=✓)
+* [List (using hook)](https://catamphetamine.gitlab.io/virtual-scroller/index-react-hook.html)
+* [Paginated List (using hook)](https://catamphetamine.gitlab.io/virtual-scroller/index-react-hook.html?pagination=✓)
 
 ## Rationale
 
@@ -172,6 +174,18 @@ function App() {
 
 <!-- Note: When passing any core `VirtualScroller` class options, only the initial values of those options will be applied, and any updates to those options will be ignored. That's because those options are only passed to the `VirtualScroller` base class constructor at initialization time. That means that none of those options should depend on any variable state or props. For example, if `getColumnsCount()` parameter was defined as `() => props.columnsCount`, then, if the `columnsCount` property changes, the underlying `VirtualScroller` instance won't see that change. -->
 
+<!-- I guess that `style` property should be deprecated because it could potentially be dangerous
+     due to potential conflicts with `VirtualScroller` styles. It currently isn't present anyway. -->
+<!-- * `style: object` — Custom CSS style, except for `padding-top` or `padding-bottom`. -->
+
+<!-- I guess that `className` property should be deprecated because it could potentially be dangerous
+     due to potential conflicts with `VirtualScroller` styles. -->
+<!-- * `className: string` — Custom CSS class name. -->
+
+* `tbody: boolean` — When the list items container element is going to be a `<tbody/>`, it will have to use a special workaround in order for the `<VirtualScroller/>` to work correctly. To enable this special workaround, a developer could pass a `tbody: true` property. Otherwise, `<VirtualScroller/>` will only enable it when `itemsContainerComponent === "tbody"`.
+  <!-- * There's no longer such option in the ["core"](#core) component because it's autodetected there. The reason why it can't always be autodetected in React is because of server-side rendering when there's no items container DOM element whose tag name could be examined to detect the use of a `<tbody/>` tag as an items container. -->
+  * Only the initial value of this property is used, and any changes to it will be ignored.
+
 * `getColumnsCount(): number` — Returns the count of the columns.
   * This is simply a proxy for the ["core"](#core) component's `getColumnsCount` [option](#options).
   * Only the initial value of this property is used, and any changes to it will be ignored.
@@ -276,14 +290,6 @@ function ListContainer() {
   )
 }
 ```
-
-<!--
-(this property has been ignored for a long time and was eventually removed)
-
-* `tbody: boolean` — When the container for the list items is going to be a `<tbody/>`, a developer must pass a `tbody: true` property in order for the `<VirtualScroller/>` to work correctly.
-  * This is simply a proxy for the ["core"](#core) component's `tbody` option.
-  * Only the initial value of this property is used, and any changes to it will be ignored.
--->
 
 * `itemsContainerComponentRef: object` — Could be used to get access to the `itemsContainerComponent` instance.
   * For example, if `itemsContainerComponent` is `"ul"` then `itemsContainerComponentRef.current` will be set to the `<ul/>` `Element`.
@@ -473,6 +479,90 @@ function ItemComponent({
 By default, on server side, it will just render the first item, as if the list only had one item. This is because on server side it doesn't know how many items it should render because it doesn't know neither the item height nor the screen height.
 
 To fix that, a developer should specify certain properties — `getEstimatedVisibleItemRowsCount(): number` and `getEstimatedItemHeight(): number` and `getEstimatedInterItemVerticalSpacing(): number` — so that it could calculate how many items it should render and how much space it should leave for scrolling. For more technical details, see the description of these parameters in the ["core"](#core) component's [options](#options).
+</details>
+
+######
+
+<details>
+<summary>Alternatively, instead of using <code>&lt;VirtualScroller/&gt;</code> component, one could use <code>useVirtualScroller()</code> hook</summary>
+
+######
+
+```js
+import React from 'react'
+import { useVirtualScroller } from 'virtual-scroller/react'
+
+function List(props) {
+  const {
+    // "Core" component `state`.
+    // See "State" section of the readme for more info.
+    state: {
+      items,
+      itemStates,
+      firstShownItemIndex,
+      lastShownItemIndex
+    },
+    // CSS style object.
+    style,
+    // CSS class name.
+    className,
+    // This `ref` must be passed to the items container component.
+    itemsContainerRef,
+    // One could use this `virtualScroller` object to call any of its public methods.
+    // Except for `virtualScroller.getState()` — use the returned `state` property instead.
+    virtualScroller
+  } = useVirtualScroller({
+    // The properties of `useVirtualScroller()` hook are the same as
+    // the properties of `<VirtualScroller/>` component.
+    //
+    // Additional properties:
+    // * `style`
+    // * `className`
+    //
+    // Excluded properties:
+    // * `itemComponent`
+    // * `itemComponentProps`
+    // * `itemsContainerComponent`
+    // * `itemsContainerComponentProps`
+    //
+    items: props.items
+  })
+
+  return (
+    <div ref={itemsContainerRef} style={style} className={className}>
+      {items.map((item, i) => {
+        if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
+          return (
+            <ListItem
+              key={item.id}
+              item={item}
+              state={itemStates && itemStates[i]}
+            />
+          )
+        }
+        return null
+      })}
+    </div>
+  )
+}
+
+function ListItem({ item, state }) {
+  const { username, date, text } = item
+  return (
+    <article>
+      <a href={`/users/${username}`}>
+        @{username}
+      </a>
+      <time dateTime={date.toISOString()}>
+        {date.toString()}
+      </time>
+      <p>
+        {text}
+      </p>
+    </article>
+  )
+}
+```
 </details>
 
 ## DOM

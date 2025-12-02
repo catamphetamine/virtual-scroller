@@ -1,8 +1,8 @@
-import VirtualScroller from '../index.js'
+import VirtualScroller from '../dom/index.js'
 
-import Library from '../index.cjs'
+import Library from '../dom/index.cjs'
 
-describe('virtual-scroller', function() {
+describe('virtual-scroller/dom', function() {
 	it('should export', function() {
 		VirtualScroller.should.be.a('function')
 	})

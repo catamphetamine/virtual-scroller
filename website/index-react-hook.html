@@ -6,7 +6,7 @@
 		<!-- Fix document width for mobile devices. -->
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-		<title>VirtualScroller (React)</title>
+		<title>VirtualScroller (React) (hook)</title>
 
 		<script src="./lib/react.development.js"></script>
 		<script src="./lib/react-dom.development.js"></script>
@@ -100,6 +100,21 @@
 					items
 				} = state
 
+				const {
+					state: {
+						items: itemsToRender,
+						firstShownItemIndex,
+						lastShownItemIndex
+					},
+					style,
+					className,
+					itemsContainerRef
+				} = VirtualScroller.useVirtualScroller({
+					items,
+					preserveScrollPositionOnPrependItems: true,
+					getColumnsCount
+				})
+
 				return (
 					<React.Fragment>
 						{window.PAGINATION && fromIndex > 0 &&
@@ -110,13 +125,16 @@
 								Show previous
 							</button>
 						}
-						<VirtualScroller
-							id="list"
-							items={items}
-							itemComponent={Item}
-							preserveScrollPositionOnPrependItems
-							getColumnsCount={getColumnsCount}
-						/>
+						<div id="list" ref={itemsContainerRef} style={style} className={className}>
+							{itemsToRender.map((item, i) => {
+								if (i >= firstShownItemIndex && i <= lastShownItemIndex) {
+									return (
+										<Item key={i} item={item}/>
+									)
+								}
+								return null
+							})}
+						</div>
 						{window.PAGINATION && toIndex < ITEMS.length - 1 &&
 							<button
 								type="button"
@@ -135,9 +153,7 @@
 				text: PropTypes.string.isRequired
 			})
 
-			function Item(props) {
-				const { children: item } = props
-
+			function Item({ item }) {
 				const {
 					username,
 					date,

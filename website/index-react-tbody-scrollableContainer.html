@@ -72,21 +72,19 @@
 				return document.getElementById('scrollable-container')
 			}
 
-			class Demo extends React.Component {
-				render() {
-					return (
-						<div id="scrollable-container">
-							<table>
-								<VirtualScroller
-									items={rows}
-									itemComponent={Item}
-									as="tbody"
-									getScrollableContainer={getScrollableContainer}
-								/>
-							</table>
-						</div>
-					)
-				}
+			function Demo() {
+				return (
+					<div id="scrollable-container">
+						<table>
+							<VirtualScroller
+								items={rows}
+								itemComponent={Item}
+								as="tbody"
+								getScrollableContainer={getScrollableContainer}
+							/>
+						</table>
+					</div>
+				)
 			}
 
 			const root = ReactDOM.createRoot(document.getElementById('root'))
