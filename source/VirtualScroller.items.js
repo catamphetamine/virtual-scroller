@@ -54,6 +54,11 @@ export default function() {
 			const getItemId = this._getItemId
 			if (getItemId) {
 				const itemId = getItemId(item)
+				// Performance notes:
+				// Doing an `.findIndex()` operation on a very large array could be inefficient
+				// because it would have to check every element of the array.
+				// In case of any hypothetical performance-related issues,
+				// the code could use a `new Map()` as an "index" for finding individual items by ID.
 				const i = items.findIndex((item) => getItemId(item) === itemId)
 				if (i >= 0) {
 					return i
