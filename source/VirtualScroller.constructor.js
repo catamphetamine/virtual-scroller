@@ -19,7 +19,7 @@ import createScrollableContainerResizeHelpers from './VirtualScroller.onContaine
 import createItemsHelpers from './VirtualScroller.items.js'
 
 /**
- * @param  {function} getItemsContainerElement — Returns the container DOM `Element`.
+ * @param  {function} getItemsContainerElement — Returns the container DOM `Element` (or `null`).
  * @param  {any[]} items — The list of items.
  * @param  {Object} [options] — See README.md.
  * @return {VirtualScroller}
@@ -76,18 +76,31 @@ export default function VirtualScrollerConstructor(
 		getScrollableContainer = () => scrollableContainer
 	}
 
-	// Sometimes, when `new VirtualScroller()` instance is created,
-	// `getItemsContainerElement()` might not be ready to return the "container" DOM Element yet
-	// (for example, because it's not rendered yet). That's the reason why it's a getter function.
-	// For example, in React `<VirtualScroller/>` component, a `VirtualScroller`
+	// Sometimes, when `new VirtualScroller()` "core" instance is created,
+	// `getItemsContainerElement()` function might not yet be ready to return the "container" DOM Element.
+	// For example, because the "container" DOM Element not rendered yet.
+	// That's the reason why it's a getter function rather than a simple variable.
+	//
+	// As an example, in React `<VirtualScroller/>` component, a "core" `VirtualScroller`
 	// instance is created in the React component's `constructor()`, and at that time
-	// the container Element is not yet available. The container Element is available
-	// in `componentDidMount()`, but `componentDidMount()` is not executed on server,
-	// which would mean that React `<VirtualScroller/>` wouldn't render at all
-	// on server side, while with the `getItemsContainerElement()` approach, on server side,
-	// it still "renders" a list with a predefined amount of items in it by default.
-	// (`initiallyRenderedItemsCount`, or `1`).
-	this.getItemsContainerElement = getItemsContainerElement
+	// the "container" DOM Element has not been rendered yet.
+	// The "container" DOM Element is only guaranteed to have been rendered
+	// by the time `useEffect()` callback function is called, but at the same time `useEffect()`
+	// is only executed on client side and is not executed on server side at all.
+	// Still, the code has to work both in a web browser and on the server during the initial
+	// "server-side render", i.e. it still must render the list during the initial
+	// "server-side render". So `VirtualScroller` can't simply be skipped during server-side render.
+	// It has to render something, and that something has to be correct.
+	// This means that the "core" `VirtualScroller` should at least correctly compute the state
+	// regardless of whether the `itemsContainerElement` exists or not.
+	//
+	this.getItemsContainerElement = () => {
+		const element = getItemsContainerElement()
+		if (element === null) {
+			throw new Error('[virtual-scroller] Items container element is `null`')
+		}
+		return element
+	}
 
 	// if (prerenderMargin === undefined) {
 	// 	// Renders items which are outside of the screen by this "prerender margin".
@@ -211,16 +224,6 @@ function createHelpers({
 	this.itemsContainer = this.engine.createItemsContainer(
 		this.getItemsContainerElement
 	)
-
-	// If the items "container" element is mounted at this stage,
-	// remove any accidental text nodes from it (like whitespace).
-	//
-	// Also, this guards against cases when someone accidentally tries
-	// using `VirtualScroller` on a non-empty element.
-	//
-	if (this.getItemsContainerElement()) {
-		this.itemsContainer.clear()
-	}
 
 	this.isItemsContainerElementTableBody = () => {
 		return this.engine === DOMEngine &&

@@ -93,7 +93,7 @@ export interface SetItemsOptions {
 
 export default class VirtualScroller<Element, Item, ItemState = unknown> {
 	constructor(
-		getItemsContainerElement: () => Element,
+		getItemsContainerElement: () => Element | null,
 		items: Item[],
 		options?: Options<Element, Item, ItemState>
 	);

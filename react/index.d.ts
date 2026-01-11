@@ -89,7 +89,7 @@ interface PropsWithoutAs<
 	//
 	ItemsContainerComponent extends React.ElementType = 'div'
 > extends PropsBase<Item, ItemComponentState> {
-	ref: React.Ref<VirtualScrollerRefValue>;
+	ref?: React.Ref<VirtualScrollerRefValue>;
 	// If `ref` was just "forwarded" to the `ItemsContainerComponent`, its type would have been this:
 	// ref: ComponentRef<ItemsContainerComponent>;
 	itemComponent: ItemComponent;

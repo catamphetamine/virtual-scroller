@@ -43,9 +43,18 @@ export default class VirtualScroller {
 		if (!isRestart) {
 			this.setUpState()
 			this.waitingForRender = true
+
 			// If `render()` function parameter was passed,
 			// perform an initial render.
 			if (this._render) {
+				// Remove any accidental text nodes (like whitespace) from the items container.
+				//
+				// This also guards against the cases when someone accidentally tries to create
+				// a `VirtualScroller` in a non-empty items container element.
+				//
+				this.itemsContainer.clear()
+
+				// Perform the initial render of the list.
 				this._render(this.getState())
 			}
 		}

@@ -1,5 +1,10 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.15.3 / 11.01.2026
+===================
+
+* `getItemsContainerElement()` function may now return `null`. If it returns `null` after the virtual scroller has started, it will cause an error to be thrown.
+
 1.15.1 / 30.11.2025
 ===================
 

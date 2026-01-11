@@ -98,8 +98,8 @@ export default function useVirtualScroller({
 			// `getItemsContainerElement()` function is called both before it has mounted
 			// and after it has mounted. Only validate the ref's value after it has mounted.
 			//
-			if (hasMounted.current) {
-				if (!itemsContainerRef.current) {
+			if (!itemsContainerRef.current) {
+				if (hasMounted.current) {
 					throw new Error('[virtual-scroller] Did you forget to pass the returned `itemsContainerRef` property as the items container component\'s `ref`?')
 				}
 			}
