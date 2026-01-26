@@ -1,5 +1,10 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.16.0 / 26.01.2026
+===================
+
+* Removed `clear()` function from `ItemsContainer` class. It's not really used anywhere. It was only added as a convenience feature in the `dom/VirtualScroller` so the relevant code was moved from `ItemsContainer` to `dom/VirtualScroller`.
+
 1.15.3 / 11.01.2026
 ===================
 

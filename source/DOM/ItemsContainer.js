@@ -52,12 +52,12 @@ export default class ItemsContainer {
 		return this.getElement().getBoundingClientRect().height
 	}
 
-	/**
-	 * Removes all item elements of an items container.
-	 */
-	clear() {
-		while (this.getElement().firstChild) {
-			this.getElement().removeChild(this.getElement().firstChild)
-		}
-	}
+	// /**
+	//  * Removes all item elements of an items container.
+	//  */
+	// clear() {
+	// 	while (this.getElement().firstChild) {
+	// 		this.getElement().removeChild(this.getElement().firstChild)
+	// 	}
+	// }
 }

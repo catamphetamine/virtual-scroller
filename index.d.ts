@@ -26,7 +26,6 @@ export class ItemsContainer<Element> {
 	getNthRenderedItemTopOffset(renderedElementIndex: number): number;
 	getNthRenderedItemHeight(renderedElementIndex: number): number;
 	getHeight(): number;
-	clear(): void;
 }
 
 export class ScrollableContainer<Element> {

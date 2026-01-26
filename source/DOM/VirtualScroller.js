@@ -11,6 +11,8 @@ export default class VirtualScroller {
 
     this.renderItem = renderItem
 
+    this._isInitialRender = true
+
     const {
       onMount,
       onItemUnmount,
@@ -161,6 +163,25 @@ export default class VirtualScroller {
   // Potentially public API in some hypothetical scenario.
   // Should be "bound" to `this`.
   start = () => {
+    // Legacy feature:
+    //
+    // At the initial render, remove any accidental text nodes (like whitespace)
+    // from the items container element.
+    //
+    // This also prevents weird behavior when someone accidentally tries to create
+    // a `VirtualScroller` in a non-empty items container element.
+    //
+    if (this._isInitialRender) {
+      this._isInitialRender = false
+      //
+      const itemsContainerElement = this.getItemsContainerElement()
+      // Perhaps it should just throw an error in case the items container is not empty.
+      // The legacy behavior is to automatically clear such items container element.
+      while (itemsContainerElement.firstChild) {
+        itemsContainerElement.removeChild(itemsContainerElement.firstChild)
+      }
+    }
+
     this.virtualScroller.start()
   }
 

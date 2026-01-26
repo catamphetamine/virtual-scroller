@@ -99,10 +99,10 @@ export default class ItemsContainer {
 		return contentHeight
 	}
 
-	/**
-	 * Removes all item elements of an items container.
-	 */
-	clear() {
-		this.getElement().children = []
-	}
+	// /**
+	//  * Removes all item elements of an items container.
+	//  */
+	// clear() {
+	// 	this.getElement().children = []
+	// }
 }
