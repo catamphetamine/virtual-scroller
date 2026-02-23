@@ -25,9 +25,9 @@ export interface VirtualScrollerRefValue {
 	// There seems to be no requirement for such "more sophisticated" type declaration.
 	// Hence, it is commented out and a simpler type of just `HTMLElement` is used.
 	//
-	// getElement(): ItemsContainerComponent extends keyof JSX.IntrinsicElements
+	// getElement(): ItemsContainerComponent extends keyof React.JSX.IntrinsicElements
 	// 	? (
-	// 		JSX.IntrinsicElements[ItemsContainerComponent] extends React.DetailedHTMLProps<React.AnchorHTMLAttributes<infer T>, T>
+	// 		React.JSX.IntrinsicElements[ItemsContainerComponent] extends React.DetailedHTMLProps<React.AnchorHTMLAttributes<infer T>, T>
 	// 			? T
 	// 			: HTMLElement
 	// 	) : HTMLElement;
@@ -189,7 +189,7 @@ declare function VirtualScroller<
 		// and it won't be considered a "breaking change" because it doesn't affect the javascript code.
 		AsComponent
 	>
-): JSX.Element;
+): React.JSX.Element;
 
 export default VirtualScroller;
 

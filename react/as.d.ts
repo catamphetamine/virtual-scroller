@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 // The following is an `as` property implementation
 // that was copy-pasted from https://www.benmvp.com/blog/polymorphic-react-components-typescript/
 //
@@ -7,8 +9,8 @@
 // "A more precise version of `React.ComponentPropsWithoutRef`".
 // It's not clear what exactly they meant by that.
 type PropsOf<
-	Component extends keyof JSX.IntrinsicElements | React.JSXElementConstructor<any>
-> = JSX.LibraryManagedAttributes<Component, React.ComponentPropsWithoutRef<Component>>
+	Component extends keyof React.JSX.IntrinsicElements | React.JSXElementConstructor<any>
+> = React.JSX.LibraryManagedAttributes<Component, React.ComponentPropsWithoutRef<Component>>
 //
 // Combines props with any additional props.
 type CombineProps<
