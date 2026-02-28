@@ -1,9 +1,12 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import px from './px.js'
 
 describe('utility/px', function() {
 	it('should truncate px values', function() {
-		px(0).should.equal('0px')
-		px(1).should.equal('1px')
-		px(1.2345).should.equal('1.23px')
+		expect(px(0)).to.equal('0px')
+		expect(px(1)).to.equal('1px')
+		expect(px(1.2345)).to.equal('1.23px')
 	})
 })

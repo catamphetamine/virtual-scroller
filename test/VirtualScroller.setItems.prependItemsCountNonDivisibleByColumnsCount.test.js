@@ -1,3 +1,6 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
@@ -107,9 +110,9 @@ describe('VirtualScroller', function() {
 		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
 		// Verify the errors that have been `throw`-n.
-		errors.length.should.equal(2)
-		errors[0].message.should.equal('[virtual-scroller] ~ Prepended items count 1 is not divisible by Columns Count 2 ~')
-		errors[1].message.should.equal('[virtual-scroller] Layout reset required')
+		expect(errors.length).to.equal(2)
+		expect(errors[0].message).to.equal('[virtual-scroller] ~ Prepended items count 1 is not divisible by Columns Count 2 ~')
+		expect(errors[1].message).to.equal('[virtual-scroller] Layout reset required')
 
 		// Stop listening to scroll events.
 		virtualScroller.stop()

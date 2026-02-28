@@ -57,11 +57,12 @@
     "rollup-plugin-terser": "^7.0.2"
   },
   "scripts": {
-    "test": "mocha --colors --bail --reporter spec --require ./test/setup.js \"source/**/*.test.js\" \"test/**/*.test.js\" --recursive",
+    "test": "mocha --bail --require ./test/globals.js \"source/**/*.test.js\" \"test/*.test.js\" \"test/!(exports)/**/*.test.js\"",
+    "test:exports": "mocha --bail \"test/exports/**/*.test.js\"",
     "test-coverage": "npm-run-all build:commonjs:clean build:commonjs build:commonjs:tests test-coverage:commonjs",
-    "test-coverage:commonjs": "node --experimental-json-modules node_modules/istanbul/lib/cli.js cover -x \"*.test.js\" -x \"commonjs/DOM/**/*.js\" -x \"react/DOM/**/*.js\" -x \"commonjs/utility/shallowEqual.js\" -x \"commonjs/utility/debounce.js\" -x \"commonjs/utility/debug.js\" node_modules/mocha/bin/_mocha -- --colors --reporter dot --require regenerator-runtime --require ./test/setup.js \"commonjs/**/*.test.js\" --recursive",
+    "test-coverage:commonjs": "instanbul cover -x \"*.test.js\" -x \"commonjs/DOM/**/*.js\" -x \"react/DOM/**/*.js\" -x \"commonjs/utility/shallowEqual.js\" -x \"commonjs/utility/debounce.js\" -x \"commonjs/utility/debug.js\" node_modules/mocha/bin/_mocha -- --colors --reporter dot --require regenerator-runtime --require ./test/globals.js \"commonjs/**/*.test.js\" --recursive",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
-    "build:commonjs:tests": "cross-env babel ./test/**/*.js --out-dir ./commonjs/test --source-maps --ignore \"test/exports.test.js\",\"test/VirtualScroller.js\",\"test/setup.js\"",
+    "build:commonjs:tests": "cross-env babel ./test/**/*.js --out-dir ./commonjs/test --source-maps --ignore \"test/exports.test.js\",\"test/VirtualScroller.js\",\"test/globals.js\"",
     "build:browser": "rollup --config rollup.config.mjs",
     "build:clean": "npm-run-all build:commonjs:clean build:es6:clean",
     "build:commonjs:clean": "rimraf ./commonjs/**/*",
@@ -71,7 +72,7 @@
     "build:es6": "cross-env BABEL_ENV=es6 babel ./source --out-dir ./modules --source-maps --ignore *.test.js",
     "build:es6:clean": "rimraf ./modules/**/*",
     "build": "npm-run-all build:clean build:commonjs build:es6 build:browser",
-    "prepublishOnly": "npm-run-all build test"
+    "prepublishOnly": "npm-run-all build test test:exports"
   },
   "repository": {
     "type": "git",

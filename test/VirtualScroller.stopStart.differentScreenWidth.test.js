@@ -1,3 +1,6 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
@@ -53,7 +56,7 @@ describe('VirtualScroller', function() {
 			afterItemsHeight: ITEM_HEIGHT * 4,
 			scrollableContainerWidth: SCREEN_WIDTH
 		}, () => {
-			virtualScroller.getFirstNonMeasuredItemIndex().should.equal(2)
+			expect(virtualScroller.getFirstNonMeasuredItemIndex()).to.equal(2)
 		})
 
 		// Layout has been re-calculated based on the actual item heights
@@ -110,13 +113,13 @@ describe('VirtualScroller', function() {
 		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
 		// Verify the errors that have been `throw`-n.
-		errors.length.should.equal(6)
-		errors[0].message.should.include('[virtual-scroller] Item index 0 height changed unexpectedly: it was 200 before, but now it is 400')
-		errors[1].message.should.include('[virtual-scroller] Item index 1 height changed unexpectedly: it was 200 before, but now it is 400')
-		errors[2].message.should.include('[virtual-scroller] Item index 2 height changed unexpectedly: it was 200 before, but now it is 400')
-		errors[3].message.should.include('[virtual-scroller] Item index 3 height changed unexpectedly: it was 200 before, but now it is 400')
-		errors[4].message.should.include('[virtual-scroller] Item index 4 height changed unexpectedly: it was 200 before, but now it is 400')
-		errors[5].message.should.include('[virtual-scroller] Item index 5 height changed unexpectedly: it was 200 before, but now it is 400')
+		expect(errors.length).to.equal(6)
+		expect(errors[0].message).to.include('[virtual-scroller] Item index 0 height changed unexpectedly: it was 200 before, but now it is 400')
+		expect(errors[1].message).to.include('[virtual-scroller] Item index 1 height changed unexpectedly: it was 200 before, but now it is 400')
+		expect(errors[2].message).to.include('[virtual-scroller] Item index 2 height changed unexpectedly: it was 200 before, but now it is 400')
+		expect(errors[3].message).to.include('[virtual-scroller] Item index 3 height changed unexpectedly: it was 200 before, but now it is 400')
+		expect(errors[4].message).to.include('[virtual-scroller] Item index 4 height changed unexpectedly: it was 200 before, but now it is 400')
+		expect(errors[5].message).to.include('[virtual-scroller] Item index 5 height changed unexpectedly: it was 200 before, but now it is 400')
 
 		// Stop listening to scroll events.
 		virtualScroller.stop()

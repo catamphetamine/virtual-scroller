@@ -1,3 +1,6 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
@@ -75,7 +78,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The average item height before resize.
-		virtualScroller.getAverageItemHeight().should.equal(PREV_ITEM_HEIGHT)
+		expect(virtualScroller.getAverageItemHeight()).to.equal(PREV_ITEM_HEIGHT)
 
 		// Resize.
 		await virtualScroller.triggerResize({
@@ -86,7 +89,7 @@ describe('VirtualScroller', function() {
 		})
 
 		// The average item height has changed after resize.
-		virtualScroller.getAverageItemHeight().should.equal(ITEM_HEIGHT)
+		expect(virtualScroller.getAverageItemHeight()).to.equal(ITEM_HEIGHT)
 
 		// Shows rows 3 to 5.
 		virtualScroller.verifyState({
@@ -141,7 +144,7 @@ describe('VirtualScroller', function() {
 
 		// Should have adjusted the scroll position due to clearing out
 		// some of the "before resize" item heights.
-		virtualScroller.getScrollY().should.equal(
+		expect(virtualScroller.getScrollY()).to.equal(
 			(PREV_ITEM_HEIGHT + PRERENDER_MARGIN - 1) + (ITEM_HEIGHT - PREV_ITEM_HEIGHT)
 		)
 

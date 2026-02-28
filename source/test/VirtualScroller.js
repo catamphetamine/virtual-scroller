@@ -1,3 +1,6 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import VirtualScroller from '../VirtualScroller.js'
 import Engine from './Engine.js'
 
@@ -151,7 +154,7 @@ export default class TestVirtualScroller {
 
 	verifyState(expectedState) {
 		// `mocha`/`chai`.
-		this.virtualScroller.getState().should.deep.include(expectedState)
+		expect(this.virtualScroller.getState()).to.deep.include(expectedState)
 	}
 
 	expectStateUpdate(stateUpdate, callback) {

@@ -1,6 +1,7 @@
-import Layout from './Layout.js'
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
 
-import Engine from './test/Engine.js'
+import Layout from './Layout.js'
 
 describe('Layout', function() {
 	it('should work', function() {
@@ -29,61 +30,61 @@ describe('Layout', function() {
 		})
 
 		// Initial render.
-		layout.getShownItemIndexes({
+		expect(layout.getShownItemIndexes({
 			itemsCount: items.length,
 			visibleAreaInsideTheList: {
 				top: 0,
 				bottom: SCREEN_HEIGHT
 			}
-		}).should.deep.equal({
+		})).to.deep.equal({
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 2
 		})
 
 		// The first item is almost hidden.
-		layout.getShownItemIndexes({
+		expect(layout.getShownItemIndexes({
 			itemsCount: items.length,
 			visibleAreaInsideTheList: {
 				top: SCREEN_HEIGHT + ITEM_HEIGHT - 1,
 				bottom: (SCREEN_HEIGHT + ITEM_HEIGHT - 1) + SCREEN_HEIGHT
 			}
-		}).should.deep.equal({
+		})).to.deep.equal({
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 4
 		})
 
 		// The first item is hidden.
-		layout.getShownItemIndexes({
+		expect(layout.getShownItemIndexes({
 			itemsCount: items.length,
 			visibleAreaInsideTheList: {
 				top: SCREEN_HEIGHT + ITEM_HEIGHT,
 				bottom: (SCREEN_HEIGHT + ITEM_HEIGHT) + SCREEN_HEIGHT
 			}
-		}).should.deep.equal({
+		})).to.deep.equal({
 			firstShownItemIndex: 1,
 			lastShownItemIndex: 4
 		})
 
 		// A new item at the bottom is almost visible.
-		layout.getShownItemIndexes({
+		expect(layout.getShownItemIndexes({
 			itemsCount: items.length,
 			visibleAreaInsideTheList: {
 				top: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 - SCREEN_HEIGHT * 2,
 				bottom: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 - SCREEN_HEIGHT
 			}
-		}).should.deep.equal({
+		})).to.deep.equal({
 			firstShownItemIndex: 1,
 			lastShownItemIndex: 4
 		})
 
 		// A new item at the bottom is visible.
-		layout.getShownItemIndexes({
+		expect(layout.getShownItemIndexes({
 			itemsCount: items.length,
 			visibleAreaInsideTheList: {
 				top: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 + 1 - SCREEN_HEIGHT * 2,
 				bottom: (ITEM_HEIGHT + VERTICAL_SPACING) * 5 + 1 - SCREEN_HEIGHT
 			}
-		}).should.deep.equal({
+		})).to.deep.equal({
 			firstShownItemIndex: 1,
 			lastShownItemIndex: 5
 		})
@@ -112,7 +113,7 @@ describe('Layout', function() {
 			getScrollableContainerHeight: () => scrollableContainer.height
 		})
 
-		layout.getLayoutUpdateForItemsDiff(
+		expect(layout.getLayoutUpdateForItemsDiff(
 			{
 				firstShownItemIndex: 3,
 				lastShownItemIndex: 5,
@@ -126,7 +127,7 @@ describe('Layout', function() {
 				itemsCount: 5 + 5 + items.length,
 				columnsCount: 1
 			}
-		).should.deep.equal({
+		)).to.deep.equal({
 			firstShownItemIndex: 5 + 3,
 			lastShownItemIndex: 5 + 5,
 			beforeItemsHeight: (5 + 3) * (ITEM_HEIGHT + VERTICAL_SPACING),
@@ -164,7 +165,7 @@ describe('Layout', function() {
 			errors.push(error)
 		}
 
-		layout.getLayoutUpdateForItemsDiff(
+		expect(layout.getLayoutUpdateForItemsDiff(
 			{
 				firstShownItemIndex: 3,
 				lastShownItemIndex: 5,
@@ -180,7 +181,7 @@ describe('Layout', function() {
 				shouldRestoreScrollPosition: true,
 				onResetGridLayout: () => shouldResetGridLayout = true
 			}
-		).should.deep.equal({
+		)).to.deep.equal({
 			firstShownItemIndex: 0,
 			lastShownItemIndex: 5 + 5,
 			beforeItemsHeight: 0,
@@ -191,10 +192,10 @@ describe('Layout', function() {
 		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
 		// Verify the errors that have been `throw`-n.
-		errors.length.should.equal(2)
-		errors[0].message.should.equal('[virtual-scroller] ~ Prepended items count 5 is not divisible by Columns Count 4 ~')
-		errors[1].message.should.equal('[virtual-scroller] Layout reset required')
+		expect(errors.length).to.equal(2)
+		expect(errors[0].message).to.equal('[virtual-scroller] ~ Prepended items count 5 is not divisible by Columns Count 4 ~')
+		expect(errors[1].message).to.equal('[virtual-scroller] Layout reset required')
 
-		shouldResetGridLayout.should.equal(true)
+		expect(shouldResetGridLayout).to.equal(true)
 	})
 })

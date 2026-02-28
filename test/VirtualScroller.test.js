@@ -1,3 +1,6 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
@@ -47,7 +50,7 @@ describe('VirtualScroller', function() {
 			afterItemsHeight: ITEM_HEIGHT * 4,
 			scrollableContainerWidth: SCREEN_WIDTH
 		}, () => {
-			virtualScroller.getFirstNonMeasuredItemIndex().should.equal(2)
+			expect(virtualScroller.getFirstNonMeasuredItemIndex()).to.equal(2)
 		})
 
 		// Layout has been re-calculated based on the actual item heights

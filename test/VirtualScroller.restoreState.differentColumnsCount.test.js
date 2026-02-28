@@ -1,3 +1,6 @@
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import VirtualScroller from './VirtualScroller.js'
 
 describe('VirtualScroller', function() {
@@ -48,9 +51,9 @@ describe('VirtualScroller', function() {
 		// Use the default behavior of just `throw`-ing such errors.
 		global.VirtualScrollerCatchError = undefined
 		// Verify the errors that have been `throw`-n.
-		errors.length.should.equal(2)
-		errors[0].message.should.equal('[virtual-scroller] ~ Columns Count changed from 1 to 2 ~')
-		errors[1].message.should.equal('[virtual-scroller] Reset Layout')
+		expect(errors.length).to.equal(2)
+		expect(errors[0].message).to.equal('[virtual-scroller] ~ Columns Count changed from 1 to 2 ~')
+		expect(errors[1].message).to.equal('[virtual-scroller] Reset Layout')
 
 		// Columns count mismatch — the state gets reset.
 		virtualScroller.verifyState({
