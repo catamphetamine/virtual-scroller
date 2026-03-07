@@ -1272,6 +1272,10 @@ For now, I don't see it as a bug that would be worth fixing. The user could just
 #####
 -->
 
+### Rendering items as `<table/>` rows
+
+When using a `<table/>` as an items container, all column widths must be strictly defined. Otherwise, the `<table/>` will automatically adjust column widths based on the content. This "intelligent" approach would've worked in classic HTML when all data is output at once, but it won't work with `virtual-scroller` when only a small subset of data it output at a given moment, and that subset constantly changes, resulting in column widths constantly changing, which not only looks weird but it also makes all row heights contantly change, causing a warning: `"Item index N height changed unexpectedly"`.
+
 ### Using `<tbody/>` in Internet Explorer
 
 Due to the [inherent limitations](https://gitlab.com/catamphetamine/virtual-scroller/-/issues/1) of the `<tbody/>` HTML tag, when a `<tbody/>` is used as a container for the list items, the `VirtualScroller` ["core"](#core) component has to use a workaround that is based on CSS variables, and CSS variables aren't supported in Internet Explorer. Because of that, using a `<tbody/>` as a list items container won't work in Internet Explorer. In that case, `VirtualScroller` will render itself in "bypass" mode, i.e. it will just render all items from the start, without any "virtualization".
