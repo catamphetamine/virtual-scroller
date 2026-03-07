@@ -728,6 +728,54 @@ The following `state` properties are only used for saving and restoring `Virtual
 
 #####
 
+<details>
+<summary>External State Management</summary>
+
+#####
+
+By default, `VirtualScroller` stores the `state` inside a `VirtualScroller` instance and updates it "synchronously".
+
+That works for most rendering environments, but in some exotic ones, like [React](reactjs.org), the environment itself needs to take over the state management in order to render it correctly.
+
+To support such cases, `VirtualScroller` provides the following instance methods:
+
+* `onRender()` — When using custom (external) state management, `.onRender()` function must be called every time right after the list has been "re-rendered" in response to a state update, including the initial "render".
+  * When "re-rendering" the list, it should always use the "latest" known state, i.e. the argument of the "latest" known `setState()` call, otherwise the list may not behave correctly.
+
+* `getInitialState(): object` — Returns the initial `VirtualScroller` state for the cases when a developer configures `VirtualScroller` for custom (external) state management.
+
+* `useState({ getState, setState, updateState? })` — Enables custom (external) state management. Expects the following parameters:
+
+  * `getState(): object` — A function that returns the current `VirtualScroller` `state`. `VirtualScroller` instance will call this function every time it needs to read anything from the `state`.
+
+  * `setState(newState: object)` — A function that sets the current `VirtualScroller` `state`. `VirtualScroller` instance will call this function every time it needs to update the `state`.
+    * This function must ensure that `virtualScroller.onRender()` function is called right after the new `state` has been "rendered".
+      * If the new `state` is going to be "rendered" "synchronously", i.e. immediately without any delay, then this `setState(newState)` function must first call the rendering function and then, immediately after, call `virtualScroller.onRender()` function.
+        * In such scenario, there'd really be no reason for anyone to resort to custom (external) state management because the same could be achieved by using the default state management and passing a custom "synchronous" `render()` function as a parameter.
+      * If the new `state` is going to be "rendered" "asynchronously", i.e. after a momentary delay, then this `setState(newState)` function must "schedule" such "asynchronous" "re-render".
+        * An example would be the React implementation of `VirtualScroller`: in React, any state updates are ["asynchronous"](https://reactjs.org/docs/state-and-lifecycle.html#state-updates-may-be-asynchronous) by design, i.e. state updates aren't "rendered" immediately and are instead queued and then "rendered" in a single compound state update for better performance.
+
+  * `updateState(stateUpdate: object)` — (optional) `setState()` function parameter could be replaced with `updateState()` function parameter. The only difference between the two is that `updateState()` gets called with just the portion of the state that is being updated while `setState()` gets called with the whole updated state object, so it's just a matter of developer's preference.
+
+For a usage example, see `./source/react/VirtualScroller.js`. The steps are:
+
+* Create a `VirtualScroller` instance.
+
+* Get the initial state value via `virtualScroller.getInitialState()`.
+
+* Initialize the externally managed state with the initial state value.
+
+* Define `getState()` and `updateState()` functions for reading or updating the externally managed state.
+
+* Call `virtualScroller.useState({ getState, updateState })`.
+
+* "Render" the list and call `virtualScroller.start()`.
+
+When using custom (external) state management, contrary to the default (internal) state management approach, the `render()` function parameter can't be passed to the `VirtualScroller` constructor. The reason is that `VirtualScroller` wouldn't know when exactly should it call such `render()` function because by design it can only be called right after the state has been updated, and `VirtualScroller` doesn't know when exactly does the state get updated, because state updates are done via an "external" `updateState()` function that could as well apply state updates "asynchronously" (after a short delay), like in React, rather than "synchronously" (immediately). That's why the `updateState()` function must re-render the list by itself, at any time it finds appropriate, and right after the list has been re-rendered, it must call `virtualScroller.onRender()`.
+</details>
+
+#####
+
 Code example:
 
 ```js
@@ -776,7 +824,7 @@ virtualScroller.stop()
   * `render(state, prevState)` — "re-renders" the list according to the new `state`.
     * The `render()` function can only be specified when it immediately re-renders the list. Sometimes, an immediate re-render is not possible. For example, in React framework, re-render is done "asynchronously", i.e. with a short delay. In such case, instead of specifying a `render` parameter when creating a `virtualScroller` instance, one should omit it and then call an instance method — `virtualScroller.useState({ getState, setState/updateState })` — where `getState` function returns the currently-rendered state and `setState/updateState` function is responsible for triggerring an eventual "re-render" of the list according to the new `state`.
 
-#### Options
+### Options
 
 <details>
 <summary>Available <code>options</code></summary>
@@ -839,7 +887,12 @@ virtualScroller.stop()
 
 <!-- * (alternative description) `getEstimatedItemHeight(): number` — By default, `<VirtualScroller/>` uses an average measured item height as an estimate for the height of any item that hasn't been rendered yet. This way, it is able to guess what will be the total height of the items below the current scroll position, which is required in order to display a correct scrollbar. However, if the application thinks that it has a better idea of what the average item height is gonna be, it could force `<VirtualScroller/>` to use that value instead of the average measured one. -->
 
-* `prerenderMarginRatio` — (currently unused) The list component renders not only the items that're currently visible but also the items that lie within some additional vertical distance (called "prerender margin") on top and bottom to account for future scrolling. This way, it doesn't have to recalculate the layout on each scroll event and is only forced to recalculate the layout if the user scrolls past the "prerender margin". Therefore, "prerender margin" is an optimization that "throttles" layout recalculation. By default, the "prerender margin" is equal to scrollable container height: this seems to be the most optimal value to account for "Page Up" / "Page Down" scrolling. This parameter is currently not customizable because the default value of `1` seems to work fine in all possible use cases.
+* `prerenderMarginRatio: number` — (currently unused) The list component renders not only the items that're currently visible but also the items that lie within some additional vertical distance (called "prerender margin") on top and bottom to account for future scrolling. This way, it doesn't have to recalculate the layout on each scroll event and is only forced to recalculate the layout if the user scrolls past the "prerender margin". Therefore, "prerender margin" is an optimization that "throttles" layout recalculation. By default, the "prerender margin" is equal to scrollable container height: this seems to be the most optimal value to account for "Page Up" / "Page Down" scrolling. This parameter is currently not customizable because the default value of `1` seems to work fine in all possible use cases.
+
+* `delayRecursiveRenderUntilNextTick: boolean` — Sometimes, a list has to be re-rendered multiple times in succession in order to finish rendering. For example, this happens at the initial render when item heights are unknown and the list has to first render and measure the first item and then immediately render a necessary amount of follow-up items. Another example when this happens is when there're a lot of items in the list and the user suddenly moves the scrollbar to the very end of the list. This causes the list to start gradually rendering all the items from top to bottom until it gets to the bottom of the list.
+  * Such immediate successive re-rendering may not necessarily be favored by all rendering engines out there. One example is React which really [doesn't like it](https://google.com/search?q=react+maximum+update+depth+exceeded) when one re-render is immediately followed up by another re-render. Passing `delayRecursiveRenderUntilNextTick: true` option to `VirtualScroller` constructor resolves the issue by forcing any successive re-render to not be immediate but rather happen after a momentary delay, i.e. "at next tick".
+  * Not specifying a `delayRecursiveRenderUntilNextTick` option will enable the default "intelligent" behavior when it performs successive re-renders immediately until it starts freezing the application for too long for it to become physically noticeable, at which point it breaks the loop by performing the next successive re-render after a momentary delay, i.e. "at next tick".
+    * Such behavior is most convenient and reasonable unless there's a specific requirement to always stay "synchronous" and not interfere with the execution flow in any way, which is usually when running unit tests for the component. In such cases, the default "intelligent" behavior could be disabled by passing `delayRecursiveRenderUntilNextTick: false` option to `VirtualScroller` constructor.
 </details>
 
 #####
@@ -847,7 +900,7 @@ virtualScroller.stop()
 <details>
 <summary>Instance methods</summary>
 
-#####
+### Instance methods
 
 * `start()` — Performs an initial render of the `VirtualScroller` and starts listening to scroll events.
 
@@ -857,38 +910,6 @@ virtualScroller.stop()
 
 * `setItems(newItems: any[], options: object?)` — Updates `VirtualScroller` `items`. For example, it can be used to prepend or append new items to the list. See [Updating Items](#updating-items) section for more details. Available options:
   * `preserveScrollPositionOnPrependItems: boolean` — Set to `true` to enable "restore scroll position after prepending new items" feature (should be used when implementing a "Show previous items" button).
-
-#### Custom (External) State Management
-
-A developer might prefer to use custom (external) state management rather than the default one. That might be the case when a certain high-order `VirtualScroller` implementation comes with a specific state management paradigm, like in React. In such case, `VirtualScroller` provides the following instance methods:
-
-* `onRender()` — When using custom (external) state management, `.onRender()` function must be called every time right after the list has been "rendered" (including the initial render). The list should always "render" only with the "latest" state where the "latest" state is defined as the argument of the latest `setState()` call. Otherwise, the component may not work correctly.
-
-* `getInitialState(): object` — Returns the initial `VirtualScroller` state for the cases when a developer configures `VirtualScroller` for custom (external) state management.
-
-* `useState({ getState, setState, updateState? })` — Enables custom (external) state management.
-
-  * `getState(): object` — Returns the externally managed `VirtualScroller` `state`.
-
-  * `setState(newState: object)` — Sets the externally managed `VirtualScroller` `state`. Must call `.onRender()` right after the updated `state` gets "rendered". A higher-order `VirtualScroller` implementation could either "render" the list immediately in its `setState()` function, in which case it would be better to use the default state management instead and pass a custom `render()` function, or the `setState()` function could "schedule" an "asynchronous" "re-render", like the React implementation does, in which case such `setState()` function would be called an ["asynchronous"](https://reactjs.org/docs/state-and-lifecycle.html#state-updates-may-be-asynchronous) one, meaning that state updates aren't "rendered" immediately and are instead queued and then "rendered" in a single compound state update for better performance.
-
-  * `updateState(stateUpdate: object)` — (optional) `setState()` parameter could be replaced with `updateState()` parameter. The only difference between the two is that `updateState()` gets called with just the portion of the state that is being updated while `setState()` gets called with the whole updated state object, so it's just a matter of preference.
-
-For a usage example, see `./source/react/VirtualScroller.js`. The steps are:
-
-* Create a `VirtualScroller` instance.
-
-* Get the initial state value via `virtualScroller.getInitialState()`.
-
-* Initialize the externally managed state with the initial state value.
-
-* Define `getState()` and `updateState()` functions for reading or updating the externally managed state.
-
-* Call `virtualScroller.useState({ getState, updateState })`.
-
-* "Render" the list and call `virtualScroller.start()`.
-
-When using custom (external) state management, contrary to the default (internal) state management approach, the `render()` function parameter can't be passed to the `VirtualScroller` constructor. The reason is that `VirtualScroller` wouldn't know when exactly should it call such `render()` function because by design it can only be called right after the state has been updated, and `VirtualScroller` doesn't know when exactly does the state get updated, because state updates are done via an "external" `updateState()` function that could as well apply state updates "asynchronously" (after a short delay), like in React, rather than "synchronously" (immediately). That's why the `updateState()` function must re-render the list by itself, at any time it finds appropriate, and right after the list has been re-rendered, it must call `virtualScroller.onRender()`.
 
 #### "Advanced" (rarely used) instance methods
 
@@ -1274,7 +1295,22 @@ For now, I don't see it as a bug that would be worth fixing. The user could just
 
 ### Rendering items as `<table/>` rows
 
-When using a `<table/>` as an items container, all column widths must be strictly defined. Otherwise, the `<table/>` will automatically adjust column widths based on the content. This "intelligent" approach would've worked in classic HTML when all data is output at once, but it won't work with `virtual-scroller` when only a small subset of data it output at a given moment, and that subset constantly changes, resulting in column widths constantly changing, which not only looks weird but it also makes all row heights contantly change, causing a warning: `"Item index N height changed unexpectedly"`.
+When using a `<table/>` as an items container, all column widths must be strictly defined. Otherwise, the `<table/>` will automatically adjust column widths based on the content. This "intelligent" approach would've worked in classic HTML when all data is output at once, but it won't work with `virtual-scroller` when only a small subset of data is output at a given moment, and that subset constantly changes, resulting in column widths constantly changing, which not only looks weird but it also makes all row heights contantly change, causing a warning: `"Item index N height changed unexpectedly"`.
+
+When strictly defining `<table/>` column widths, just setting `width` on `<td/>` and `<th/>` elements won't really disable the real-time automatic adjustment of column widths based on the content. And even adding `max-width` and `overflow` CSS properties won't fix that. The key is to set `table-layout: fixed` on the `<table/>`. This forces the `<table/>` honor specified `width`s and enables `overflow` behavior in cells. The total width for the `<table/>` must also be defined for that to work.
+
+```css
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+table td, table th {
+  width: 10%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+```
 
 ### Using `<tbody/>` in Internet Explorer
 

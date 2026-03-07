@@ -1,5 +1,12 @@
 <!-- `virtual-scroller`: in `.updateItems()` handle a case when `items.length` is the same, in which case find different items and if those items are rendered then maybe update them on screen and update their height, if the items are past rendered then maybe just discard all item heights past rendered, if the items are before rendered then maybe ignore and it will jump on scroll up which is kinda acceptable. -->
 
+1.16.4 / 08.03.2026
+===================
+
+* Fixed freezing of the UI when rendering a very large list of items and the user suddenly moves the scrollbar to the end of the list. Now it doesn't freeze the UI because it "breaks up" such large re-render into smaller parts each happening "at next tick".
+
+* `delayRecursiveRenderUntilNextTick: boolean` option of the "core" component is now public. It is used in React component implementation.
+
 1.16.0 / 26.01.2026
 ===================
 

@@ -92,7 +92,8 @@ export default class TestVirtualScroller {
 		this.virtualScroller = new VirtualScroller(getItemsContainerElement, items, {
 			scrollableContainer: scrollableContainerElement,
 			engine: Engine,
-			_waitForScrollingToStop: false,
+			_delayUnnecessaryRerenderUntilStopsScrolling: false,
+			delayRecursiveRenderUntilNextTick: false,
 			getItemId,
 			getColumnsCount,
 			state: initialState,

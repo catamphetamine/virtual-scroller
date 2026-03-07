@@ -36,7 +36,7 @@ export default function useVirtualScroller({
 			getItemsContainerElement,
 			items,
 			{
-				_useTimeoutInRenderLoop: true,
+				delayRecursiveRenderUntilNextTick: true,
 				// `estimatedItemHeight` is deprecated, use `getEstimatedItemHeight()` instead.
 				estimatedItemHeight,
 				getEstimatedItemHeight,

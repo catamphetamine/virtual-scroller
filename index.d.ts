@@ -48,6 +48,8 @@ interface ScrollableContainerArgument {
 	getWidth(): number;
 }
 
+// "Common" options shared by the "core" component and its implementations
+// like React Virtual Scroller or DOM Virtual Scroller.
 export interface VirtualScrollerCommonOptions<Item, ItemState> {
 	bypass?: boolean;
 	onStateChange?(newState: State<Item, ItemState>): void;
@@ -63,10 +65,12 @@ export interface VirtualScrollerCommonOptions<Item, ItemState> {
 	getColumnsCount?(scrollableContainer: ScrollableContainerArgument): number;
 }
 
+// "Core" component options.
 interface Options<Element, Item, ItemState> extends VirtualScrollerCommonOptions<Item, ItemState> {
 	state?: State<Item, ItemState>;
 	render?(state: State<Item, ItemState>, previousState?: State<Item, ItemState>): void;
 	engine?: Engine<Element>;
+	delayRecursiveRenderUntilNextTick?: boolean;
 	// `scrollableContainer` is deprecated, use `getScrollableContainer()` instead.
 	scrollableContainer?: Element;
 	getScrollableContainer?(): Element;

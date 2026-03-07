@@ -204,11 +204,16 @@ export default function() {
 		}
 
 		if (layoutUpdateReason) {
+			// Update layout.
 			updateStateRightAfterRender.call(this, {
 				stateUpdate,
 				reason: layoutUpdateReason
 			})
 		} else if (stateUpdate) {
+			// Don't update layout. Just update some state.
+			// `stateUpdate` isn't supposed to affect the layout in any way
+			// because it doesn't contain any properties that affect the rendering of the list.
+			// I.e. it doesn't contain properties like `beforeItemsHeight` or `afterItemsHeight`, etc.
 			this.updateState(stateUpdate)
 		} else {
 			log('~ Finished Layout ~')
@@ -327,12 +332,25 @@ export default function() {
 		reason,
 		stateUpdate
 	}) {
-		// In React, `setTimeout()` is used to prevent a React error:
+		// React doesn't like it when `setState()` is called during render:
+		//
 		// "Maximum update depth exceeded.
 		//  This can happen when a component repeatedly calls
 		//  `.updateState()` inside `componentWillUpdate()` or `componentDidUpdate()`.
 		//  React limits the number of nested updates to prevent infinite loops."
-		if (this._useTimeoutInRenderLoop) {
+		//
+		// To work around that, in React it always prefers a delayed state update
+		// over an immediate state update right after a prevous state update.
+		//
+		// Another case when it should introduce an artificial momentary delay
+		// in a chain of immediate "syncrhonous" re-renders is when such chain
+		// of re-renders has been freezing the UI for far too long.
+		//
+		if (this._delayRecursiveRenderUntilNextTick || (
+			this._delayRecursiveRenderUntilNextTick !== false &&
+			this._stateUpdateSequenceStartedAt !== undefined &&
+			Date.now() - this._stateUpdateSequenceStartedAt > UNINTERRUPTED_RECURSIVE_STATE_UPDATE_SEQUENCE_MAX_ALLOWED_DURATION
+		)) {
 			// Cancel a previously scheduled re-layout.
 			stateUpdate = this.cancelLayoutTimer({ stateUpdate })
 			// Schedule a new re-layout.
@@ -396,3 +414,11 @@ export default function() {
 		}
 	}
 }
+
+const FPS = 60 // though 120 fps is common on smartphones these days.
+const FRAME_DURATION = 1000 / FPS // in milliseconds
+
+// Allow recursive "synchronous" re-renders
+// until they start "blocking" the "main thread"
+// for so long that it starts causing "frame drops".
+const UNINTERRUPTED_RECURSIVE_STATE_UPDATE_SEQUENCE_MAX_ALLOWED_DURATION = FRAME_DURATION

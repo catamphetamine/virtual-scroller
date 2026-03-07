@@ -50,8 +50,8 @@ export default function VirtualScrollerConstructor(
 		onItemInitialRender,
 		// `onItemFirstRender(i)` is deprecated, use `onItemInitialRender(item)` instead.
 		onItemFirstRender,
-		_useTimeoutInRenderLoop,
-		_waitForScrollingToStop,
+		delayRecursiveRenderUntilNextTick,
+		_delayUnnecessaryRerenderUntilStopsScrolling,
 		engine
 	} = options
 
@@ -136,7 +136,7 @@ export default function VirtualScrollerConstructor(
 	//  This can happen when a component repeatedly calls
 	//  `.setState()` inside `componentWillUpdate()` or `componentDidUpdate()`.
 	//  React limits the number of nested updates to prevent infinite loops."
-	this._useTimeoutInRenderLoop = _useTimeoutInRenderLoop
+	this._delayRecursiveRenderUntilNextTick = delayRecursiveRenderUntilNextTick
 
 	// `_getItemId()` function is used in `_getItemIndexByItemOrIndex()` function.
 	this._getItemId = getItemId
@@ -200,7 +200,7 @@ export default function VirtualScrollerConstructor(
 		measureItemsBatchSize,
 		initialScrollPosition,
 		onScrollPositionChange,
-		waitForScrollingToStop: _waitForScrollingToStop
+		delayUnnecessaryRerenderUntilStopsScrolling: _delayUnnecessaryRerenderUntilStopsScrolling
 	})
 
 	if (state) {
@@ -219,7 +219,7 @@ function createHelpers({
 	measureItemsBatchSize,
 	initialScrollPosition,
 	onScrollPositionChange,
-	waitForScrollingToStop
+	delayUnnecessaryRerenderUntilStopsScrolling
 }) {
 	this.itemsContainer = this.engine.createItemsContainer(
 		this.getItemsContainerElement
@@ -326,7 +326,7 @@ function createHelpers({
 		isInBypassMode: this.isInBypassMode,
 		scrollableContainer: this.scrollableContainer,
 		itemsContainer: this.itemsContainer,
-		waitForScrollingToStop,
+		delayUnnecessaryRerenderUntilStopsScrolling,
 		onScroll: ({ delayed } = {}) => {
 			this.onUpdateShownItemIndexes({
 				reason: delayed ? LAYOUT_REASON.STOPPED_SCROLLING : LAYOUT_REASON.SCROLL
@@ -350,7 +350,7 @@ function createHelpers({
 	if (this.engine.watchListTopOffset) {
 		this.listTopOffsetWatcher = this.engine.watchListTopOffset({
 			getListTopOffset: this.getListTopOffsetInsideScrollableContainer,
-			onListTopOffsetChange: ({ reason }) => this.onUpdateShownItemIndexes({
+			onListTopOffsetChange: () => this.onUpdateShownItemIndexes({
 				reason: LAYOUT_REASON.TOP_OFFSET_CHANGED
 			})
 		})

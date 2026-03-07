@@ -1,19 +1,19 @@
-// For some weird reason, in Chrome, `setTimeout()` would lag up to a second (or more) behind.
-// Turns out, Chrome developers have deprecated `setTimeout()` API entirely without asking anyone.
-// Replacing `setTimeout()` with `requestAnimationFrame()` can work around that Chrome bug.
-// https://github.com/bvaughn/react-virtualized/issues/722
-import { setTimeout, clearTimeout } from 'request-animation-frame-timeout'
-
 import log, { warn, isDebug, reportError } from './utility/debug.js'
-import { LAYOUT_REASON } from './Layout.js'
+import { scheduleOnNextTick, unscheduleOnNextTick } from './utility/scheduleOnNextTick.js'
 
+import { LAYOUT_REASON } from './Layout.js'
 import ItemNotRenderedError from './ItemNotRenderedError.js'
 
 export default function() {
 	this.onUpdateShownItemIndexes = ({ reason, stateUpdate }) => {
-		// In case of "don't do anything".
+		// In case of "don't perform this particular re-layout
+		// because a more-priority one is already scheduled".
 		const skip = () => {
 			if (stateUpdate) {
+				// Don't update layout. Just update some state.
+				// `stateUpdate` isn't supposed to affect the layout in any way
+				// because it doesn't contain any properties that affect the rendering of the list.
+				// I.e. it doesn't contain properties like `beforeItemsHeight` or `afterItemsHeight`, etc.
 				this.updateState(stateUpdate)
 			}
 		}
@@ -21,13 +21,26 @@ export default function() {
 		// If new `items` have been set and are waiting to be applied,
 		// or if the viewport width has changed requiring a re-layout,
 		// then temporarily stop all other updates like "on scroll" updates.
-		// This prevents `state` being inconsistent, because, for example,
-		// both `setItems()` and this function could update `VirtualScroller` state
-		// and having them operate in parallel could result in incorrectly calculated
-		// `beforeItemsHeight` / `afterItemsHeight` / `firstShownItemIndex` /
-		// `lastShownItemIndex`, because, when operating in parallel, this function
-		// would have different `items` than the `setItems()` function, so their
-		// results could diverge.
+		//
+		// This prevents `state` from becoming inconsistent, because several
+		// "contenders" (layout reasons) could be attempting to update
+		// `VirtualScroller` state in parallel between two successive renders.
+		//
+		// For example, both `VirtualScroller.setItems()` and `VirtualScroller.scroll.onScroll()`
+		// "contenders" could be attempting to update `VirtualScroller` state in parallel,
+		// and the layout calculated by one of them would overwrite the layout calculated by another.
+		//
+		// Which one should have the priority in such case then?
+		// In this specific example, `VirtualScroller.setItems()` should be the one
+		// because only it knows the correct new `items` whereas other "contenders"
+		// have the old stale `items`.
+		//
+		// Another example of a "contender" that should have a priority is
+		// "on list width has changed" handler because only it has access
+		// to the correct new width of the list rather than the old stale width.
+		//
+		// So in these two "priority" cases any other re-layout should be ignored.
+		//
 		if (this.newItemsWillBeRendered || this.widthHasChanged || this._isResizing) {
 			return skip()
 		}
@@ -37,11 +50,12 @@ export default function() {
 			return skip()
 		}
 
-		// Cancel a "re-layout when user stops scrolling" timer.
+		// Cancel a scheduled "re-layout when user stops scrolling" timer
+		// because a re-layout will be performed here now.
 		this.scroll.cancelScheduledLayout()
 
-		// Cancel a re-layout that is scheduled to run at the next "frame",
-		// because a re-layout will be performed right now.
+		// Cancel a scheduled re-layout that is scheduled to run at the next "frame",
+		// because a re-layout will be performed here now.
 		stateUpdate = this.cancelLayoutTimer({ stateUpdate })
 
 		// Perform a re-layout.
@@ -126,7 +140,24 @@ export default function() {
 		if (layoutDuration < SLOW_LAYOUT_DURATION) {
 			// log('Calculated in', layoutDuration, 'ms')
 		} else {
-			warn('Layout calculated in', layoutDuration, 'ms')
+			// Getting this warning would mean that for a given (large) count of items,
+			// calculating `beforeItemsHeight` or `afterItemsHeight` requires too much time
+			// in order to iterate over all not-currently-visible items to add up their heights.
+			//
+			// Because layout calculation is a blocking procedure, it "freezes" the application
+			// for a given amount of milliseconds. If the amount of those milliseconds is longer
+			// than 16ms, frames are being dropped in a 60fps scenario.
+			// Modern phones even use 120fps as a baseline, so the timeframe requirement
+			// gets even more strict.
+			//
+			// What could be a way of dealing with this?
+			//
+			// * The code could cache clustered item heights in order to perform less add-up operations.
+			//   For example, the code could cache the total height of items 1..100, 101..200, etc.
+			//   Then 1..1000, 1001..2000, etc. Then 1..10000, 10001..20000, etc. So the clusters
+			//   would just get progressively larger as more `items` are added.
+			//
+			warn('Layout calculation time too high:', layoutDuration, 'ms')
 		}
 		if (this.getColumnsCount()) {
 			log('Columns count', this.getColumnsCount())
@@ -135,7 +166,7 @@ export default function() {
 		log('Last shown item index', lastShownItemIndex)
 		log('Before items height', beforeItemsHeight)
 		log('After items height (actual or estimated)', afterItemsHeight)
-		log('Average item height (used for estimated after items height calculation)', this.getAverageItemHeight())
+		log('Average item height (will be used to calculate estimated "after items height")', this.getAverageItemHeight())
 		if (isDebug()) {
 			log('Item heights', this.getState().itemHeights.slice())
 			log('Item states', this.getState().itemStates.slice())
@@ -425,7 +456,7 @@ export default function() {
 		if (previousHeight === undefined) {
 			// There're valid cases when the item still hasn't been measured and `onItemHeightDidChange(item)`
 			// function was called for it. That's because measuring items is only done after the `VirtualScroller`
-			// has `start()`ed. But it's not neccessarily `start()`ed by the time it has been rendered (mounted).
+			// has `start()`ed. But it's not necessarily `start()`ed by the time it has been rendered (mounted).
 			// For example, the React component `<VirtualScroller/>` provides an `readyToStart={false}` property
 			// in order to let the application finish initializing itself before starting the `VirtualScroller`.
 			// So there're legitimate cases when a `VirtualScroller` is already rendered but is not `start()`ed yet.
@@ -572,7 +603,7 @@ export default function() {
 
 	this.cancelLayoutTimer = ({ stateUpdate }) => {
 		if (this.layoutTimer) {
-			clearTimeout(this.layoutTimer)
+			unscheduleOnNextTick(this.layoutTimer)
 			this.layoutTimer = undefined
 			// Merge state updates.
 			if (stateUpdate || this.layoutTimerStateUpdate) {
@@ -590,15 +621,20 @@ export default function() {
 
 	this.scheduleLayoutTimer = ({ reason, stateUpdate }) => {
 		this.layoutTimerStateUpdate = stateUpdate
-		this.layoutTimer = setTimeout(() => {
+		this.layoutTimer = scheduleOnNextTick(() => {
 			this.layoutTimerStateUpdate = undefined
 			this.layoutTimer = undefined
 			this.onUpdateShownItemIndexes({
 				reason,
 				stateUpdate
 			})
-		}, 0)
+		})
 	}
 }
 
-const SLOW_LAYOUT_DURATION = 15 // in milliseconds.
+const FPS = 60 // though 120 fps is common on smartphones these days.
+const FRAME_DURATION = 1000 / FPS // in milliseconds
+
+// Layout is considered "too slow" when it "blocks" the "main thread"
+// for so long that it starts causing "frame drops".
+const SLOW_LAYOUT_DURATION = FRAME_DURATION

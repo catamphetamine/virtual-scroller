@@ -1,5 +1,6 @@
 import VirtualScrollerConstructor from './VirtualScroller.constructor.js'
 import { LAYOUT_REASON } from './Layout.js'
+import { unscheduleOnNextTick } from './utility/scheduleOnNextTick.js'
 import log, { warn, reportError } from './utility/debug.js'
 
 import {
@@ -184,7 +185,14 @@ export default class VirtualScroller {
 		}
 
 		// Cancel any scheduled layout.
+		// Any pending state update is discarded here.
 		this.cancelLayoutTimer({})
+
+		// Cancel any scheduled "recursive re-render duration" timer.
+		if (this._stateUpdateSequenceStartedAtResetTimer !== undefined) {
+			unscheduleOnNextTick(this._stateUpdateSequenceStartedAtResetTimer)
+			this._stateUpdateSequenceStartedAtResetTimer = undefined
+		}
 	}
 
 	hasToBeStarted() {

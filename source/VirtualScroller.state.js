@@ -2,6 +2,7 @@ import fillArray from './utility/fillArray.js'
 import log, { warn, isDebug, reportError } from './utility/debug.js'
 import { cleanUpBeforeResizeState } from './BeforeResize.js'
 import getStateSnapshot from './utility/getStateSnapshot.js'
+import { scheduleOnNextTick } from './utility/scheduleOnNextTick.js'
 
 // There're three main places where state is updated:
 //
@@ -82,6 +83,43 @@ export default function createStateHelpers({
 		if (isDebug()) {
 			log('~ Set state ~')
 			log(getStateSnapshot(stateUpdate))
+		}
+
+		// Start tracking the time that elapsed since the start of a state update,
+		// because by default a state update causes a "syncrhonous" re-render
+		// which could, in turn, require an immediate follow-up re-render,
+		// which could again require an immediate follow-up re-render, etc,
+		// causing a "synchronous" re-render recursion, potentially freezing the UI.
+		//
+		// An avalanche of immediate follow-up re-renders usually happens
+		// when there're a lot of items in the list — hundreds of thousands —
+		// and the user suddenly scrolls down at the very bottom of the list
+		// causing a long chain of re-renders when the list starts gradually rendering
+		// all the items from top to bottom until it gets to the bottom of the list.
+		//
+		// In order to prevent freezing the UI in such cases, and to provide the user
+		// with the ability to break away from this kind of recursion, `VirtualScroller`
+		// has to introduce a momentary delay between successive "synchronous" re-renders.
+		//
+		// At the same time, it should only introduce such artificial momentary delay
+		// when it's really required in order to not hinder the list's performance unnecessarily.
+		//
+		// A kind of "golen mean" then is to measure the time that a succession of
+		// "synchronous" re-renders has already been going for, and interrupt it
+		// with a momentary delay if it has been going on for too long.
+		// How much's too long? Well, it could be a duration of a single frame.
+		//
+		// P.S. If this `.updateState()` call was initiated from another `.updateState()` call,
+		// i.e. if it was done recursively, then the time tracking will have already been started.
+		//
+		if (this._stateUpdateSequenceStartedAt === undefined) {
+			this._stateUpdateSequenceStartedAt = Date.now()
+			// Automatically reset `this._stateUpdateSequenceStartedAt` variable on "next tick",
+			// i.e. outside of a "synchronous" recursion.
+			this._stateUpdateSequenceStartedAtResetTimer = scheduleOnNextTick(() => {
+				this._stateUpdateSequenceStartedAtResetTimer = undefined
+				this._stateUpdateSequenceStartedAt = undefined
+			})
 		}
 
 		// Ensure that a non-initial `stateUpdate` can only contain an `items`

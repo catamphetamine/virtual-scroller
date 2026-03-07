@@ -21,7 +21,7 @@ export default class Scroll {
 		getListTopOffset,
 		getPrerenderMargin,
 		onScrolledToTop,
-		waitForScrollingToStop
+		delayUnnecessaryRerenderUntilStopsScrolling
 	}) {
 		this.isInBypassMode = isInBypassMode
 		this.scrollableContainer = scrollableContainer
@@ -36,7 +36,7 @@ export default class Scroll {
 		this.getListTopOffset = getListTopOffset
 		this.getPrerenderMargin = getPrerenderMargin
 		this.onScrolledToTop = onScrolledToTop
-		this.waitForScrollingToStop = waitForScrollingToStop
+		this.delayUnnecessaryRerenderUntilStopsScrolling = delayUnnecessaryRerenderUntilStopsScrolling
 	}
 
 	start() {
@@ -151,22 +151,20 @@ export default class Scroll {
 				)
 			)
 
-		if (forceUpdate) {
+		if (forceUpdate || this.delayUnnecessaryRerenderUntilStopsScrolling === false) {
 			log('The user has scrolled far enough: perform a re-layout')
-		} else {
-			log('The user is scrolling: perform a re-layout when they stop scrolling')
-		}
-
-		if (forceUpdate || this.waitForScrollingToStop === false) {
 			return this.onScroll()
 		}
 
+		log('The user is scrolling: perform a re-layout when they stop scrolling')
+
 		// If a re-layout is already scheduled at the next "frame",
-		// don't schedule a "re-layout when user stops scrolling" timer.
+		// don't schedule a timer to wait for the user to stop scrolling.
 		if (this.isImmediateLayoutScheduled()) {
 			return
 		}
 
+		// Schedule a timer to wait for the user to stop scrolling.
 		this.shouldCallOnScrollListenerWhenStopsScrolling = true
 		this.watchOnStopScrolling()
 	}
